@@ -1,0 +1,522 @@
+    /* ── Layout ── */
+    .notif-page-wrap { min-height:100vh; display:flex; flex-direction:column; }
+    .notif-page-main {
+      max-width: 860px; margin: 40px auto;
+      padding: 0 20px 80px; width: 100%;
+      position: relative; z-index: 1;
+    }
+
+    /* دکمه بازگشت یکپارچه در style.css تعریف شده (.btn-back) */
+
+    /* ── Page head ── */
+    .notif-page-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .notif-page-head h2 {
+      font-family: 'HeadingFont', 'DashboardFont', sans-serif;
+      font-size: 20px; font-weight: 700;
+      color: var(--color-text-primary);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .notif-page-head h2 svg { width: 22px; height: 22px; color: var(--color-accent); }
+    .notif-total-badge {
+      font-size: 12px; font-weight: 600;
+      background: var(--color-accent-bg); color: var(--color-accent);
+      border: 1px solid var(--color-accent-border);
+      border-radius: 20px; padding: 2px 10px;
+    }
+
+    /* ── Search ── */
+    .notif-perpage { position: relative; display: flex; align-items: center; }
+    .notif-perpage select {
+      appearance: none; -webkit-appearance: none; -moz-appearance: none;
+      font-family: 'DashboardFont', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--color-text-secondary); background: var(--color-bg-card);
+      border: 1.5px solid var(--color-border); border-radius: 40px;
+      padding: 0 16px 0 34px; height: 44px; cursor: pointer; min-width: 64px;
+      direction: rtl; text-align: right;
+      transition: border-color var(--transition), color var(--transition), box-shadow var(--transition);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: left 14px center;
+    }
+    .notif-perpage select:hover  { border-color: var(--color-accent); }
+    .notif-perpage select:focus  {
+      outline: none; border-color: var(--color-accent);
+      color: var(--color-text-primary);
+      box-shadow: 0 0 0 2px rgba(var(--field-focus-rgb),.10), 0 0 9px rgba(var(--field-focus-rgb),.12);
+    }
+
+    /* ── دکمه فیلتر پیشرفته ── */
+    .notif-adv-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
+      height: 44px; padding: 0 16px; border-radius: 40px;
+      border: 1.5px solid var(--color-border); background: var(--color-bg-card);
+      color: var(--color-text-secondary); cursor: pointer; white-space: nowrap;
+      transition: border-color var(--transition), color var(--transition),
+                  background var(--transition), transform var(--transition-bounce);
+    }
+    .notif-adv-toggle:hover  { border-color: var(--color-accent); color: var(--color-accent); }
+    .notif-adv-toggle:active { transform: scale(.97); }
+    .notif-adv-toggle.active {
+      border-color: var(--color-accent); color: var(--color-accent);
+      background: var(--color-accent-bg);
+    }
+    .notif-adv-toggle svg { flex-shrink: 0; }
+
+    /* ── پنل جستجوی پیشرفته ── */
+    .notif-adv-panel {
+      flex-basis: 100%; order: 99;
+      display: none; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+      margin-top: 4px; padding: 18px;
+      /* پس‌زمینه تورفته تا ورودی‌های bg-card روی آن برجسته شوند */
+      background: var(--color-bg-primary);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: inset 0 1px 3px rgba(15,23,42,.04);
+    }
+    .notif-adv-panel.open { display: flex; }
+    .notif-adv-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
+    .notif-adv-field label {
+      font-size: 12px; font-weight: 600; color: var(--color-text-secondary);
+    }
+    .notif-adv-field input,
+    .notif-adv-field select {
+      font-family: 'DashboardFont', sans-serif; font-size: 14px;
+      height: 44px; padding: 0 16px;
+      border: 1.5px solid var(--color-border); border-radius: 40px;
+      background: var(--color-bg-card); color: var(--color-text-primary);
+      outline: none; width: 100%;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+    .notif-adv-field input:focus,
+    .notif-adv-field select:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(var(--field-focus-rgb),.10), 0 0 9px rgba(var(--field-focus-rgb),.12);
+    }
+    .notif-adv-field select {
+      appearance: none; -webkit-appearance: none; -moz-appearance: none; cursor: pointer;
+      padding-left: 34px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: left 14px center;
+    }
+    /* چورون select و آیکن تقویم در حالت تاریک — هماهنگ با تم */
+    [data-theme="dark"] .notif-perpage select,
+    [data-theme="dark"] .notif-adv-field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    }
+    /* کنترل بومی تاریخ هماهنگ با تم سایت (نه تنظیم سیستم‌عامل) تا آیکن و متن در هر دو حالت دیده شوند */
+    .notif-adv-field input.adv-date { color-scheme: light; }
+    [data-theme="dark"] .notif-adv-field input.adv-date { color-scheme: dark; }
+    .adv-date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .85; }
+    .adv-date::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    /* تقویم سفارشی در پنل فیلتر: trigger هم‌شکل بقیه کنترل‌های pill این پنل (radius/ارتفاع) */
+    .notif-adv-field .tdp-trigger {
+      height: 44px; min-height: 44px; padding: 0 18px;
+      border-width: 1.5px; border-radius: 40px;
+    }
+    .notif-adv-field .tdp.open .tdp-trigger {
+      box-shadow: 0 0 0 2px rgba(var(--field-focus-rgb),.10), 0 0 9px rgba(var(--field-focus-rgb),.12);
+    }
+    .notif-adv-actions { display: flex; gap: 10px; align-items: center; }
+    .notif-adv-apply {
+      font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
+      height: 44px; padding: 0 20px; border-radius: 40px;
+      border: none; background: var(--color-accent); color: #fff; cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--transition), transform var(--transition-bounce);
+    }
+    .notif-adv-apply:hover  { background: var(--color-accent-dark); }
+    .notif-adv-apply:active { transform: scale(.97); }
+    .notif-adv-reset {
+      font-size: 13px; font-weight: 600; color: var(--color-text-muted);
+      text-decoration: none; white-space: nowrap;
+      transition: color var(--transition);
+    }
+    .notif-adv-reset:hover { color: var(--color-accent); }
+
+    /* ── dropdown سفارشی (radius و رنگ لیست هماهنگ با پروژه؛ جایگزین لیست بومی select) ── */
+    .cselect { position: relative; display: inline-flex; }
+    .cselect-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0; }
+    .cselect-btn {
+      font-family: 'DashboardFont', sans-serif; font-size: 14px;
+      display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+      height: 44px; padding: 0 14px; min-width: 76px;
+      border: 1.5px solid var(--color-border); border-radius: 40px;
+      background: var(--color-bg-card); color: var(--color-text-primary);
+      cursor: pointer; white-space: nowrap;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .cselect-btn:hover { border-color: var(--color-accent); }
+    .cselect.open .cselect-btn,
+    .cselect-btn:focus-visible {
+      outline: none; border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(var(--field-focus-rgb),.10), 0 0 9px rgba(var(--field-focus-rgb),.12);
+    }
+    .cselect-chev { width: 14px; height: 14px; color: var(--color-text-muted); flex-shrink: 0; transition: transform .25s ease; }
+    .cselect.open .cselect-chev { transform: rotate(180deg); }
+    .cselect-label { overflow: hidden; text-overflow: ellipsis; }
+    .cselect-menu {
+      position: absolute; z-index: 60; top: calc(100% + 6px); right: 0;
+      min-width: 100%; width: max-content;
+      background: var(--color-bg-card);
+      border: 1.5px solid var(--color-border);
+      border-radius: 12px;
+      box-shadow: 0 14px 36px rgba(15,23,42,.18);
+      padding: 6px;
+      opacity: 0; transform: translateY(-6px) scale(.97); transform-origin: top center;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .2s cubic-bezier(.34, 1.4, .5, 1);
+    }
+    .cselect.open .cselect-menu { opacity: 1; transform: none; pointer-events: auto; }
+    .cselect-opt {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 14px;
+      color: var(--color-text-secondary); white-space: nowrap;
+      transition: background var(--transition), color var(--transition);
+    }
+    .cselect-opt:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+    .cselect-opt[aria-selected="true"] { color: var(--color-accent); font-weight: 700; background: var(--color-accent-bg); }
+    /* در پنل فیلتر، dropdown وضعیت تمام‌عرض ستون می‌شود */
+    .notif-adv-field .cselect { display: flex; width: 100%; }
+    .notif-adv-field .cselect-btn { width: 100%; }
+
+    @media (max-width: 560px) {
+      .notif-search-form { flex-wrap: wrap; }
+      .notif-perpage select { height: 44px; }
+      .notif-adv-field { min-width: 120px; }
+      .notif-adv-actions { width: 100%; justify-content: flex-end; }
+    }
+    .notif-search-form { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .notif-search-wrap { position: relative; flex: 1; }
+    .notif-search-wrap input {
+      font-family: 'DashboardFont', sans-serif; font-size: 14px;
+      width: 100%; height: 44px; padding: 0 44px 0 16px;
+      border-radius: 40px; border: 1.5px solid var(--color-border);
+      background: var(--color-bg-card); color: var(--color-text-primary);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .notif-search-wrap input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(var(--field-focus-rgb),.10), 0 0 9px rgba(var(--field-focus-rgb),.12);
+    }
+    .notif-search-wrap input::placeholder { color: var(--color-text-muted); }
+    .notif-search-icon {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      width: 17px; height: 17px; fill: var(--color-text-muted); pointer-events: none;
+    }
+    .notif-search-btn {
+      font-family: 'DashboardFont', sans-serif;
+      font-size: 13px; font-weight: 600;
+      height: 44px; padding: 0 18px; border-radius: 40px;
+      border: none; background: var(--color-accent); color: #fff;
+      cursor: pointer; white-space: nowrap;
+      transition: background var(--transition), transform var(--transition);
+      display: inline-flex; align-items: center; text-decoration: none;
+    }
+    .notif-search-btn:hover { background: var(--color-accent-dark); }
+    .notif-search-btn:active { transform: scale(.97); }
+    .notif-search-clear {
+      font-family: 'DashboardFont', sans-serif;
+      font-size: 13px; font-weight: 600;
+      height: 44px; padding: 0 16px; border-radius: 40px;
+      border: 1.5px solid var(--color-border);
+      background: var(--color-bg-card); color: var(--color-text-secondary);
+      cursor: pointer; white-space: nowrap; text-decoration: none;
+      display: inline-flex; align-items: center;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .notif-search-clear:hover {
+      border-color: var(--color-accent); color: var(--color-accent);
+      background: var(--color-accent-bg);
+    }
+
+    /* ── Notification Table ── */
+    .notif-table {
+      background: var(--color-bg-card);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .notif-row {
+      display: grid;
+      grid-template-columns: 4px 40px 1fr auto;
+      align-items: stretch;
+      border-bottom: 1px solid var(--color-border);
+      transition: background var(--transition);
+      position: relative;
+    }
+    .notif-row:last-child { border-bottom: none; }
+    .notif-row:hover { background: var(--color-bg-primary); }
+    .notif-row.expired { opacity: .72; }
+
+    /* نوار رنگی سمت راست برای خوانده‌نشده */
+    .notif-row-bar {
+      background: transparent;
+      transition: background var(--transition);
+      border-radius: var(--radius-lg) 0 0 0;
+    }
+    .notif-row.unread .notif-row-bar {
+      background: linear-gradient(180deg, var(--color-accent), var(--color-accent-light));
+    }
+
+    /* محتوای ردیف */
+    .notif-row-body {
+      padding: 14px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .notif-row-title {
+      font-family: 'HeadingFont', 'DashboardFont', sans-serif;
+      font-size: 14px; font-weight: 700;
+      color: var(--color-text-primary);
+      line-height: 1.5;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .notif-row.unread .notif-row-title { color: var(--color-accent); }
+
+    .notif-row-meta {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    }
+
+    .notif-row-date {
+      font-size: 11px; color: var(--color-text-muted); direction: rtl;
+    }
+    /* جداکنندهٔ بینِ تاریخِ انتشار و انقضا (فقط شمسی) */
+    .notif-row-date + .notif-row-date {
+      padding-right: 7px; margin-right: 5px;
+      border-right: 1px solid var(--color-border);
+    }
+    /* شماره ردیف */
+    .notif-row-num {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+      color: var(--color-text-muted);
+      font-variant-numeric: tabular-nums;
+      user-select: none;
+    }
+    .notif-row.unread .notif-row-num { color: var(--color-accent); }
+
+    /* pills */
+    .npill {
+      font-size: 10px; font-weight: 700;
+      border-radius: 20px; padding: 1px 8px;
+      display: inline-flex; align-items: center; gap: 3px;
+    }
+    .npill-unread  { background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); }
+    .npill-edited  { background: rgba(6,182,212,.08); color: #0891b2; border: 1px solid rgba(6,182,212,.25); }
+    .npill-expired { background: rgba(239,68,68,.08); color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
+    .npill-public  { background: rgba(14,164,114,.08); color: #0ea472; border: 1px solid rgba(14,164,114,.2); }
+    .npill-badge   { background: rgba(139,92,246,.08); color: #8b5cf6; border: 1px solid rgba(139,92,246,.2); }
+    .npill-img     { background: rgba(245,158,11,.08); color: #d97706; border: 1px solid rgba(245,158,11,.2); }
+
+    /* دکمه مشاهده */
+    .notif-row-action {
+      padding: 0 20px;
+      display: flex; align-items: center;
+    }
+    .notif-view-btn {
+      font-family: 'DashboardFont', sans-serif;
+      font-size: 12px; font-weight: 600;
+      height: 32px; padding: 0 14px; border-radius: 20px;
+      border: 1.5px solid var(--color-accent-border);
+      background: var(--color-accent-bg); color: var(--color-accent);
+      cursor: pointer; white-space: nowrap;
+      transition: background var(--transition), border-color var(--transition),
+                  transform var(--transition-bounce);
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .notif-view-btn:hover {
+      background: var(--color-accent-bg-hover);
+      border-color: var(--color-accent);
+      transform: scale(1.04);
+    }
+    .notif-view-btn svg { width: 12px; height: 12px; }
+
+    /* ── Empty ── */
+    .notif-empty {
+      text-align: center; padding: 60px 24px;
+      color: var(--color-text-secondary);
+    }
+    .notif-empty svg { width: 56px; height: 56px; display: block; margin: 0 auto 16px; opacity: .4; }
+    .notif-empty p { font-size: 15px; margin-bottom: 14px; }
+    .notif-empty a {
+      font-size: 13px; color: var(--color-accent);
+      background: var(--color-accent-bg);
+      border: 1px solid var(--color-accent-border);
+      border-radius: 20px; padding: 5px 14px; text-decoration: none;
+    }
+    .notif-empty a:hover { background: var(--color-accent-bg-hover); }
+
+    /* ── Pagination ── */
+    .notif-pagination {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; margin-top: 28px; flex-wrap: wrap;
+    }
+    .npag-btn {
+      font-family: 'DashboardFont', sans-serif;
+      font-size: 13px; font-weight: 600;
+      height: 36px; min-width: 36px; padding: 0 12px;
+      border-radius: 999px; border: 1.5px solid var(--color-border);
+      background: var(--color-bg-card); color: var(--color-text-secondary);
+      cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .npag-btn:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
+    .npag-btn.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); cursor: default; }
+    .npag-btn.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+    .npag-dots { font-size: 13px; color: var(--color-text-muted); padding: 0 4px; }
+
+    /* ── Search highlight (هماهنگ با تم) ── */
+    mark {
+      background: var(--color-accent-bg-hover); color: var(--color-accent);
+      border-radius: 3px; padding: 0 2px;
+    }
+
+    /* ── Detail Modal ── */
+    .nd-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .22s ease;
+    }
+    .nd-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .nd-box {
+      background: var(--color-bg-card);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      width: 100%; max-width: 560px;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,.45);
+      transform: translateY(16px) scale(.97);
+      transition: transform .24s cubic-bezier(.34,1.2,.64,1);
+      overflow: hidden;
+    }
+    .nd-overlay.open .nd-box { transform: translateY(0) scale(1); }
+
+    .nd-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 18px 22px 14px; border-bottom: 1px solid var(--color-border);
+      gap: 12px; flex-shrink: 0;
+    }
+    .nd-head-title {
+      font-family: 'HeadingFont', 'DashboardFont', sans-serif;
+      font-size: 16px; font-weight: 700;
+      color: var(--color-text-primary); line-height: 1.5; flex: 1;
+    }
+    .nd-close-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: none; border: none; cursor: pointer;
+      color: var(--color-text-muted); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), color var(--transition);
+    }
+    .nd-close-btn:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+    .nd-close-btn svg { width: 15px; height: 15px; }
+
+    .nd-body {
+      flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    }
+    .nd-body::-webkit-scrollbar { width: 5px; }
+    .nd-body::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+
+    .nd-image-wrap {
+      width: 100%; background: var(--color-bg-primary);
+      border-bottom: 1px solid var(--color-border);
+      display: none; /* JS shows when image exists */
+    }
+    .nd-image-wrap img {
+      width: 100%; max-height: 340px;
+      object-fit: contain; display: block;
+    }
+    /* placeholder تا تصویر لود شود */
+    .nd-image-wrap.loading::before {
+      content: '';
+      display: block; height: 180px;
+      background: linear-gradient(90deg,
+        var(--color-border) 25%,
+        var(--color-bg-primary) 50%,
+        var(--color-border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .nd-content { padding: 20px 22px; }
+
+    .nd-text {
+      font-size: 14px; color: var(--color-text-secondary);
+      line-height: 1.85; word-break: break-word;
+      margin-bottom: 18px;
+      user-select: text; -webkit-user-select: text;
+    }
+    /* ── محتوای غنی (rich text) داخل اعلان ── */
+    .nd-text p { margin: 0 0 10px; }
+    .nd-text p:last-child { margin-bottom: 0; }
+    .nd-text b, .nd-text strong { font-weight: 700; color: var(--color-text-primary); }
+    .nd-text i, .nd-text em { font-style: italic; }
+    .nd-text u { text-decoration: underline; }
+    .nd-text br { line-height: 1.85; }
+    .nd-text ul, .nd-text ol { margin: 0 0 10px; padding-inline-start: 22px; }
+    .nd-text li { margin-bottom: 4px; }
+    .nd-text a { color: var(--color-accent); text-decoration: underline; }
+    .nd-text [style*="text-align"] { display: block; }
+
+    .nd-meta {
+      display: flex; flex-direction: column; gap: 8px;
+      padding-top: 16px; border-top: 1px solid var(--color-border);
+    }
+    .nd-meta-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--color-text-muted);
+      direction: ltr; text-align: left;
+    }
+    .nd-meta-row svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .nd-meta-row.expired-row { color: #ef4444; }
+    .nd-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+
+    .nd-foot {
+      padding: 12px 22px; border-top: 1px solid var(--color-border);
+      display: flex; justify-content: flex-end; flex-shrink: 0;
+    }
+    .nd-close-action {
+      font-family: 'DashboardFont', sans-serif;
+      font-size: 13px; font-weight: 600;
+      height: 38px; padding: 0 20px; border-radius: var(--radius-xs);
+      border: 1.5px solid var(--color-border);
+      background: var(--color-bg-card); color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+    .nd-close-action:hover {
+      border-color: var(--color-accent); color: var(--color-accent);
+      background: var(--color-accent-bg);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 520px) {
+      .notif-page-main { margin: 20px auto; }
+      .notif-row-title { font-size: 13px; }
+      .notif-row-action { padding: 0 12px; }
+      .notif-view-btn { font-size: 11px; padding: 0 10px; }
+      .nd-content { padding: 16px; }
+      .nd-head { padding: 14px 16px 12px; }
+    }
+    @media (max-width: 400px) {
+      .notif-row { grid-template-columns: 4px 30px 1fr; }
+      .notif-row-action { display: none; }
+      .notif-row { cursor: pointer; }
+    }

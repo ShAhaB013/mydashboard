@@ -1,0 +1,39 @@
+# ─── Secrets & environment config (NEVER commit) ───────────────
+# Real DB credentials live here; copy dash_config.example.php → dash_config.php
+dash_config.php
+*.env
+.env
+secret*
+
+# ─── Database dumps & backups ──────────────────────────────────
+*.sql
+*.sqlite
+*.db
+*.bak
+*.old
+
+# ─── Archives / backups ────────────────────────────────────────
+*.zip
+*.tar
+*.gz
+*.tgz
+*.rar
+*.7z
+
+# ─── Runtime / generated ───────────────────────────────────────
+uploads/
+*.log
+sessions/
+
+# ─── Local tooling artifacts ───────────────────────────────────
+/.claude/settings.local.json
+/.claude/skills/run-das/_shots/
+
+# ─── OS / editor cruft ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/

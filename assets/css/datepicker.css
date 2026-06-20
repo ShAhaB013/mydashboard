@@ -1,0 +1,134 @@
+/* ═══════════════════════════════════════════════════════════
+   datepicker.css — تقویم سفارشی میلادی، هماهنگ با تم پروژه
+   ───────────────────────────────────────────────────────────
+   با هر دو نام‌گذاری متغیر کار می‌کند: پنل ادمین (--accent/--bg-card/…)
+   و صفحات کاربر (--color-accent/--color-bg-card/…) از طریق fallback تو‌در‌تو.
+   مقدار همان <input type="date"> (yyyy-mm-dd) می‌ماند؛ فقط ظاهر/پنجره عوض می‌شود.
+   ═══════════════════════════════════════════════════════════ */
+.tdp { position: relative; width: 100%; min-width: 0; }
+/* input بومی مخفی می‌ماند ولی مقدارش معتبر است (ارسال فرم + خواندن JS) */
+.tdp-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: 0; }
+
+.tdp-trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; min-height: 42px; padding: 10px 14px;
+  font-family: 'DashboardFont', sans-serif; font-size: 14px; text-align: start;
+  background: var(--bg-input, var(--color-bg-card, #fff));
+  color: var(--text, var(--color-text-primary, #0f172a));
+  border: 1px solid var(--border, var(--color-border, #e2e8f0));
+  border-radius: 12px; cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.tdp-trigger:hover { border-color: var(--accent, var(--color-accent, #3e7de7)); }
+.tdp.open .tdp-trigger {
+  border-color: var(--accent, var(--color-accent, #3e7de7));
+  box-shadow: 0 0 0 3px var(--accent-bg, var(--color-accent-bg, rgba(62,125,231,.12)));
+}
+.tdp-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: right; }
+.tdp-value.is-empty { color: var(--text-3, var(--color-text-muted, #94a3b8)); }
+.tdp-ico { width: 16px; height: 16px; flex: 0 0 auto; color: var(--text-3, var(--color-text-muted, #94a3b8)); }
+
+.tdp-pop {
+  /* به body پورتال می‌شود و با JS (fixed) موقعیت می‌گیرد تا از مودال/صفحه بیرون نزند */
+  position: fixed; z-index: 4000;
+  width: 264px; padding: 10px;
+  max-height: calc(100vh - 16px); overflow-y: auto;  /* ایمنی در viewportهای خیلی کوتاه */
+  font-family: 'DashboardFont', sans-serif;
+  background: var(--bg-card, var(--color-bg-card, #fff));
+  border: 1px solid var(--border, var(--color-border, #e2e8f0));
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, .22);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
+}
+.tdp-pop.open { opacity: 1; visibility: visible; transform: none; }
+
+.tdp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 6px; }
+.tdp-title {
+  font-family: 'DashboardFont', sans-serif; font-size: 13.5px; font-weight: 700;
+  color: var(--text, var(--color-text-primary, #0f172a));
+  background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: 8px;
+  transition: background .14s ease, color .14s ease;
+}
+button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgba(62,125,231,.1))); color: var(--accent, var(--color-accent, #3e7de7)); }
+.tdp-title-static { cursor: default; }
+.tdp-nav {
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border, var(--color-border, #e2e8f0)); border-radius: 8px;
+  background: none; color: var(--text-2, var(--color-text-secondary, #64748b)); cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.tdp-nav:hover { border-color: var(--accent, var(--color-accent, #3e7de7)); color: var(--accent, var(--color-accent, #3e7de7)); }
+.tdp-nav svg { width: 15px; height: 15px; }
+
+.tdp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.tdp-wd { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-3, var(--color-text-muted, #94a3b8)); padding: 4px 0; }
+.tdp-day {
+  aspect-ratio: 1; min-height: 32px; display: flex; align-items: center; justify-content: center;
+  border: none; background: none; cursor: pointer; border-radius: 8px;
+  font-size: 13px; color: var(--text, var(--color-text-primary, #0f172a));
+  transition: background .14s ease, color .14s ease;
+}
+.tdp-day.tdp-empty { pointer-events: none; }
+.tdp-day:hover { background: var(--accent-bg, var(--color-accent-bg, rgba(62,125,231,.1))); color: var(--accent, var(--color-accent, #3e7de7)); }
+.tdp-day.is-today { font-weight: 700; color: var(--accent, var(--color-accent, #3e7de7)); }
+.tdp-day.is-sel,
+.tdp-day.is-sel:hover { background: var(--accent, var(--color-accent, #3e7de7)); color: #fff; font-weight: 700; }
+
+/* نمای انتخاب ماه/سال (drill-down) */
+.tdp-grid-my { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 2px; }
+.tdp-cell {
+  padding: 12px 0; border: none; background: none; cursor: pointer; border-radius: 8px;
+  font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--text, var(--color-text-primary, #0f172a));
+  transition: background .14s ease, color .14s ease;
+}
+.tdp-cell:hover { background: var(--accent-bg, var(--color-accent-bg, rgba(62,125,231,.1))); color: var(--accent, var(--color-accent, #3e7de7)); }
+.tdp-cell.is-today { color: var(--accent, var(--color-accent, #3e7de7)); font-weight: 700; }
+.tdp-cell.is-sel,
+.tdp-cell.is-sel:hover { background: var(--accent, var(--color-accent, #3e7de7)); color: #fff; font-weight: 700; }
+
+.tdp-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border, var(--color-border, #e2e8f0)); }
+.tdp-today, .tdp-clear {
+  flex: 1; padding: 7px 0; border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600;
+  font-family: 'DashboardFont', sans-serif;
+  border: 1px solid var(--border, var(--color-border, #e2e8f0));
+  background: none; color: var(--text-2, var(--color-text-secondary, #64748b));
+  transition: border-color .15s ease, color .15s ease;
+}
+.tdp-today:hover, .tdp-now:hover { border-color: var(--accent, var(--color-accent, #3e7de7)); color: var(--accent, var(--color-accent, #3e7de7)); }
+.tdp-clear:hover { border-color: #ef4444; color: #ef4444; }
+.tdp-now { /* هم‌استایل tdp-today (دکمه «اکنون» در ساعت) */
+  flex: 1; padding: 7px 0; border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600;
+  font-family: 'DashboardFont', sans-serif;
+  border: 1px solid var(--border, var(--color-border, #e2e8f0));
+  background: none; color: var(--text-2, var(--color-text-secondary, #64748b));
+  transition: border-color .15s ease, color .15s ease;
+}
+
+/* ── ساعت سفارشی (ستون ساعت + دقیقه) ── */
+.ttp-pop {
+  position: fixed; z-index: 4000; width: 168px; padding: 8px;
+  max-height: calc(100vh - 16px); overflow-y: auto;  /* ایمنی در viewportهای خیلی کوتاه */
+  font-family: 'DashboardFont', sans-serif;
+  background: var(--bg-card, var(--color-bg-card, #fff));
+  border: 1px solid var(--border, var(--color-border, #e2e8f0));
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, .22);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
+}
+.ttp-pop.open { opacity: 1; visibility: visible; transform: none; }
+.ttp-cols { display: flex; gap: 6px; }
+.ttp-col { flex: 1; max-height: 196px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.ttp-opt {
+  padding: 7px 0; text-align: center; border: none; background: none; cursor: pointer; border-radius: 8px;
+  font-family: 'DashboardFont', sans-serif; font-size: 13px; font-variant-numeric: tabular-nums;
+  color: var(--text, var(--color-text-primary, #0f172a));
+  transition: background .14s ease, color .14s ease;
+}
+.ttp-opt:hover { background: var(--accent-bg, var(--color-accent-bg, rgba(62,125,231,.1))); color: var(--accent, var(--color-accent, #3e7de7)); }
+.ttp-opt.is-sel, .ttp-opt.is-sel:hover { background: var(--accent, var(--color-accent, #3e7de7)); color: #fff; font-weight: 700; }
+.ttp-col::-webkit-scrollbar { width: 6px; }
+.ttp-col::-webkit-scrollbar-thumb { background: var(--border, var(--color-border, #e2e8f0)); border-radius: 10px; }
+.ttp-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border, var(--color-border, #e2e8f0)); }

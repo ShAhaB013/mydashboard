@@ -1,0 +1,190 @@
+<?php
+declare(strict_types=1);
+
+// ═══════════════════════════════════════════════════════════
+// AppController — endpointهای عمومی داده/نشست
+//   bootstrap / assets / tools / me / logout
+// (منطق عینا از api.php منتقل شده؛ سرفصل‌های caching/ETag/304 حفظ شده‌اند)
+// ═══════════════════════════════════════════════════════════
+
+class AppController
+{
+    private array $config;
+
+    public function __construct(array $config)
+    {
+        $this->config = $config;
+    }
+
+    // ── bootstrap: همه داده اولیه در یک درخواست ──────────────
+    // me + assets + tools + notifications + unread_count
+    public function bootstrap(): void
+    {
+        $config     = $this->config;
+        $isLoggedIn = UserSession::check();
+
+        // assets
+        $iconsFile = $config['files']['icons'];
+        $decosFile = $config['files']['decos'];
+        $iconDb    = new JsonStore($iconsFile);
+        $decoDb    = new JsonStore($decosFile);
+        $assets    = ['ok' => true, 'icons' => $iconDb->all(), 'decos' => $decoDb->all()];
+
+        // me
+        if ($isLoggedIn) {
+            $me = [
+                'ok'           => true,
+                'logged_in'    => true,
+                'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
+                'username'     => $_SESSION['username'] ?? '',
+                'email'        => $_SESSION['email'] ?? '',
+                'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
+            ];
+        } else {
+            $me = ['ok' => true, 'logged_in' => false];
+        }
+
+        // tools
+        $toolModel = new ToolModel();
+        $toolRows  = $isLoggedIn
+            ? $toolModel->allForUser(UserSession::id())
+            : $toolModel->allPublic();
+        $tools = ['ok' => true, 'tools' => ToolModel::toFrontend($toolRows)];
+
+        // unread (سبک): لیستِ کاملِ اعلان‌ها دیگر در bootstrap حمل نمی‌شود تا کارت‌ها
+        // منتظرِ دانلودِ ~۱۰۵KB اعلان نمانند. لیست به‌صورت تنبل (action=notifications)
+        // پس از رندرِ کارت‌ها در پس‌زمینه لود می‌شود.
+        // کاربرِ لاگین‌شده: شمارشِ ناخوانده با یک کوئریِ سبک محاسبه می‌شود تا بَج فوری بیاید.
+        // مهمان: شمارش سمتِ کلاینت (از localStorage) بعد از لودِ لیست محاسبه می‌شود.
+        $unread = $isLoggedIn
+            ? ['ok' => true, 'count' => (new NotificationModel())->unreadCount(UserSession::id())]
+            : ['ok' => true, 'count' => 0];
+
+        $payload = [
+            'ok'     => true,
+            'me'     => $me,
+            'assets' => $assets,
+            'tools'  => $tools,
+            'unread' => $unread,
+        ];
+
+        // ETag/۳۰۴ برای هر دو حالت: در ناوبری بینِ صفحات اگر داده عوض نشده باشد،
+        // به‌جای دانلودِ مجددِ کلِ پاسخ (assets+tools) فقط یک ۳۰۴ برمی‌گردد.
+        $body       = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        $tag        = $isLoggedIn ? ('boot-u' . UserSession::id()) : 'boot-guest';
+        $etag       = '"' . $tag . '-' . md5($body) . '"';
+        $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
+
+        if ($isLoggedIn) {
+            // وابسته به نشست: فقط برای همان مرورگر، با اجبارِ revalidate
+            header('Cache-Control: private, max-age=0, must-revalidate');
+        } else {
+            // مهمان: قابلِ کشِ کوتاه‌مدتِ مشترک
+            header('Cache-Control: public, max-age=30');
+        }
+        header('ETag: ' . $etag);
+
+        if ($clientEtag === $etag) {
+            http_response_code(304);
+            exit;
+        }
+        echo $body;
+    }
+
+    // ── assets: آیکون‌ها + انیمیشن‌ها ─────────────────────────
+    public function assets(): void
+    {
+        $config    = $this->config;
+        $iconsFile = $config['files']['icons'];
+        $decosFile = $config['files']['decos'];
+
+        $mtime = max(
+            file_exists($iconsFile) ? (int) filemtime($iconsFile) : 0,
+            file_exists($decosFile) ? (int) filemtime($decosFile) : 0,
+        );
+        $etag = '"assets-' . $mtime . '"';
+
+        $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
+        if ($clientEtag === $etag) {
+            http_response_code(304);
+            exit;
+        }
+
+        $iconDb = new JsonStore($iconsFile);
+        $decoDb = new JsonStore($decosFile);
+
+        header('Cache-Control: public, max-age=3600');
+        header('ETag: ' . $etag);
+
+        echo json_encode([
+            'ok'    => true,
+            'icons' => $iconDb->all(),
+            'decos' => $decoDb->all(),
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    // ── tools ─────────────────────────────────────────────────
+    public function tools(): void
+    {
+        $toolModel  = new ToolModel();
+        $isLoggedIn = UserSession::check();
+
+        $rows = $isLoggedIn
+            ? $toolModel->allForUser(UserSession::id())
+            : $toolModel->allPublic();
+
+        $body = json_encode([
+            'ok'    => true,
+            'tools' => ToolModel::toFrontend($rows),
+        ], JSON_UNESCAPED_UNICODE);
+
+        if ($isLoggedIn) {
+            header('Cache-Control: private, no-store');
+        } else {
+            $etag       = '"tools-' . md5($body) . '"';
+            $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
+            if ($clientEtag === $etag) {
+                http_response_code(304);
+                exit;
+            }
+            header('Cache-Control: public, max-age=30');
+            header('ETag: ' . $etag);
+        }
+
+        echo $body;
+    }
+
+    // ── me ───────────────────────────────────────────────────
+    public function me(): void
+    {
+        if (UserSession::check()) {
+            $resp = [
+                'ok'           => true,
+                'logged_in'    => true,
+                'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
+                'username'     => $_SESSION['username'] ?? '',
+                'email'        => $_SESSION['email'] ?? '',
+                'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
+            ];
+            // تغییرِ ایمیلِ در انتظارِ تأیید — تا پروفایل پس از ریلود همان مرحله/کول‌داون را بازگرداند
+            $pending = $_SESSION['email_change'] ?? null;
+            if (is_array($pending) && !empty($pending['email']) && time() <= (int) ($pending['expires'] ?? 0)) {
+                $base = SettingsModel::getInt('resend_cooldown', 10, 600, 30);
+                $resp['email_change'] = [
+                    'email'       => $pending['email'],
+                    'retry_after' => ResendThrottle::retryAfter('email_change', $pending['email'], $base),
+                ];
+            }
+            echo json_encode($resp, JSON_UNESCAPED_UNICODE);
+        } else {
+            echo json_encode(['ok' => true, 'logged_in' => false], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ── logout ───────────────────────────────────────────────
+    public function logout(): void
+    {
+        UserSession::destroy();
+        echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    }
+}

@@ -1,0 +1,521 @@
+<?php
+// ═══════════════════════════════════════════════════════════
+// View: dashboard.php — داشبورد مدیریت
+// ═══════════════════════════════════════════════════════════
+?>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پنل مدیریت ابزارها</title>
+  <script>
+    (function(){
+      const t = localStorage.getItem('theme');
+      const d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (t === 'dark' || (!t && d)) document.documentElement.setAttribute('data-theme','dark');
+    })();
+  </script>
+  <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/admin/assets/admin.css?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.css') ?>">
+</head>
+<body>
+
+<div class="admin-wrap">
+
+  <!-- ── نوار بالا ── -->
+  <div class="topbar">
+    <div class="topbar-title">پنل مدیریت ابزارها</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <a href="/" class="btn-back" aria-label="بازگشت به داشبورد">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        <span class="btn-back-label">بازگشت به داشبورد</span>
+      </a>
+      <a href="/admin?page=notifications" class="notif-nav-btn" style="text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        اعلان‌ها
+      </a>
+      <a href="/admin?page=settings" class="notif-nav-btn" style="text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
+        </svg>
+        تنظیمات ایمیل
+      </a>
+    </div>
+  </div>
+
+  <!-- ── لیست ابزارها ── -->
+  <div class="tools-header">
+    <h2>ابزارها <span class="count-badge" id="toolCountBadge"><?= count($tools) ?></span></h2>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-secondary btn-sm" id="reorderModeBtn" onclick="enterReorderMode()"<?= count($tools) < 2 ? ' style="display:none;"' : '' ?>>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+        </svg>
+        مرتب‌سازی
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        ابزار جدید
+      </button>
+    </div>
+  </div>
+
+  <!-- ── جستجوی ابزارها ── -->
+  <div class="tool-search" id="toolSearchWrap">
+    <svg class="tool-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" id="toolSearchInput" placeholder="جستجو در عنوان، توضیح، مسیر یا دسته..." autocomplete="off">
+    <button type="button" class="tool-search-clear" id="toolSearchClear" title="پاک کردن">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── نوار حالت مرتب‌سازی (یک ریکوئست فقط هنگام ذخیره) ── -->
+  <div class="reorder-bar" id="reorderBar" hidden>
+    <span class="reorder-bar-msg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+      </svg>
+      حالت مرتب‌سازی — همه کارت‌ها را جابه‌جا کن، سپس ذخیره
+    </span>
+    <div class="reorder-bar-actions">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="cancelReorder()">لغو</button>
+      <button type="button" class="btn btn-primary btn-sm" id="reorderSaveBtn" onclick="saveReorder()">ذخیره ترتیب</button>
+    </div>
+  </div>
+
+  <!-- لیست (سمت کلاینت رندر و صفحه‌بندی می‌شود) -->
+  <div class="tool-list" id="toolList"></div>
+
+  <!-- کنترل صفحه‌بندی -->
+  <div class="tool-pagination" id="toolPagination" hidden></div>
+
+  <!-- ── مدیریت کاربران (صفحه مستقل) ── -->
+  <div class="section-box" id="usersBox">
+    <div class="section-box-head" style="cursor:default;">
+      <h2>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+        مدیریت کاربران
+        <span class="count-badge"><?= (int) ($usersTotal ?? 0) ?></span>
+      </h2>
+      <a href="/admin?page=users" class="btn btn-primary btn-sm" style="text-decoration:none;">
+        مدیریت و جستجوی کاربران
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── مدیریت آیکون‌ها ── -->
+  <div class="section-box" id="iconsBox">
+    <div class="section-box-head" onclick="toggleBox('iconsBox')">
+      <h2>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+        </svg>
+        مدیریت آیکون‌ها
+        <span class="count-badge" id="iconCountBadge"><?= count($icons) ?></span>
+      </h2>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+    <div class="section-box-body">
+      <div class="asset-grid" id="iconAssetGrid"></div>
+      <div class="asset-editor" id="iconEditor" style="display:none;">
+        <div class="asset-editor-head">
+          <strong>آیکون انتخاب‌شده:</strong>
+          <span class="key-badge" id="iconEditorKey"></span>
+        </div>
+        <div class="field">
+          <label>SVG Path</label>
+          <textarea id="iconEditorPath" rows="4" placeholder='<path d="..." fill="currentColor"/>'></textarea>
+        </div>
+        <div class="asset-editor-actions">
+          <button class="btn btn-success btn-sm" onclick="saveIconEdit()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            ذخیره تغییرات
+          </button>
+          <button class="btn btn-danger btn-sm" id="iconDeleteBtn" onclick="deleteIcon()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            </svg>
+            حذف آیکون
+          </button>
+        </div>
+      </div>
+      <div class="add-asset-form">
+        <h4>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          آیکون جدید
+        </h4>
+        <div class="add-asset-row">
+          <div class="field">
+            <label>نام (key) <span class="req">*</span></label>
+            <input type="text" id="newIconKey" placeholder="مثال: compress" maxlength="40">
+          </div>
+          <div class="field">
+            <label>SVG Path <span class="req">*</span></label>
+            <textarea id="newIconPath" rows="3" placeholder='<path d="M12 2..." fill="currentColor"/>'></textarea>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="addNewIcon()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            افزودن آیکون
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── مدیریت انیمیشن‌های کارت ── -->
+  <div class="section-box" id="decosBox">
+    <div class="section-box-head" onclick="toggleBox('decosBox')">
+      <h2>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        مدیریت انیمیشن‌های کارت
+        <span class="count-badge" id="decoCountBadge"><?= count($decosData) ?></span>
+      </h2>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+    <div class="section-box-body">
+      <div class="asset-grid" id="decoAssetGrid" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));"></div>
+      <div class="asset-editor" id="decoEditor" style="display:none;">
+        <div class="asset-editor-head">
+          <strong>انیمیشن انتخاب‌شده:</strong>
+          <span class="key-badge" id="decoEditorKey"></span>
+        </div>
+        <div class="field">
+          <label>SVG کامل</label>
+          <textarea id="decoEditorSVG" rows="8" placeholder='<svg class="card-deco" viewBox="0 0 120 60" ...>'></textarea>
+        </div>
+        <div style="margin-top:10px;">
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:6px;">پیش‌نمایش:</div>
+          <div id="decoEditorPreview" style="width:100%;max-width:280px;height:72px;border-radius:8px;background:rgba(88,166,255,.05);border:1px solid var(--border);overflow:hidden;--card-color:#58a6ff;"></div>
+        </div>
+        <div class="asset-editor-actions">
+          <button class="btn btn-success btn-sm" onclick="saveDecoEdit()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            ذخیره تغییرات
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="refreshDecoPreview()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+            </svg>
+            پیش‌نمایش
+          </button>
+          <button class="btn btn-danger btn-sm" id="decoDeleteBtn" onclick="deleteDeco()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            </svg>
+            حذف
+          </button>
+        </div>
+      </div>
+      <div class="add-asset-form">
+        <h4>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          انیمیشن جدید
+        </h4>
+        <div class="add-asset-row">
+          <div class="field">
+            <label>نام (key) <span class="req">*</span></label>
+            <input type="text" id="newDecoKey" placeholder="مثال: waves" maxlength="40">
+          </div>
+          <div class="field">
+            <label>SVG کامل <span class="req">*</span></label>
+            <textarea id="newDecoSVG" rows="5" placeholder='<svg class="card-deco" viewBox="0 0 120 60" aria-hidden="true">...</svg>'></textarea>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="addNewDeco()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            افزودن انیمیشن
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /admin-wrap -->
+
+<!-- ── مودال افزودن/ویرایش ابزار ── -->
+<div class="modal-overlay" id="formModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">ابزار جدید</h3>
+      <button class="modal-close" onclick="closeModal('formModal')" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-form-col">
+        <div class="form-section">
+          <span class="form-section-label">اطلاعات پایه</span>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="f-title">عنوان <span class="req">*</span></label>
+              <input type="text" id="f-title" placeholder="مثال: فشرده‌سازی تصاویر" maxlength="80" oninput="updatePreview()">
+            </div>
+            <div class="field full">
+              <label for="f-desc">توضیح</label>
+              <input type="text" id="f-desc" placeholder="توضیح کوتاه" maxlength="120" oninput="updatePreview()">
+            </div>
+            <div class="field">
+              <label for="f-path">مسیر <span class="req">*</span></label>
+              <input type="text" id="f-path" placeholder="/my-tool یا https://example.com" dir="ltr" style="direction:ltr;text-align:left;unicode-bidi:plaintext;">
+              <span style="font-size:11px;color:var(--text-3);margin-top:4px;display:block;">مسیر داخلی یا آدرس خارجی</span>
+            </div>
+            <div class="field">
+              <label for="f-badge">برچسب</label>
+              <input type="text" id="f-badge" maxlength="20" oninput="updatePreview()">
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <span class="form-section-label">آیکون</span>
+          <div class="icon-grid" id="iconGrid"></div>
+        </div>
+        <div class="form-section">
+          <span class="form-section-label">انیمیشن پایین کارت</span>
+          <div class="deco-grid" id="decoGrid"></div>
+        </div>
+        <div class="form-section">
+          <span class="form-section-label">رنگ <span style="color:var(--text-3);font-weight:400;text-transform:none;">(اختیاری)</span></span>
+          <div class="color-row">
+            <button type="button" class="color-preset color-reset active" data-color="" onclick="selectColor(this,'')" title="رنگ پیش‌فرض">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <button type="button" class="color-preset" style="background:#3e7de7;" data-color="#3e7de7" onclick="selectColor(this,'#3e7de7')"></button>
+            <button type="button" class="color-preset" style="background:#8b5cf6;" data-color="#8b5cf6" onclick="selectColor(this,'#8b5cf6')"></button>
+            <button type="button" class="color-preset" style="background:#0ea472;" data-color="#0ea472" onclick="selectColor(this,'#0ea472')"></button>
+            <button type="button" class="color-preset" style="background:#f59e0b;" data-color="#f59e0b" onclick="selectColor(this,'#f59e0b')"></button>
+            <button type="button" class="color-preset" style="background:#ef4444;" data-color="#ef4444" onclick="selectColor(this,'#ef4444')"></button>
+            <button type="button" class="color-preset" style="background:#ec4899;" data-color="#ec4899" onclick="selectColor(this,'#ec4899')"></button>
+            <label class="color-custom">
+              <input type="color" id="customColor" value="#3e7de7" oninput="onCustomColor(this)">
+              <span>دلخواه</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-preview-col">
+        <div class="preview-label">پیش‌نمایش</div>
+        <div class="preview-card" id="previewCard">
+          <div class="preview-corner">
+            <svg viewBox="0 0 110 110" aria-hidden="true">
+              <path class="corner-sector" d="M0,0 L80,0 A80,80,0,0,1,0,80 Z"/>
+              <path class="corner-arc-outer" d="M68,0 A68,68,0,0,1,0,68"/>
+              <path class="corner-arc-inner" d="M46,0 A46,46,0,0,1,0,46"/>
+              <circle class="corner-dot" cx="78" cy="16" r="4"/>
+              <circle class="corner-dot" cx="90" cy="34" r="3"/>
+              <circle class="corner-dot" cx="64" cy="8" r="2.5"/>
+            </svg>
+          </div>
+          <div class="preview-card-icon" id="prevIcon">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="preview-card-badge" id="prevBadge">ابزار</div>
+          <div class="preview-card-title" id="prevTitle">عنوان ابزار</div>
+          <div class="preview-card-desc"  id="prevDesc">توضیح کوتاه</div>
+          <div class="preview-deco-wrap"  id="prevDeco"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('formModal')">انصراف</button>
+      <button class="btn btn-primary btn-sm" id="saveBtn" onclick="saveForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        ذخیره
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── مودال ویرایش کاربر ── -->
+<div class="modal-overlay" id="userModal" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h3>ویرایش کاربر</h3>
+      <button class="modal-close" onclick="closeModal('userModal')" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body" style="display:block;padding:20px;">
+      <input type="hidden" id="editUserId">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="field">
+          <label>نام و نام خانوادگی <span class="req">*</span></label>
+          <input type="text" id="editFullName" maxlength="60">
+        </div>
+        <div class="field">
+          <label>ایمیل <span class="req">*</span></label>
+          <input type="email" id="editEmail" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
+        </div>
+        <div class="field">
+          <label>رمز عبور جدید <span style="color:var(--text-3);font-weight:400;">(خالی = بدون تغییر)</span></label>
+          <input type="password" id="editUserPassword" placeholder="حداقل ۶ کاراکتر" autocomplete="new-password">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('userModal')">انصراف</button>
+      <button class="btn btn-primary btn-sm" onclick="saveUserEdit()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        ذخیره
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── مودال دسترسی دو سطحی ── -->
+<div class="modal-overlay" id="accessModal" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-head">
+      <h3 id="accessModalTitle">تنظیم دسترسی</h3>
+      <button class="modal-close" onclick="closeModal('accessModal')" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body" style="display:block;padding:20px;overflow-y:auto;max-height:65vh;">
+      <input type="hidden" id="accessUserId">
+
+      <!-- بخش badge ها -->
+      <div class="access-section">
+        <div class="access-section-title">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          دسته‌بندی‌ها
+          <span style="font-size:11px;color:var(--text-3);font-weight:400;">(دسترسی گروهی به همه ابزارهای یک دسته)</span>
+        </div>
+        <div class="access-badges-grid" id="accessBadgesGrid">
+          <div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:18px 0;"></div>
+
+      <!-- بخش ابزارها -->
+      <div class="access-section">
+        <div class="access-section-title">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          ابزارهای خاص
+          <span style="font-size:11px;color:var(--text-3);font-weight:400;">(دسترسی مستقیم به ابزار مشخص)</span>
+        </div>
+        <div class="access-tools-list" id="accessToolsList">
+          <div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('accessModal')">انصراف</button>
+      <button class="btn btn-primary btn-sm" id="saveAccessBtn" onclick="saveAccess()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        ذخیره دسترسی‌ها
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── مودال تایید حذف ── -->
+<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal confirm-modal">
+    <div class="modal-head">
+      <h3 id="confirmTitle">تاییدیه</h3>
+      <button class="modal-close" onclick="closeConfirm()" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-icon" id="confirmIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+        </svg>
+      </div>
+      <h4 id="confirmHeading"></h4>
+      <p class="confirm-desc" id="confirmBody"></p>
+      <div class="confirm-warn" id="confirmWarn"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" onclick="closeConfirm()">انصراف</button>
+      <button class="btn btn-sm" id="confirmActionBtn" onclick="runConfirm()">تایید</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="toastIcon"></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<!-- داده‌های PHP به JS -->
+<script>
+  const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
+  window.CSRF_TOKEN = CSRF_TOKEN; // لازم برای ارسال هدر X-CSRF-Token در admin.js
+  // نسخهٔ «سبک» از همهٔ ابزارها (id/title/badge/iconKey/deco/is_public) — برای
+  // مرتب‌سازی، مودال دسترسی و شمارشِ آیکون/دکو. لیستِ کاملِ کارت‌ها سمت سرور
+  // صفحه‌بندی می‌شود (ToolsView → list_tools). TOOLS_RAW همان آرایهٔ سبک است.
+  const tools      = <?= $toolsLite ?>;
+  const TOOLS_RAW  = tools;
+  window.tools     = tools;
+  const TOOLS_TOTAL = <?= (int) ($toolsTotal ?? 0) ?>;
+  const ICONS_DATA = <?= $iconsJson ?>;
+  const DECOS_DATA = <?= $decosJson ?>;
+</script>
+<script src="/admin/assets/admin.js?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.js') ?>"></script>
+
+<footer class="admin-footer">
+  <span class="admin-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
+</footer>
+
+</body>
+</html>

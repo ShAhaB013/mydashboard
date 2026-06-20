@@ -1,0 +1,131 @@
+Header set X-Robots-Tag "noindex, nofollow"
+
+# جلوگیری از فهرست‌شدنِ (Directory Listing) پوشه‌ها
+Options -Indexes
+
+
+# ─── URLهای تمیز (بدونِ پسوندِ .php) ──────────────────────────────
+# روشِ استاندارد: ۳۰۱ خارجی برای حذفِ .php (جلوگیری از duplicate content)
+# + سرو کردنِ داخلیِ نسخهٔ بدونِ پسوند. api.php دست‌نخورده می‌ماند چون
+# به‌صورت برنامه‌ای با ?action= صدا زده می‌شود (نباید ۳۰۱ بخورد).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # /admin و /admin/ → admin.php
+  # پوشهٔ هم‌نامِ admin/ با «Require all denied» بلاک است؛ قانونِ عمومیِ
+  # پایین (clean-URL) شرطِ «مسیر پوشه نباشد» دارد، پس برای /admin فعال نمی‌شود
+  # و سرور پوشهٔ بلاک‌شده را سرو می‌کند → 403. این قانونِ صریح آن را به admin.php
+  # می‌برد (و کوئری مثل ?page=users با QSA حفظ می‌شود). assets/ تحت‌تأثیر نیست.
+  RewriteRule ^admin/?$ admin.php [L,QSA]
+
+  # index.php (با/بدون کوئری) → /
+  RewriteCond %{THE_REQUEST} \s/+index\.php[?\s] [NC]
+  RewriteRule ^ / [R=301,L]
+
+  # foo.php → /foo  (به‌جز api.php و admin.php)
+  # admin.php و api.php به‌صورت برنامه‌ای با ?api= / ?action= صدا زده می‌شوند
+  # (POSTهای JSON). ریدایرکتِ 301 آن‌ها را خراب می‌کند (POST→GET + حذفِ بدنه)
+  # و باعث «خطا در ارتباط با سرور» در پنل می‌شود؛ پس هر دو مستثنا می‌مانند.
+  RewriteCond %{THE_REQUEST} !\s/+(api|admin)\.php [NC]
+  RewriteCond %{THE_REQUEST} \s/+([^.\s?/]+)\.php[?\s] [NC]
+  RewriteRule ^ /%1 [R=301,L,NE]
+
+  # /foo → foo.php  (فقط اگر foo.php واقعاً وجود داشته باشد)
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}\.php -f
+  RewriteRule ^(.+?)/?$ $1.php [L]
+</IfModule>
+
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript text/javascript
+  AddOutputFilterByType DEFLATE application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+  # مرورگرهای قدیمی باگ‌دار
+  BrowserMatch ^Mozilla/4 gzip-only-text/html
+  BrowserMatch ^Mozilla/4\.0[678] no-gzip
+  Header append Vary Accept-Encoding
+</IfModule>
+
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  
+  ExpiresByType font/woff2              "access plus 1 year"
+  ExpiresByType application/font-woff2  "access plus 1 year"
+
+  
+  ExpiresByType text/css                "access plus 1 year"
+  ExpiresByType application/javascript  "access plus 1 year"
+  ExpiresByType text/javascript         "access plus 1 year"
+
+  
+  ExpiresByType image/webp              "access plus 1 month"
+  ExpiresByType image/avif              "access plus 1 month"
+  ExpiresByType image/jpeg              "access plus 1 month"
+  ExpiresByType image/png               "access plus 1 month"
+  ExpiresByType image/gif               "access plus 1 month"
+  ExpiresByType image/svg+xml           "access plus 1 month"
+
+  ExpiresByType application/json        "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# فایل‌های حساس: dotfileها، دامپِ دیتابیس، آرشیو/بکاپ، پیکربندی، لاگ ...
+<FilesMatch "(^\.|\.(sql|md|json|log|ini|zip|tar|gz|tgz|rar|7z|bak|old|swp|env|lock|sqlite|db|conf|dist)$)">
+  Require all denied
+</FilesMatch>
+
+# فایل‌های PHP که فقط include می‌شوند (نقطه‌ی ورودِ مستقیم نیستند) + پیکربندی
+<FilesMatch "^(dash_config|bootstrap|version)\.php$">
+  Require all denied
+</FilesMatch>
+
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php82” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
+
+# BEGIN cPanel-generated php ini directives, do not edit
+# Manual editing of this file may result in unexpected behavior.
+# To make changes to this file, use the cPanel MultiPHP INI Editor (Home >> Software >> MultiPHP INI Editor)
+# For more information, read our documentation (https://go.cpanel.net/EA4ModifyINI)
+<IfModule php8_module>
+   php_flag display_errors On
+   php_value max_execution_time 60
+   php_value max_input_time 60
+   php_value max_input_vars 1000
+   php_value memory_limit 1024M
+   php_value post_max_size 100M
+   php_value session.gc_maxlifetime 1440
+   php_value session.save_path "/var/cpanel/php/sessions/ea-php82"
+   php_value upload_max_filesize 100M
+   php_flag zlib.output_compression Off
+</IfModule>
+<IfModule lsapi_module>
+   php_flag display_errors On
+   php_value max_execution_time 60
+   php_value max_input_time 60
+   php_value max_input_vars 1000
+   php_value memory_limit 1024M
+   php_value post_max_size 100M
+   php_value session.gc_maxlifetime 1440
+   php_value session.save_path "/var/cpanel/php/sessions/ea-php82"
+   php_value upload_max_filesize 100M
+   php_flag zlib.output_compression Off
+</IfModule>
+# END cPanel-generated php ini directives, do not edit
