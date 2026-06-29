@@ -1,36 +1,47 @@
     /* ── layout صفحه پروفایل ── */
     .profile-wrap {
+      /* هدر تمام‌عرض پیش‌فرض (مثل همه‌ی صفحات دیگر) — هیچ override عرض/پدینگ ندارد */
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      /* پس‌زمینه تخت مثل صفحات تنظیمات/ادمین (بدون aurora) تا رنگ‌بندی با تم پروژه یکی شود */
+      background-color: var(--color-bg-primary);
+      background-image: none;
     }
+    .profile-wrap::before,
+    .profile-wrap::after { display: none; } /* حذف لایه‌های aurora و نویز */
 
+    /* کارت هم‌عرض کامل هدر (لبه‌به‌لبه با پیل هدر) */
     .profile-main {
-      max-width: 480px;
-      margin: 48px auto;
-      padding: 0 20px 60px;
+      max-width: var(--page-w, 1100px);
+      margin: 16px auto 48px;
+      padding: 0;
       width: 100%;
       position: relative;
       z-index: 1;
     }
+    @media (max-width: 1140px) { .profile-main { padding: 0 14px; } }
 
     /* دکمه بازگشت یکپارچه در style.css تعریف شده (.btn-back) */
 
-    /* ── کارت اصلی ── */
+    /* ── کارت محتوا — هم‌عرض هدر، گوشه‌گرد پروژه (radius-lg) ── */
     .profile-card {
       background: var(--color-bg-card);
       border: 1.5px solid var(--color-border);
       border-radius: var(--radius-lg);
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(15,23,42,.06);
+      box-shadow: 0 4px 20px rgba(15,23,42,.05);
     }
 
     .profile-card-head {
-      padding: 24px 28px 20px;
+      padding: 22px 28px 20px;
       border-bottom: 1px solid var(--color-border);
       display: flex;
       align-items: center;
       gap: 14px;
+      width: 100%;
+      max-width: 600px;          /* هم‌تراز ستون وسط‌چین محتوا */
+      margin-inline: auto;
     }
 
     .profile-avatar {
@@ -66,7 +77,7 @@
       direction: ltr;
       text-align: left;
       word-break: break-all;
-      /* فونت لاتینِ واضح برای نام کاربری/ایمیل (به‌جای monospace کم‌خوانا) */
+      /* فونت لاتین واضح برای نام کاربری/ایمیل (به‌جای monospace کم‌خوانا) */
       font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
       font-size: 13.5px;
       font-weight: 500;
@@ -75,22 +86,61 @@
     }
     .profile-email { color: var(--color-text-primary); font-weight: 600; }
 
+    /* بدنه = تک‌ستونه؛ بخش‌ها وسط‌چین کارت قرار می‌گیرند (کارت تمام‌عرض هدر می‌ماند) */
     .profile-card-body {
-      padding: 28px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      align-items: center;
+    }
+    /* هر بخش = ستون تک‌ستونه ۶۰۰px وسط‌چین: عنوان+توضیح بالا، فیلدها پایین (یکسان در همه عرض‌ها) */
+    .profile-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 26px 28px;
+      width: 100%;
+      max-width: 600px;
+    }
+    .profile-section:first-child {
+      border-bottom: 1px solid var(--color-border);
+    }
+    .profile-section-aside {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .profile-section-desc {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.85;
+      color: var(--color-text-muted);
+    }
+    .profile-section-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+    }
+    @media (max-width: 640px) {
+      .profile-section { padding: 22px 22px; }
     }
 
-    /* ── section عنوان ── */
+    /* ── عنوان بخش — هم‌الگو با هدر بخش‌های صفحه تنظیمات (.add-asset-form h4): آیکون + HeadingFont ── */
     .profile-section-title {
       font-family: 'HeadingFont', 'DashboardFont', sans-serif;
-      font-size: 11px;
+      font-size: 14px;
       font-weight: 700;
-      color: var(--color-text-muted);
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      margin-bottom: 4px;
+      color: var(--color-text-primary);
+      letter-spacing: 0;
+      text-transform: none;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0;
+    }
+    .profile-section-title svg {
+      width: 15px; height: 15px; flex-shrink: 0;
+      color: var(--color-accent);
     }
 
     /* ── فیلدها ── */
@@ -158,7 +208,7 @@
       align-items: center;
       justify-content: center;
       padding: 4px;
-      border-radius: 6px;
+      border-radius: var(--radius-xs);
       transition: color var(--transition);
     }
     .profile-pass-toggle:hover { color: var(--color-accent); }
@@ -283,7 +333,45 @@
     .profile-code-input::placeholder { letter-spacing: 6px; }
 
     @media (max-width: 520px) {
-      .profile-main { margin: 24px auto; }
-      .profile-card-body { padding: 20px; }
-      .profile-card-head { padding: 18px 20px 14px; }
+      .profile-main { margin: 12px auto 32px; }
+      .profile-card-head { padding: 18px 20px 16px; }
+      .profile-section { padding: 22px 20px; }
     }
+
+    /* ── نشست‌های فعال (دستگاه‌ها) ── */
+    .acct-sessions { display: flex; flex-direction: column; gap: 10px; }
+    .acct-sessions-empty { font-size: 13px; color: var(--color-text-muted); padding: 8px 2px; }
+    .acct-sess-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--color-bg-primary); border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .acct-sess-row.is-current { border-color: var(--color-accent-border); background: var(--color-accent-bg); }
+    .acct-sess-icon {
+      flex: none; width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-secondary);
+    }
+    .acct-sess-row.is-current .acct-sess-icon { color: var(--color-accent); border-color: var(--color-accent-border); }
+    .acct-sess-icon svg { width: 19px; height: 19px; }
+    .acct-sess-info { flex: 1 1 auto; min-width: 0; }
+    .acct-sess-dev {
+      font-size: 13.5px; font-weight: 700; color: var(--color-text-primary);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .acct-sess-cur {
+      font-size: 10.5px; font-weight: 700; color: var(--color-accent);
+      background: var(--color-accent-bg); border: 1px solid var(--color-accent-border);
+      padding: 1px 8px; border-radius: var(--radius-xs);
+    }
+    .acct-sess-meta { font-size: 12px; color: var(--color-text-muted); margin-top: 3px; }
+    .acct-sess-kill {
+      flex: none; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 700;
+      color: #ef4444; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25);
+      padding: 6px 14px; border-radius: var(--radius-sm, 12px);
+      transition: background var(--transition), color var(--transition);
+    }
+    .acct-sess-kill:hover { background: #ef4444; color: #fff; }
+    .acct-killall-btn { margin-top: 14px; background: rgba(239,68,68,.1); color: #ef4444; box-shadow: none; }
+    .acct-killall-btn:hover { background: #ef4444; color: #fff; }

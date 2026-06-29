@@ -7,6 +7,8 @@ secret*
 
 # ─── Database dumps & backups ──────────────────────────────────
 *.sql
+# استثنا: طرحِ جدولِ نشست‌ها (provisioning) — بخشی از پروژه است، نه dump
+!sql/sessions.sql
 *.sqlite
 *.db
 *.bak

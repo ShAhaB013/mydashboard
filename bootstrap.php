@@ -15,12 +15,13 @@ declare(strict_types=1);
 spl_autoload_register(function (string $class): void {
     static $map = null;
     if ($map === null) {
-        $core = __DIR__ . '/admin/Core/';
-        $mdl  = __DIR__ . '/admin/Models/';
-        $ctl  = __DIR__ . '/admin/Controllers/';
+        $core = __DIR__ . '/app/Core/';
+        $mdl  = __DIR__ . '/app/Models/';
+        $ctl  = __DIR__ . '/app/Controllers/';
         $map = [
             // ── Core ──────────────────────────────────────
             'UserSession'            => $core . 'UserSession.php',
+            'DbSessionHandler'       => $core . 'DbSessionHandler.php',
             'DB'                     => $core . 'DB.php',
             'JsonStore'              => $core . 'JsonStore.php',
             'Request'                => $core . 'Request.php',
@@ -43,6 +44,7 @@ spl_autoload_register(function (string $class): void {
             'AccessModel'            => $mdl . 'AccessModel.php',
             'RateLimitModel'         => $mdl . 'RateLimitModel.php',
             'NotificationModel'      => $mdl . 'NotificationModel.php',
+            'SessionModel'           => $mdl . 'SessionModel.php',
             // ── Controllers (پنل ادمین) ───────────────────
             'ToolController'         => $ctl . 'ToolController.php',
             'IconController'         => $ctl . 'IconController.php',
@@ -51,6 +53,7 @@ spl_autoload_register(function (string $class): void {
             'AccessController'       => $ctl . 'AccessController.php',
             'NotificationController' => $ctl . 'NotificationController.php',
             'SettingsController'     => $ctl . 'SettingsController.php',
+            'SessionController'      => $ctl . 'SessionController.php',
             // ── Controllers (عمومی — api.php) ─────────────
             'AppController'          => $ctl . 'AppController.php',
             'AuthController'         => $ctl . 'AuthController.php',

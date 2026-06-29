@@ -11,11 +11,10 @@ Options -Indexes
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # /admin و /admin/ → admin.php
-  # پوشهٔ هم‌نامِ admin/ با «Require all denied» بلاک است؛ قانونِ عمومیِ
-  # پایین (clean-URL) شرطِ «مسیر پوشه نباشد» دارد، پس برای /admin فعال نمی‌شود
-  # و سرور پوشهٔ بلاک‌شده را سرو می‌کند → 403. این قانونِ صریح آن را به admin.php
-  # می‌برد (و کوئری مثل ?page=users با QSA حفظ می‌شود). assets/ تحت‌تأثیر نیست.
+  # /admin و /admin/ → admin.php (نقطه ورود پنل مدیریت)
+  # پوشه‌ی بک‌اند حالا app/ نام دارد (نه admin/) و کاملا deny است. این قانونِ
+  # صریح URLِ /admin را به فایلِ admin.php می‌برد و کوئری مثل ?page=users را با
+  # QSA حفظ می‌کند (ریدایرکت 301 پایین، admin.php را مستثنا کرده است).
   RewriteRule ^admin/?$ admin.php [L,QSA]
 
   # index.php (با/بدون کوئری) → /
@@ -87,8 +86,9 @@ Options -Indexes
   Require all denied
 </FilesMatch>
 
-# فایل‌های PHP که فقط include می‌شوند (نقطه‌ی ورودِ مستقیم نیستند) + پیکربندی
-<FilesMatch "^(dash_config|bootstrap|version)\.php$">
+# فایل‌های PHP که نقطه‌ی ورودِ تولید نیستند: include‌های مشترک + پیکربندی +
+# روترِ سرورِ توسعه (dev-router.php فقط برای php -S است و روی هاست نباید سرو شود)
+<FilesMatch "^(dash_config|bootstrap|version|dev-router)\.php$">
   Require all denied
 </FilesMatch>
 

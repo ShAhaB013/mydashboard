@@ -44,18 +44,19 @@ class AppController
             $me = ['ok' => true, 'logged_in' => false];
         }
 
-        // tools
+        // tools — ادمین همه ابزارها (شامل خصوصی) را می‌بیند تا بتواند روی همان داشبورد مدیریت کند
         $toolModel = new ToolModel();
-        $toolRows  = $isLoggedIn
-            ? $toolModel->allForUser(UserSession::id())
-            : $toolModel->allPublic();
+        $isAdmin   = $isLoggedIn && (($_SESSION['role'] ?? 'user') === 'admin');
+        $toolRows  = $isAdmin
+            ? $toolModel->all()
+            : ($isLoggedIn ? $toolModel->allForUser(UserSession::id()) : $toolModel->allPublic());
         $tools = ['ok' => true, 'tools' => ToolModel::toFrontend($toolRows)];
 
-        // unread (سبک): لیستِ کاملِ اعلان‌ها دیگر در bootstrap حمل نمی‌شود تا کارت‌ها
-        // منتظرِ دانلودِ ~۱۰۵KB اعلان نمانند. لیست به‌صورت تنبل (action=notifications)
-        // پس از رندرِ کارت‌ها در پس‌زمینه لود می‌شود.
-        // کاربرِ لاگین‌شده: شمارشِ ناخوانده با یک کوئریِ سبک محاسبه می‌شود تا بَج فوری بیاید.
-        // مهمان: شمارش سمتِ کلاینت (از localStorage) بعد از لودِ لیست محاسبه می‌شود.
+        // unread (سبک): لیست کامل اعلان‌ها دیگر در bootstrap حمل نمی‌شود تا کارت‌ها
+        // منتظر دانلود ~۱۰۵KB اعلان نمانند. لیست به‌صورت تنبل (action=notifications)
+        // پس از رندر کارت‌ها در پس‌زمینه لود می‌شود.
+        // کاربر لاگین‌شده: شمارش ناخوانده با یک کوئری سبک محاسبه می‌شود تا بج فوری بیاید.
+        // مهمان: شمارش سمت کلاینت (از localStorage) بعد از لود لیست محاسبه می‌شود.
         $unread = $isLoggedIn
             ? ['ok' => true, 'count' => (new NotificationModel())->unreadCount(UserSession::id())]
             : ['ok' => true, 'count' => 0];
@@ -68,18 +69,18 @@ class AppController
             'unread' => $unread,
         ];
 
-        // ETag/۳۰۴ برای هر دو حالت: در ناوبری بینِ صفحات اگر داده عوض نشده باشد،
-        // به‌جای دانلودِ مجددِ کلِ پاسخ (assets+tools) فقط یک ۳۰۴ برمی‌گردد.
+        // ETag/۳۰۴ برای هر دو حالت: در ناوبری بین صفحات اگر داده عوض نشده باشد،
+        // به‌جای دانلود مجدد کل پاسخ (assets+tools) فقط یک ۳۰۴ برمی‌گردد.
         $body       = json_encode($payload, JSON_UNESCAPED_UNICODE);
         $tag        = $isLoggedIn ? ('boot-u' . UserSession::id()) : 'boot-guest';
         $etag       = '"' . $tag . '-' . md5($body) . '"';
         $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
 
         if ($isLoggedIn) {
-            // وابسته به نشست: فقط برای همان مرورگر، با اجبارِ revalidate
+            // وابسته به نشست: فقط برای همان مرورگر، با اجبار revalidate
             header('Cache-Control: private, max-age=0, must-revalidate');
         } else {
-            // مهمان: قابلِ کشِ کوتاه‌مدتِ مشترک
+            // مهمان: قابل کش کوتاه‌مدت مشترک
             header('Cache-Control: public, max-age=30');
         }
         header('ETag: ' . $etag);
@@ -128,10 +129,11 @@ class AppController
     {
         $toolModel  = new ToolModel();
         $isLoggedIn = UserSession::check();
+        $isAdmin    = $isLoggedIn && (($_SESSION['role'] ?? 'user') === 'admin');
 
-        $rows = $isLoggedIn
-            ? $toolModel->allForUser(UserSession::id())
-            : $toolModel->allPublic();
+        $rows = $isAdmin
+            ? $toolModel->all()
+            : ($isLoggedIn ? $toolModel->allForUser(UserSession::id()) : $toolModel->allPublic());
 
         $body = json_encode([
             'ok'    => true,
@@ -166,7 +168,7 @@ class AppController
                 'email'        => $_SESSION['email'] ?? '',
                 'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
             ];
-            // تغییرِ ایمیلِ در انتظارِ تأیید — تا پروفایل پس از ریلود همان مرحله/کول‌داون را بازگرداند
+            // تغییر ایمیل در انتظار تأیید — تا پروفایل پس از ریلود همان مرحله/کول‌داون را بازگرداند
             $pending = $_SESSION['email_change'] ?? null;
             if (is_array($pending) && !empty($pending['email']) && time() <= (int) ($pending['expires'] ?? 0)) {
                 $base = SettingsModel::getInt('resend_cooldown', 10, 600, 30);
@@ -186,5 +188,78 @@ class AppController
     {
         UserSession::destroy();
         echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // نشست‌های فعال کاربر (خودش) — مانند «دستگاه‌های فعال» تلگرام.
+    // همه به نشست کاربر جاری محدود است (مالکیت سرور-تضمین).
+    // ═══════════════════════════════════════════════════════════
+
+    /** فهرست نشست‌های فعال همین کاربر */
+    public function mySessions(): void
+    {
+        if (!$this->requireLogin()) return;
+
+        $cur  = session_id();
+        $rows = SessionModel::active(UserSession::id());
+        $out  = array_map(static function (array $r) use ($cur): array {
+            return [
+                'id'         => (string) $r['id'],
+                'is_current' => hash_equals((string) $cur, (string) $r['id']),
+                'device'     => SessionModel::describeAgent((string) ($r['user_agent'] ?? '')),
+                'ip'         => (string) ($r['ip'] ?? ''),
+                'last_seen'  => (int) $r['last_seen'],
+                'expires_at' => (int) $r['expires_at'],
+            ];
+        }, $rows);
+
+        header('Cache-Control: private, no-store');
+        echo json_encode(['ok' => true, 'sessions' => $out], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** پایان‌دادن به یکی از نشست‌های همین کاربر (فقط نشست خودش) */
+    public function terminateMySession(): void
+    {
+        if (!$this->requirePost() || !$this->requireLogin()) return;
+
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $id   = trim((string) ($body['session_id'] ?? ''));
+        if ($id === '') {
+            echo json_encode(['ok' => false, 'msg' => 'شناسه نشست نامعتبر است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        $self = ($id === session_id());
+        SessionModel::terminateOwned($id, UserSession::id());
+        echo json_encode(['ok' => true, 'self' => $self], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** پایان همه نشست‌های دیگر همین کاربر (خروج از سایر دستگاه‌ها) */
+    public function terminateMyOther(): void
+    {
+        if (!$this->requirePost() || !$this->requireLogin()) return;
+
+        $n = SessionModel::terminateUser(UserSession::id(), session_id());
+        echo json_encode(['ok' => true, 'count' => $n], JSON_UNESCAPED_UNICODE);
+    }
+
+    // ── کمکی‌های گارد ──────────────────────────────────────────
+    private function requirePost(): bool
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'msg' => 'Method Not Allowed']);
+            return false;
+        }
+        return true;
+    }
+
+    private function requireLogin(): bool
+    {
+        if (!UserSession::check()) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'msg' => 'ابتدا وارد شوید']);
+            return false;
+        }
+        return true;
     }
 }

@@ -88,6 +88,7 @@ if ($isApi) {
     $accessCtrl = new AccessController($accessModel, $request);
     $notifCtrl  = new NotificationController($notificationModel, $request);
     $settingsCtrl = new SettingsController($request);
+    $sessionCtrl  = new SessionController($request);
 
     $router = new Router(
         $request,
@@ -97,7 +98,8 @@ if ($isApi) {
         $userCtrl,
         $accessCtrl,
         $notifCtrl,
-        $settingsCtrl
+        $settingsCtrl,
+        $sessionCtrl
     );
     $router->dispatch();
     exit;
@@ -110,7 +112,7 @@ if ($page === 'notifications') {
     $availableBadges   = $notificationModel->getAvailableBadges();
     $badgesJson        = json_encode($availableBadges, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
     $csrfToken         = $_SESSION['csrf_token'] ?? '';
-    require __DIR__ . '/admin/Views/notifications_view.php';
+    require __DIR__ . '/app/Views/notifications_view.php';
     exit;
 }
 
@@ -125,17 +127,18 @@ if ($page === 'users') {
     $userPage   = min($userPage, $userPages);
 
     $users      = $userModel->allPaginated($userPage, $perPage, $userSearch);
-    // مودال دسترسی به «همهٔ ابزارها» نیاز دارد — نسخهٔ سبک تزریق می‌شود
+    $sessionCounts = SessionModel::countsByUser();   // [user_id => تعداد نشست فعال]
+    // مودال دسترسی به «همه ابزارها» نیاز دارد — نسخه سبک تزریق می‌شود
     $toolsLite  = json_encode(ToolModel::toLite($toolModel->all()), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
     $csrfToken  = $_SESSION['csrf_token'] ?? '';
-    require __DIR__ . '/admin/Views/users_view.php';
+    require __DIR__ . '/app/Views/users_view.php';
     exit;
 }
 
 if ($page === 'settings') {
     $settings  = SettingsModel::all();
     $csrfToken = $_SESSION['csrf_token'] ?? '';
-    require __DIR__ . '/admin/Views/settings_view.php';
+    require __DIR__ . '/app/Views/settings_view.php';
     exit;
 }
 
@@ -146,14 +149,15 @@ $tools     = $toolModel->all();
 $icons     = $iconModel->all();
 $decosData = $decoModel->all();
 
-// لیستِ ابزارها سمت سرور صفحه‌بندی می‌شود (admin.js → list_tools)؛ پس به‌جای
-// تزریقِ کلِ دیتاستِ کامل + خامِ تکراری، فقط یک نسخهٔ «سبک» از همهٔ ابزارها
-// تزریق می‌شود (برای مرتب‌سازی/دسترسی/شمارشِ آیکون‌ودکو) و کاربران اصلاً.
+// لیست ابزارها سمت سرور صفحه‌بندی می‌شود (admin.js → list_tools)؛ پس به‌جای
+// تزریق کل دیتاست کامل + خام تکراری، فقط یک نسخه «سبک» از همه ابزارها
+// تزریق می‌شود (برای مرتب‌سازی/دسترسی/شمارش آیکون‌ودکو) و کاربران اصلا.
 $toolsLite  = json_encode(ToolModel::toLite($tools), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $toolsTotal = count($tools);
-$usersTotal = $userModel->countAll();    // فقط شمارش (بدون واکشیِ کلِ کاربران)
+$usersTotal = $userModel->countAll();    // فقط شمارش (بدون واکشی کل کاربران)
+$sessionTtlHours = SettingsModel::getInt('session_ttl_hours', 1, 720, 24);
 $iconsJson  = json_encode($icons,     JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $decosJson  = json_encode($decosData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $csrfToken  = $_SESSION['csrf_token'] ?? '';
 
-require __DIR__ . '/admin/Views/dashboard.php';
+require __DIR__ . '/app/Views/dashboard.php';

@@ -19,7 +19,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
     })();
   </script>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/admin/assets/admin.css?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.css') ?>">
+  <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
   <style>
     .settings-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px 16px; }
     .settings-grid .full { grid-column:1 / -1; }
@@ -28,8 +28,10 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
     .set-switch { display:flex; align-items:center; gap:10px; cursor:pointer; }
     .set-switch-text { font-size:13.5px; color:var(--text); font-weight:500; }
     .set-section-title { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:13px; font-weight:700; color:var(--text-2); margin:4px 0 2px; }
-    /* خط جداکننده اضافه حذف شد: نوار بالا خودش border دارد، پس بخش اول بعد از آن نیازی به border-top ندارد */
-    .topbar + .add-asset-form { border-top:none; padding-top:0; margin-top:18px; }
+    /* کارت تنظیمات — سطح bg-card + گوشه‌گرد پروژه (radius-lg)؛ پنل‌های فرم داخلش می‌نشینند */
+    .settings-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:0 22px; margin-top:4px; }
+    .settings-card .add-asset-form:first-child { margin-top:0; border-top:none; padding-top:22px; }
+    .settings-card .add-asset-form:last-child { padding-bottom:22px; }
     /* کلید (toggle) هماهنگ با تم پروژه — همان استایل سوییچ‌های صفحه اعلان‌ها */
     .toggle-sw { position:relative; width:38px; height:22px; flex-shrink:0; display:inline-block; }
     .toggle-sw input { opacity:0; width:0; height:0; position:absolute; }
@@ -40,8 +42,10 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
     .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
     /* ردیف ارسال ایمیل آزمایشی: ورودی + دکمه در یک خط، هم‌تراز پایین */
     .test-email-row { display:flex; align-items:flex-end; gap:10px; }
-    .test-email-row .field { flex:1 1 auto; min-width:0; }
+    .test-email-row .field { flex:1 1 auto; min-width:0; position:relative; }
     .test-email-row .btn { flex:0 0 auto; }
+    /* پیام خطای فیلد به‌صورت شناور تا ارتفاع ردیف ثابت بماند و دکمه جابه‌جا نشود */
+    .test-email-row .field-error-msg { position:absolute; top:100%; right:0; margin-top:3px; }
     @media (max-width:560px){
       .test-email-row { flex-direction:column; align-items:stretch; }
       .test-email-row .btn { width:100%; justify-content:center; }
@@ -50,25 +54,39 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 </head>
 <body>
 
-<div class="admin-wrap">
-
-  <!-- ── نوار بالا ── -->
-  <div class="topbar">
-    <div class="topbar-title">تنظیمات ایمیل</div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <a href="/admin" class="btn-back" aria-label="بازگشت به پنل مدیریت">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        <span class="btn-back-label">بازگشت</span>
-      </a>
-      <a href="/" class="btn btn-secondary btn-sm" style="text-decoration:none;">
+<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
+<header class="app-header">
+  <div class="app-header__inner">
+    <div class="app-header__lead"><h1 class="app-header__title">تنظیمات ایمیل</h1></div>
+    <div class="app-header__actions">
+      <a href="/" class="hdr-btn" title="داشبورد" aria-label="داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-        داشبورد
+      </a>
+      <a href="/admin" class="hdr-btn" title="بازگشت به پنل مدیریت" aria-label="بازگشت به پنل مدیریت">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       </a>
     </div>
   </div>
+</header>
+
+<div class="admin-wrap">
+
+  <!-- ── نوار فرعی (هم‌الگو با سایر صفحات ادمین: عنوان راست، اکشن اصلی چپ) ── -->
+  <div class="tools-header">
+    <h2>پیکربندی ایمیل</h2>
+    <div class="tools-header-actions">
+      <button class="btn btn-primary btn-sm" onclick="SettingsManager.save()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        ذخیره تنظیمات
+      </button>
+    </div>
+  </div>
+
+  <!-- ── کارت تنظیمات (هم‌الگو با کارت پروفایل: سطح bg-card + گوشه‌گرد radius-lg) ── -->
+  <div class="settings-card">
 
   <!-- ── تنظیمات سرور ایمیل (SMTP) ── -->
-  <div class="add-asset-form" style="margin-top:14px;">
+  <div class="add-asset-form">
     <h4>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
       سرور ایمیل (SMTP)
@@ -139,12 +157,6 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
       </div>
     </div>
 
-    <div style="margin-top:16px;">
-      <button class="btn btn-primary btn-sm" onclick="SettingsManager.save()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        ذخیره تنظیمات
-      </button>
-    </div>
   </div>
 
   <!-- ── ارسال ایمیل آزمایشی ── -->
@@ -159,12 +171,14 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
         <label>ایمیل مقصد</label>
         <input type="email" id="setTestEmail" placeholder="test@example.com" dir="ltr" style="direction:ltr;text-align:left">
       </div>
-      <button class="btn btn-secondary" onclick="SettingsManager.test()">
+      <button class="btn btn-primary" onclick="SettingsManager.test()">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
         ارسال آزمایشی
       </button>
     </div>
   </div>
+
+  </div><!-- /settings-card -->
 
 </div><!-- /admin-wrap -->
 
@@ -179,6 +193,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
   // سازگاری با admin.js (در این صفحه استفاده نمی‌شوند)
   const TOOLS_RAW = []; const USERS_DATA = []; const tools = []; const ICONS_DATA = {}; const DECOS_DATA = {};
 </script>
-<script src="/admin/assets/admin.js?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.js') ?>"></script>
+<script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
+<script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
 </body>
 </html>

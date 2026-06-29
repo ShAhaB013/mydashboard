@@ -17,7 +17,7 @@ class FeedController
 
         if ($isLoggedIn) {
             $rows = $nm->allActiveForUser(UserSession::id());
-            // badgeها را به‌جای N کوئریِ مجزا، در یک کوئریِ دسته‌ای می‌گیریم (مثلِ bootstrap)
+            // badgeها را به‌جای N کوئری مجزا، در یک کوئری دسته‌ای می‌گیریم (مثل bootstrap)
             $ids      = array_map(fn($r) => (int) $r['id'], $rows);
             $badgeMap = $nm->getBadgesForIds($ids);
             $result   = [];
@@ -35,7 +35,7 @@ class FeedController
             $tag = 'notif-guest';
         }
 
-        // ETag/۳۰۴ برای هر دو حالت: poll و ناوبری اگر اعلانی عوض نشده باشد، ۳۰۴ می‌گیرند نه کلِ لیست
+        // ETag/۳۰۴ برای هر دو حالت: poll و ناوبری اگر اعلانی عوض نشده باشد، ۳۰۴ می‌گیرند نه کل لیست
         $body       = json_encode(['ok' => true, 'notifications' => $result], JSON_UNESCAPED_UNICODE);
         $etag       = '"' . $tag . '-' . md5($body) . '"';
         $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';

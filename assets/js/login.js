@@ -1,5 +1,15 @@
     'use strict';
 
+    /* ══ پیام‌های اعتبارسنجی — تک‌منبع تا متن یک خطا در ورود/ثبت‌نام/فراموشی یکسان بماند ══ */
+    const MSG = {
+      emailInvalid: 'ایمیل واردشده معتبر نیست',
+      nameInvalid:  'نام و نام خانوادگی معتبر نیست (فقط حروف، حداقل ۲ کاراکتر)',
+      // دقیق با سیاست سرور: ۶ کاراکتر + دست‌کم دو مورد از {۸+ کاراکتر، حرف بزرگ، عدد، نماد}
+      pwWeak:       'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۶ کاراکتر همراه با ترکیبی از حروف بزرگ، عدد یا نماد',
+      pwMismatch:   'رمز عبور و تکرارش یکسان نیستند',
+      codeIncomplete: 'کد ۶ رقمی را کامل وارد کنید',
+    };
+
     /* ══ Toast صفحه + خطای روی فیلد (قاب قرمز) + ریست با تایپ ══ */
     const _toastWrap = document.getElementById('loginToastWrap');
     const _TOAST_ICON = {
@@ -23,7 +33,7 @@
     function _fieldWrap(id) { const el = document.getElementById(id); return el ? (el.closest('.login-input-wrap') || el) : null; }
     function markFieldError(id) { const w = _fieldWrap(id); if (w) w.classList.add('has-error'); }
     function clearFieldError(id) {
-      // فیلدهای کامپوننتِ جدید (.field) → پاکسازی با helperِ مشترک
+      // فیلدهای کامپوننت جدید (.field) → پاکسازی با helper مشترک
       if (_fieldComp(id) && window.Field) { window.Field.clear(id); return; }
       const w = _fieldWrap(id); if (w) w.classList.remove('has-error');
     }
@@ -35,7 +45,7 @@
       });
     }
     /* علامت‌گذاری فیلد + پیام + فوکوس؛ همیشه false برمی‌گرداند تا در شرط‌ها به‌راحتی return شود.
-       فیلدهای .field پیامِ خطا را زیرِ خود نشان می‌دهند؛ بقیه toast می‌گیرند. */
+       فیلدهای .field پیام خطا را زیر خود نشان می‌دهند؛ بقیه toast می‌گیرند. */
     function failField(id, msg) {
       if (_fieldComp(id) && window.Field) {
         window.Field.set(id, 'error', msg);
@@ -57,9 +67,9 @@
       if (el) el.addEventListener('input', () => clearFieldError(id));
     });
 
-    /* ── اعتبارسنجیِ زندهٔ فیلدهای کامپوننتِ .field (در کلِ فرم‌ها) ──
-       حینِ تایپ اگر معتبر شد → success (سبز، بدون پیام)؛ هنگامِ خروج اگر نامعتبر بود → error (قرمز + پیام).
-       همان رفتارِ بخشِ ثبت‌نام، برای ایمیل/نام/رمز/تکرارِ رمزِ همهٔ فرم‌ها. */
+    /* ── اعتبارسنجی زنده فیلدهای کامپوننت .field (در کل فرم‌ها) ──
+       حین تایپ اگر معتبر شد → success (سبز، بدون پیام)؛ هنگام خروج اگر نامعتبر بود → error (قرمز + پیام).
+       همان رفتار بخش ثبت‌نام، برای ایمیل/نام/رمز/تکرار رمز همه فرم‌ها. */
     if (window.Field) {
       const $ = (id) => document.getElementById(id);
       const setFocusIdle = (el) => {
@@ -68,11 +78,11 @@
       };
       const liveEmail = (id) => {
         const el = $(id); if (!el) return;
-        // ایمیل: تاییدِ نهایی (دامنه/MX) با سرور است؛ سبزِ زودهنگام نده تا با ردِ سرور تداخل نکند.
+        // ایمیل: تایید نهایی (دامنه/MX) با سرور است؛ سبز زودهنگام نده تا با رد سرور تداخل نکند.
         el.addEventListener('input', () => setFocusIdle(el));
         el.addEventListener('blur', () => {
           const v = el.value.trim();
-          if (v && !regEmailValid(v)) Field.set(el, 'error', 'قالب ایمیل نامعتبر است');
+          if (v && !regEmailValid(v)) Field.set(el, 'error', MSG.emailInvalid);
         });
       };
       const liveName = (id) => {
@@ -86,7 +96,7 @@
         el.addEventListener('blur', () => {
           const v = el.value.trim();
           if (!v) return setFocusIdle(el);
-          if (!ok(v)) Field.set(el, 'error', 'نام معتبر نیست؛ فقط حروف و حداقل ۲ کاراکتر');
+          if (!ok(v)) Field.set(el, 'error', MSG.nameInvalid);
           else Field.set(el, 'success', 'درست است');
         });
       };
@@ -95,7 +105,7 @@
         const v = el.value;
         if (!v) return setFocusIdle(el);
         if (v === src.value) Field.set(el, 'success', 'یکسان است');
-        else if (onBlur || document.activeElement !== el) Field.set(el, 'error', 'با رمز عبور یکسان نیست');
+        else if (onBlur || document.activeElement !== el) Field.set(el, 'error', MSG.pwMismatch);
         else setFocusIdle(el);
       };
       const livePassword = (id, confirmId) => {
@@ -109,7 +119,7 @@
         });
         el.addEventListener('blur', () => {
           const v = el.value;
-          if (v && !pwMeetsPolicy(v)) Field.set(el, 'error', 'رمز ضعیف است؛ حداقل ۶ کاراکتر همراه حروف بزرگ، عدد یا نماد');
+          if (v && !pwMeetsPolicy(v)) Field.set(el, 'error', MSG.pwWeak);
         });
       };
       const liveConfirm = (id, srcId) => {
@@ -316,9 +326,9 @@
       const n  = document.getElementById('regFullName').value.trim();
       const em = document.getElementById('regEmail').value.trim();
       if (!n) return { field: 'regFullName', msg: 'نام و نام خانوادگی الزامی است' };
-      if (n.length < 2 || !regNameValid(n)) return { field: 'regFullName', msg: 'نام و نام خانوادگی معتبر نیست (فقط حروف، حداقل ۲ کاراکتر)' };
+      if (n.length < 2 || !regNameValid(n)) return { field: 'regFullName', msg: MSG.nameInvalid };
       if (!em) return { field: 'regEmail', msg: 'ایمیل الزامی است' };
-      if (!regEmailValid(em)) return { field: 'regEmail', msg: 'ایمیل وارد شده معتبر نیست' };
+      if (!regEmailValid(em)) return { field: 'regEmail', msg: MSG.emailInvalid };
       return null;
     }
 
@@ -334,8 +344,8 @@
     function validateRegStep2() {
       const p = document.getElementById('regPassword').value;
       const c = document.getElementById('regConfirm').value;
-      if (!pwMeetsPolicy(p)) return { field: 'regPassword', msg: 'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۶ کاراکتر همراه با حروف بزرگ، عدد یا نماد.' };
-      if (p !== c) return { field: 'regConfirm', msg: 'رمز عبور و تکرار آن یکسان نیستند' };
+      if (!pwMeetsPolicy(p)) return { field: 'regPassword', msg: MSG.pwWeak };
+      if (p !== c) return { field: 'regConfirm', msg: MSG.pwMismatch };
       return null;
     }
 
@@ -371,7 +381,9 @@
         document.getElementById('regEmailEcho').textContent = document.getElementById('regEmail').value.trim();
         if (data.resend_cooldown) RESEND_COOLDOWN = data.resend_cooldown;
         showDevCode(data);
-        startResendCooldown();
+        // اگر سرور گفت کد قبلا ارسال شده (داخل کول‌داون)، همان زمان باقی‌مانده را نشان بده
+        if (data.retry_after) runCooldown(regResendBtn, regResendTimerEl, data.retry_after);
+        else startResendCooldown();
         return true;
       } catch (e) {
         setLoading(btn, false, 'ادامه');
@@ -384,7 +396,7 @@
     async function verifyRegCode() {
       const btn  = document.getElementById('registerSubmitBtn');
       const code = document.getElementById('regCode').value.trim();
-      if (!/^\d{6}$/.test(code)) { return failField('regCode', 'کد ۶ رقمی را کامل وارد کنید'); }
+      if (!/^\d{6}$/.test(code)) { return failField('regCode', MSG.codeIncomplete); }
       setLoading(btn, true);
       try {
         const res = await fetch('api.php?action=verify_email', {
@@ -415,11 +427,11 @@
         // اعتبارسنجی سروری ایمیل (جعلی/موقت/تکراری) — اگر رد شد، همین‌جا متوقف شو
         const btn = document.getElementById('registerSubmitBtn');
         setLoading(btn, true);
-        if (window.Field) Field.set('regEmail', 'loading');   // حالتِ «در حالِ بررسی…»
+        if (window.Field) Field.set('regEmail', 'loading');   // حالت «در حال بررسی…»
         try {
           const chk = await checkEmailAvailable();
           setLoading(btn, false, 'ادامه');
-          if (!chk.ok) { failField('regEmail', chk.msg || 'ایمیل وارد شده معتبر نیست'); return; }
+          if (!chk.ok) { failField('regEmail', chk.msg || MSG.emailInvalid); return; }
           if (window.Field) Field.set('regEmail', 'success', 'درست است');
         } catch (_) {
           setLoading(btn, false, 'ادامه');
@@ -558,7 +570,7 @@
     async function fpSendCode() {
       const em = document.getElementById('fpEmail').value.trim();
       if (!em) return failField('fpEmail', 'ایمیل الزامی است');
-      if (!regEmailValid(em)) return failField('fpEmail', 'ایمیل معتبر نیست');
+      if (!regEmailValid(em)) return failField('fpEmail', MSG.emailInvalid);
       setLoading(fpSubmitBtn, true);
       try {
         const res = await fetch('api.php?action=forgot_password', {
@@ -567,7 +579,7 @@
         });
         const data = await res.json();
         setLoading(fpSubmitBtn, false, 'ارسال کد');
-        if (!data.ok) { failField('fpEmail', data.msg || 'ایمیل معتبر نیست'); return; }
+        if (!data.ok) { failField('fpEmail', data.msg || MSG.emailInvalid); return; }
         document.getElementById('fpEmailEcho').textContent = em;
         if (data.resend_cooldown) RESEND_COOLDOWN = data.resend_cooldown;
         const note = document.getElementById('fpDevNote');
@@ -584,7 +596,7 @@
     /* مرحله ۲: تایید کد (بدون مصرف نهایی) → مرحله ۳ */
     async function fpVerifyCode() {
       const code = document.getElementById('fpCode').value.trim();
-      if (!/^\d{6}$/.test(code)) return failField('fpCode', 'کد ۶ رقمی را کامل وارد کنید');
+      if (!/^\d{6}$/.test(code)) return failField('fpCode', MSG.codeIncomplete);
       setLoading(fpSubmitBtn, true);
       try {
         const res = await fetch('api.php?action=verify_reset_code', {
@@ -606,8 +618,8 @@
       const code = document.getElementById('fpCode').value.trim();
       const p    = document.getElementById('fpPassword').value;
       const c    = document.getElementById('fpConfirm').value;
-      if (!pwMeetsPolicy(p)) return failField('fpPassword', 'رمز عبور باید حداقل در سطح «متوسط» باشد.');
-      if (p !== c) return failField('fpConfirm', 'رمز عبور و تکرار آن یکسان نیستند');
+      if (!pwMeetsPolicy(p)) return failField('fpPassword', MSG.pwWeak);
+      if (p !== c) return failField('fpConfirm', MSG.pwMismatch);
       setLoading(fpSubmitBtn, true);
       try {
         const res = await fetch('api.php?action=reset_password', {

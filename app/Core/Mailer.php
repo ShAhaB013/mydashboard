@@ -26,6 +26,17 @@ class Mailer
     }
 
     /**
+     * آیا مجاز به افشای کد تایید در پاسخ API هستیم؟ (فقط برای توسعه محلی)
+     * شرط سخت‌گیرانه: فقط وقتی SMTP «پیکربندی نشده» باشد و محیط محلی باشد.
+     * اگر SMTP پیکربندی شده باشد، حتی اگر ارسال شکست بخورد و میزبان localhost باشد،
+     * کد هرگز برنمی‌گردد (جلوگیری از نشت کد تایید).
+     */
+    public static function devCodeAllowed(): bool
+    {
+        return !self::isConfigured() && self::isLocal();
+    }
+
+    /**
      * ارسال کد تایید/بازیابی.
      * @return array{ok:bool, error:string}
      */

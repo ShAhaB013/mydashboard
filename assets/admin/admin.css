@@ -10,13 +10,20 @@
   --accent:#3e7de7; --accent-dark:#2d6bd4; --accent-bg:rgba(62,125,231,.08);
   --danger:#ef4444; --danger-bg:rgba(239,68,68,.08); --danger-rgb:239,68,68;
   --success:#0ea472; --warning:#d97706;
-  --radius:12px; --radius-lg:22px; --t:0.18s ease;
+  --accent-rgb:62,125,231; --accent-bg-hover:rgba(62,125,231,.15);
+  /* تایمینگ/منحنی‌ها — هماهنگ با پنل یوزر (style.css): پایه 0.22s + منحنی فنری برای transformها */
+  --radius-xs:8px; --radius:12px; --radius-lg:22px; --radius-pill:999px;
+  --t:0.22s cubic-bezier(.4,0,.2,1); --t-bounce:0.32s cubic-bezier(.34,1.56,.64,1);
+  /* هدر شیشه‌ای یکپارچه (هماهنگ با style.css) */
+  --header-bg:rgba(255,255,255,0.92); --header-shadow:rgba(15,23,42,0.06);
 }
 [data-theme="dark"] {
   --bg:#0d1117; --bg-card:#161b22; --bg-input:#1c2128; --bg-hover:#21262d;
   --border:#30363d; --border-focus:#58a6ff;
   --text:#e6edf3; --text-2:#8b949e; --text-3:#484f58;
   --accent:#58a6ff; --accent-dark:#388bfd; --accent-bg:rgba(88,166,255,.10);
+  --accent-rgb:88,166,255; --accent-bg-hover:rgba(88,166,255,.18);
+  --header-bg:rgba(13,17,23,0.90); --header-shadow:rgba(0,0,0,0.30);
   --danger:#f85149; --danger-bg:rgba(248,81,73,.10); --danger-rgb:248,81,73;
   --success:#3fb950; --warning:#d29922;
 }
@@ -81,10 +88,10 @@ input[type="email"] {
   padding:10px 14px; outline:none; width:100%;
   transition:border-color var(--t),box-shadow var(--t);
 }
-input:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(88,166,255,.10), 0 0 9px rgba(88,166,255,.12); }
+input:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(var(--accent-rgb),.10), 0 0 9px rgba(var(--accent-rgb),.12); }
 input::placeholder { color:var(--text-3); }
 
-/* ── حالتِ خطای فیلد (فرم‌های کلیدیِ ادمین) ── */
+/* ── حالت خطای فیلد (فرم‌های کلیدی ادمین) ── */
 .field.has-error > input,
 .field.has-error > select,
 .field.has-error .pass-wrap input {
@@ -117,7 +124,7 @@ select {
   padding:10px 14px; outline:none; width:100%; cursor:pointer;
   transition:border-color var(--t),box-shadow var(--t);
 }
-select:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(88,166,255,.10), 0 0 9px rgba(88,166,255,.12); }
+select:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(var(--accent-rgb),.10), 0 0 9px rgba(var(--accent-rgb),.12); }
 
 /* ── CustomSelect: dropdown هماهنگ با تم (جایگزین ظاهر بومی <select>) ── */
 .cselect { position:relative; width:100%; }
@@ -144,7 +151,7 @@ select:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(88,16
 .cselect.open .cselect-menu { opacity:1; visibility:visible; transform:translateY(0); }
 /* آیتم‌های لیست — یکنواخت با dropdown سمت کاربر (radius/پدینگ/هاور/انتخاب‌شده) */
 .cselect-option {
-  font-size:14px; color:var(--text-2); padding:9px 12px; border-radius:8px;
+  font-size:14px; color:var(--text-2); padding:9px 12px; border-radius:var(--radius-xs);
   cursor:pointer; transition:background .14s ease, color .14s ease;
 }
 .cselect-option:hover { background:var(--accent-bg); color:var(--accent); }
@@ -157,7 +164,7 @@ textarea {
   padding:10px 14px; outline:none; width:100%; resize:vertical;
   transition:border-color var(--t),box-shadow var(--t); line-height:1.6;
 }
-textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,166,255,.12); }
+textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12); }
 
 /* ── Buttons ── */
 .btn {
@@ -165,14 +172,15 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
   display:inline-flex; align-items:center; gap:7px;
   padding:0 18px; height:40px; border-radius:var(--radius);
   border:none; cursor:pointer;
-  transition:background var(--t),transform var(--t),opacity var(--t);
+  transition:background var(--t),transform var(--t-bounce),box-shadow var(--t),opacity var(--t);
   white-space:nowrap;
 }
 .btn:active { transform:scale(.97); }
 .btn-primary   { background:var(--accent); color:#fff; }
-.btn-primary:hover { background:var(--accent-dark); }
+/* hover با lift + گلوی نرم — هماهنگ با .login-submit-btn پنل یوزر */
+.btn-primary:hover { background:var(--accent-dark); transform:translateY(-1px); box-shadow:0 6px 18px var(--accent-bg-hover); }
 .btn-secondary { background:var(--bg-card); color:var(--text-2); border:1.5px solid var(--border); }
-.btn-secondary:hover { background:var(--bg-hover); color:var(--text); border-color:var(--text-3); }
+.btn-secondary:hover { background:var(--bg-hover); color:var(--text); border-color:var(--text-3); transform:translateY(-1px); }
 .btn-danger    { background:var(--danger-bg); color:var(--danger); border:1px solid rgba(248,81,73,.25); }
 .btn-danger:hover { background:rgba(248,81,73,.18); }
 .btn-warning   { background:rgba(217,119,6,.12); color:#d97706; border:1px solid rgba(217,119,6,.30); }
@@ -187,8 +195,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .btn:focus-visible,
 .btn-icon:focus-visible,
 .modal-close:focus-visible,
-.theme-toggle:focus-visible,
-.notif-nav-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.theme-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* ── رمز عبور: نمایش/مخفی + نوار قدرت (هماهنگ با صفحه پروفایل) ── */
 .pass-wrap { position:relative; }
@@ -196,7 +203,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .pass-toggle {
   position:absolute; left:8px; top:50%; transform:translateY(-50%);
   background:none; border:none; cursor:pointer; color:var(--text-3);
-  display:flex; align-items:center; justify-content:center; padding:5px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center; padding:5px; border-radius:var(--radius-xs);
   transition:color var(--t);
 }
 .pass-toggle:hover { color:var(--accent); }
@@ -219,10 +226,10 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
   background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:11px 14px; }
 .blk-row.is-blocked { border-color:rgba(248,81,73,.4); background:var(--danger-bg); }
 .blk-info { min-width:0; }
-.blk-ip { font-family:monospace; font-size:14px; font-weight:700; color:var(--text); }
+.blk-ip { font-family:'DashboardFont',sans-serif; font-size:14px; font-weight:700; color:var(--text); }
 .blk-meta { font-size:11.5px; color:var(--text-2); margin-top:3px; }
 .blk-side { display:flex; align-items:center; gap:10px; flex-shrink:0; }
-.blk-badge { font-size:11px; font-weight:700; border-radius:20px; padding:3px 10px; white-space:nowrap; }
+.blk-badge { font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:3px 10px; white-space:nowrap; }
 .blk-blocked { background:rgba(248,81,73,.15); color:var(--danger); border:1px solid rgba(248,81,73,.3); }
 .blk-watch   { background:rgba(217,119,6,.12); color:#d97706; border:1px solid rgba(217,119,6,.3); }
 @media (max-width:560px) {
@@ -232,19 +239,84 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 
 /* ── Layout ── */
 .admin-wrap { max-width:1040px; margin:0 auto; padding:32px 24px 80px; }
-.topbar {
-  display:flex; align-items:center; justify-content:space-between;
-  margin-bottom:32px; padding-bottom:20px; border-bottom:1px solid var(--border);
+/* ═══════════════════════════════════════════════════════════
+   هدر یکپارچه (سبک تلگرام) — مشترک با style.css (پنل عمومی)
+   نوار چسبان شیشه‌ای تمام‌عرض: [بازگشت] عنوان … [دکمه‌های آیکونی]
+   هر تغییری اینجا باید در style.css هم آینه شود.
+   ═══════════════════════════════════════════════════════════ */
+/* نوار شناور جمع‌وجور (pill) — مثل style.css؛ پدینگ افقی __inner برابر پدینگ
+   محتوای صفحه (.admin-wrap: 24px) تا دکمه‌ها با ستون محتوا هم‌تراز شوند. */
+.app-header {
+  position:sticky; top:0; z-index:100;
+  padding-top:12px; background:transparent;
+  transition:padding-top .28s cubic-bezier(.4,0,.2,1), background .4s ease;
 }
-.topbar-title { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:18px; font-weight:700; display:flex; align-items:center; gap:10px; }
-.topbar-title::before {
-  content:''; width:8px; height:8px;
-  background:var(--accent); border-radius:50%; display:inline-block;
+.app-header__inner {
+  position:relative; /* آینه‌ی style.css (مرجع overlayها) */
+  max-width:var(--page-w, 1040px); margin:0 auto; height:50px; padding:0 var(--page-pad, 24px);
+  display:flex; align-items:center; gap:4px;
+  background:var(--header-bg);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:0 6px 24px var(--header-shadow);
+  transition:background .4s ease, border-color .4s ease,
+             box-shadow .28s ease, border-radius .28s ease;
 }
+/* حالت چسبیده هنگام اسکرول (مثل style.css): گپ بالا حذف، گوشه‌های بالا صاف، سایه‌ی کم‌رنگ */
+.app-header.is-stuck { padding-top:0; }
+.app-header.is-stuck .app-header__inner {
+  border-top-left-radius:0; border-top-right-radius:0;
+  border-top-color:transparent;
+  box-shadow:0 6px 18px var(--header-shadow);
+}
+.app-header__title {
+  font-family:'HeadingFont','DashboardFont',sans-serif;
+  font-size:17px; font-weight:700; letter-spacing:-.3px; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  display:flex; align-items:center; gap:9px; min-width:0; margin:0 6px;
+}
+.app-header__title::before {
+  content:''; width:8px; height:8px; border-radius:50%;
+  background:var(--accent); flex-shrink:0;
+}
+.app-header__actions { display:flex; align-items:center; gap:2px; margin-inline-start:auto; flex-shrink:0; }
+/* خوشه‌ی عنوان (عنوان + چیپ شمارنده) — در گوشه‌ی شروع (راست در RTL) می‌ماند */
+.app-header__lead { display:flex; align-items:center; gap:9px; min-width:0; }
+
+/* دکمه آیکونی دایره‌ای (سبک تلگرام) */
+.hdr-btn {
+  position:relative; width:40px; height:40px; flex-shrink:0; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:none; background:transparent; border-radius:50%;
+  color:var(--text-2); cursor:pointer; text-decoration:none;
+  transition:background var(--t), color var(--t), transform var(--t-bounce);
+}
+.hdr-btn:hover { background:var(--accent-bg); color:var(--accent); }
+.hdr-btn:active { transform:scale(.9); }
+.hdr-btn.is-active { color:var(--accent); background:var(--accent-bg); }
+.hdr-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.hdr-btn svg { width:21px; height:21px; flex-shrink:0; }
+
+/* ── افکت ripple (موج کلیک، سبک تلگرام) — همه آیتم‌های تعاملی به‌جز کارت‌ها — مشترک با style.css ── */
+.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn, .access-tool-label,
+.deco-opt, .nm-adv-toggle, .notif-row, .section-box-head, .modal-close {
+  position:relative; overflow:hidden;
+}
+.ripple {
+  position:absolute; border-radius:50%;
+  background:currentColor; opacity:.22;
+  transform:scale(0); pointer-events:none;
+  animation:ripple .55s ease-out forwards;
+}
+@keyframes ripple { to { transform:scale(2.4); opacity:0; } }
 
 /* ── Section Box ── */
 .section-box { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); margin-bottom:28px; }
-.section-box-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; cursor:pointer; }
+/* رادیوس سر بخش هماهنگ با کادر تا ریپل (overflow:hidden) از گوشه‌ها بیرون نزند:
+   جمع‌شده = هر چهار گوشه گرد، باز = فقط دو گوشه‌ی بالا. */
+.section-box-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; cursor:pointer; border-radius:var(--radius-lg); }
+.section-box.open .section-box-head { border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
 .section-box-head h2 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:600; color:var(--text-2); display:flex; align-items:center; gap:8px; }
 .section-box-head .chevron { width:16px; height:16px; color:var(--text-3); transition:transform var(--t); flex-shrink:0; }
 .section-box.open .chevron { transform:rotate(180deg); }
@@ -252,8 +324,10 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .section-box.open .section-box-body { display:block; }
 
 /* ── Tools List ── */
-.tools-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-.tools-header h2 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:600; color:var(--text-2); }
+.tools-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.tools-header h2 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:600; color:var(--text-2); display:flex; align-items:center; gap:8px; }
+/* گروه دکمه‌های سمت چپ نوار فرعی — یکسان در همه صفحات ادمین (به‌جای style اینلاین) */
+.tools-header-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
 
 /* نوار ذخیره/لغو مرتب‌سازی ابزارها (sticky تا همیشه در دید بماند) */
 .reorder-bar {
@@ -261,7 +335,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   margin-bottom:14px; padding:10px 14px;
   background:var(--bg-card, var(--bg-input)); border:1px solid var(--accent);
-  border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.18);
+  border-radius:var(--radius); box-shadow:0 4px 16px rgba(0,0,0,.18);
 }
 .reorder-bar[hidden] { display:none; }
 .reorder-bar-msg {
@@ -274,23 +348,16 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
   .reorder-bar { flex-direction:column; align-items:stretch; }
   .reorder-bar-actions { justify-content:flex-end; }
 
-  /* ── Topbar موبایل: عنوان در یک ردیف، دکمه‌ها در ردیف بعد (تمام‌عرض، wrap) ── */
-  .topbar { flex-wrap:wrap; row-gap:14px; margin-bottom:24px; padding-bottom:16px; }
-  .topbar-title { font-size:16px; white-space:nowrap; }
-  .topbar > div:not(.topbar-title) {
-    width:100%;
-    justify-content:flex-start; /* RTL → از سمت راست */
-    flex-wrap:wrap; gap:8px;
-  }
-  /* روی موبایل دکمه بازگشت فقط آیکون می‌شود تا ردیف شلوغ نشود */
-  .btn-back .btn-back-label { display:none; }
-  .btn-back { padding:0 11px; }
+  /* ── هدر یکپارچه موبایل: ارتفاع جمع‌وجورتر و هم‌تراز با محتوای صفحه (14px) ── */
+  .app-header { padding-top:8px; }
+  .app-header__inner { height:46px; padding:0 14px; }
+  .app-header__title { font-size:15px; margin:0 4px; }
 }
 .count-badge {
   font-size:12px; font-weight:600;
   background:var(--accent-bg); color:var(--accent);
   border:1px solid rgba(88,166,255,.25);
-  border-radius:20px; padding:2px 10px; margin-right:6px;
+  border-radius:var(--radius-xs); padding:2px 10px; margin-right:6px;
 }
 .tool-list { display:flex; flex-direction:column; gap:10px; margin-bottom:10px; }
 .tool-row {
@@ -344,7 +411,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .pg-btn:disabled { opacity:.45; cursor:default; }
 .pg-ellipsis { color:var(--text-3); padding:0 2px; }
 .tool-row-icon {
-  width:38px; height:38px; border-radius:9px; flex-shrink:0;
+  width:38px; height:38px; border-radius:var(--radius-xs); flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   background:var(--accent-bg); color:var(--accent);
   border:1px solid rgba(88,166,255,.2);
@@ -360,7 +427,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .tool-row-path svg { flex-shrink:0; }
 .tool-row-path-txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .badge-pill {
-  font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px;
+  font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:2px 9px;
   background:var(--accent-bg); color:var(--accent);
   border:1px solid rgba(88,166,255,.25);
 }
@@ -374,7 +441,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 /* ── Asset Editor (Icons & Decos) ── */
 .asset-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(44px,1fr)); gap:6px; margin-bottom:14px; }
 .asset-opt {
-  aspect-ratio:1; border-radius:8px; border:1.5px solid var(--border);
+  aspect-ratio:1; border-radius:var(--radius-xs); border:1.5px solid var(--border);
   background:var(--bg-input); cursor:pointer; color:var(--text-2);
   display:flex; align-items:center; justify-content:center;
   transition:border-color var(--t),background var(--t),color var(--t);
@@ -389,7 +456,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .key-badge {
   font-family:monospace; font-size:12px;
   background:var(--accent-bg); color:var(--accent);
-  border:1px solid rgba(88,166,255,.2); border-radius:6px; padding:2px 8px;
+  border:1px solid rgba(88,166,255,.2); border-radius:var(--radius-xs); padding:2px 8px;
 }
 .asset-editor-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .add-asset-form { margin-top:16px; border-top:1px solid var(--border); padding-top:16px; }
@@ -416,7 +483,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); flex-shrink:0; }
 .modal-head h3 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
 .modal-head h3::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); display:inline-block; flex-shrink:0; }
-.modal-close { width:28px; height:28px; border-radius:7px; background:none; border:none; cursor:pointer; color:var(--text-2); display:flex; align-items:center; justify-content:center; transition:background var(--t),color var(--t); }
+.modal-close { width:28px; height:28px; border-radius:var(--radius-xs); background:none; border:none; cursor:pointer; color:var(--text-2); display:flex; align-items:center; justify-content:center; transition:background var(--t),color var(--t); }
 .modal-close:hover { background:var(--danger-bg); color:var(--danger); }
 .modal-close svg { width:14px; height:14px; }
 .modal-body { display:grid; grid-template-columns:1fr 220px; overflow:hidden; flex:1; min-height:0; }
@@ -439,7 +506,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 /* ── Icon & Deco Pickers ── */
 .icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(32px,1fr)); gap:5px; }
 .icon-opt {
-  aspect-ratio:1; border-radius:6px; border:1.5px solid var(--border);
+  aspect-ratio:1; border-radius:var(--radius-xs); border:1.5px solid var(--border);
   background:var(--bg-input); cursor:pointer; color:var(--text-2);
   display:flex; align-items:center; justify-content:center;
   transition:border-color var(--t),background var(--t),color var(--t);
@@ -448,7 +515,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .icon-opt.active { border-color:var(--accent); background:var(--accent); color:#fff; }
 .icon-opt svg    { width:14px; height:14px; pointer-events:none; }
 .deco-grid { display:flex; gap:6px; flex-wrap:wrap; }
-.deco-opt { padding:4px 11px; border-radius:20px; font-size:11px; font-weight:600; border:1.5px solid var(--border); background:var(--bg-input); color:var(--text-2); cursor:pointer; transition:all var(--t); }
+.deco-opt { padding:4px 11px; border-radius:var(--radius-xs); font-size:11px; font-weight:600; border:1.5px solid var(--border); background:var(--bg-input); color:var(--text-2); cursor:pointer; transition:all var(--t); }
 .deco-opt:hover  { border-color:var(--accent); color:var(--accent); }
 .deco-opt.active { border-color:var(--accent); background:var(--accent); color:#fff; }
 
@@ -467,18 +534,18 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 /* ── Preview Card ── */
 .preview-label { font-size:11px; font-weight:700; color:var(--text-3); letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px; }
 .preview-card {
-  background:#fff; border:1.5px solid #e2e8f0; border-radius:14px;
+  background:#fff; border:1.5px solid #e2e8f0; border-radius:var(--radius);
   padding:16px 14px 70px; position:relative; overflow:hidden;
   --card-color:#3e7de7; --card-bg:rgba(62,125,231,.08);
   --card-border:rgba(62,125,231,.25); --card-color-l:#5491ec;
 }
 [data-theme="dark"] .preview-card { background:#1e2433; border-color:#2d3447; }
-.preview-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--card-color),var(--card-color-l)); border-radius:16px 16px 0 0; }
+.preview-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--card-color),var(--card-color-l)); border-radius:var(--radius) var(--radius) 0 0; }
 .preview-corner { position:absolute; top:0; left:0; width:90px; height:90px; pointer-events:none; opacity:.08; }
 .preview-corner svg { width:100%; height:100%; }
-.preview-card-icon { width:44px; height:44px; border-radius:10px; margin-bottom:12px; background:var(--card-bg); border:1.5px solid var(--card-border); display:flex; align-items:center; justify-content:center; color:var(--card-color); position:relative; z-index:1; }
+.preview-card-icon { width:44px; height:44px; border-radius:var(--radius); margin-bottom:12px; background:var(--card-bg); border:1.5px solid var(--card-border); display:flex; align-items:center; justify-content:center; color:var(--card-color); position:relative; z-index:1; }
 .preview-card-icon svg { width:20px; height:20px; }
-.preview-card-badge { display:inline-block; font-size:10px; font-weight:700; color:var(--card-color); background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px; padding:1px 8px; margin-bottom:7px; position:relative; z-index:1; }
+.preview-card-badge { display:inline-block; font-size:10px; font-weight:700; color:var(--card-color); background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius-xs); padding:1px 8px; margin-bottom:7px; position:relative; z-index:1; }
 .preview-card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; position:relative; z-index:1; }
 .preview-card-desc  { font-size:12px; color:var(--text-2); line-height:1.5; position:relative; z-index:1; }
 .preview-deco-wrap  { position:absolute; bottom:0; left:0; right:0; height:72px; pointer-events:none; overflow:hidden; border-radius:0 0 16px 16px; opacity:.45; }
@@ -499,20 +566,6 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 [data-theme="dark"] .theme-toggle-icon .icon-sun  { opacity:0; transform:scale(.5) rotate(30deg); }
 [data-theme="dark"] .theme-toggle-icon .icon-moon { opacity:1; transform:scale(1) rotate(0deg); }
 
-/* ── Back Button — یکپارچه با زیرصفحات عمومی (.btn-back) ── */
-.btn-back {
-  display:inline-flex; align-items:center; gap:7px;
-  height:34px; padding:0 13px; flex-shrink:0;        /* هم‌اندازه با .btn-sm */
-  font-family:inherit; font-size:13px; font-weight:600;
-  color:var(--text-2); text-decoration:none;
-  background:var(--bg-card); border:1.5px solid var(--border);
-  border-radius:var(--radius); cursor:pointer;       /* هم‌radius با بقیه دکمه‌ها */
-  transition:color var(--t),border-color var(--t),background var(--t),transform .3s cubic-bezier(.34,1.56,.64,1);
-}
-.btn-back:hover { color:var(--accent); border-color:var(--accent); background:var(--accent-bg); transform:translateX(3px); }
-.btn-back:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.btn-back svg { width:15px; height:15px; flex-shrink:0; }
-@media (max-width:480px) { .btn-back { padding:0 11px; } .btn-back .btn-back-label { display:none; } }
 
 /* ── Confirm Modal ── */
 .confirm-modal { max-width:400px; }
@@ -524,9 +577,9 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .confirm-icon svg { width:22px; height:22px; }
 .confirm-modal h4 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:700; color:var(--text); margin:0; }
 .confirm-desc { font-size:13px; color:var(--text-2); line-height:1.75; margin:0; }
-.confirm-warn { width:100%; background:rgba(217,119,6,.08); border:1px solid rgba(217,119,6,.25); border-radius:8px; padding:10px 12px; font-size:12.5px; color:#d97706; line-height:1.6; text-align:right; display:none; }
+.confirm-warn { width:100%; background:rgba(217,119,6,.08); border:1px solid rgba(217,119,6,.25); border-radius:var(--radius-xs); padding:10px 12px; font-size:12.5px; color:#d97706; line-height:1.6; text-align:right; display:none; }
 .confirm-warn.show { display:block; }
-.item-name { display:inline-block; font-family:monospace; font-size:12.5px; background:var(--bg-input); border:1px solid var(--border); border-radius:5px; padding:0 6px; color:var(--text); }
+.item-name { display:inline-block; font-family:monospace; font-size:12.5px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-xs); padding:0 6px; color:var(--text); }
 .confirm-modal .modal-foot { justify-content:center; gap:10px; padding:14px 24px 20px; border-top:1px solid var(--border); }
 
 /* ── Toast ── */
@@ -697,7 +750,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .user-row-actions { display:flex; gap:6px; flex-shrink:0; }
 
 .user-status-pill {
-  font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px;
+  font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:2px 9px;
 }
 .user-status-pill.active {
   background:rgba(63,185,80,.10); color:var(--success);
@@ -710,7 +763,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 
 /* نشان سطح دسترسی ادمین */
 .user-role-pill {
-  font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px;
+  font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:2px 9px;
   display:inline-flex; align-items:center; gap:4px;
 }
 .user-role-pill.admin {
@@ -724,7 +777,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 
 /* pill عمومی در tool-row */
 .public-pill {
-  font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px;
+  font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:2px 9px;
   background:rgba(14,164,114,.10); color:#0ea472;
   border:1px solid rgba(14,164,114,.25);
 }
@@ -764,7 +817,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 
 .access-badge-label {
   display:inline-flex; align-items:center; gap:7px;
-  padding:6px 12px; border-radius:20px; cursor:pointer;
+  padding:6px 12px; border-radius:var(--radius-xs); cursor:pointer;
   border:1.5px solid var(--border); background:var(--bg-input);
   font-size:13px; font-weight:600; color:var(--text-2);
   transition:all var(--t);
@@ -783,11 +836,11 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
   padding:8px;
 }
 
-.access-tool-row { border-radius:8px; }
+.access-tool-row { border-radius:var(--radius-xs); }
 
 .access-tool-label {
   display:flex; align-items:center; gap:10px;
-  padding:8px 10px; border-radius:8px; cursor:pointer;
+  padding:8px 10px; border-radius:var(--radius-xs); cursor:pointer;
   transition:background var(--t);
   user-select:none;
 }
@@ -798,15 +851,17 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
 .access-tool-info { flex:1; display:flex; align-items:center; gap:7px; min-width:0; }
 .access-tool-title { font-size:13px; font-weight:500; color:var(--text); }
 .access-tool-badge {
-  font-size:10px; font-weight:700; border-radius:20px; padding:1px 7px;
+  font-size:10px; font-weight:700; border-radius:var(--radius-xs); padding:1px 7px;
   background:var(--accent-bg); color:var(--accent);
   border:1px solid rgba(88,166,255,.2);
 }
 
 .access-status-badge {
-  font-size:10px; font-weight:700; border-radius:20px; padding:2px 8px;
+  font-size:10px; font-weight:700; border-radius:var(--radius-xs); padding:2px 8px;
   white-space:nowrap; flex-shrink:0;
+  display:inline-flex; align-items:center; gap:4px;
 }
+.access-status-badge svg { width:11px; height:11px; flex:none; }
 .access-status-badge.public {
   background:rgba(14,164,114,.10); color:#0ea472;
   border:1px solid rgba(14,164,114,.25);
@@ -822,30 +877,9 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,
   .user-row-meta { display:none; }
 }
 
-/* دکمه اعلان‌ها در topbar داشبورد */
-.notif-nav-btn {
-  font-family:'DashboardFont',sans-serif;
-  font-size:13px; font-weight:600;
-  display:inline-flex; align-items:center; gap:6px;
-  padding:0 13px; height:34px; border-radius:var(--radius);
-  border:1.5px solid var(--border);
-  background:var(--bg-card); color:var(--text-2);
-  cursor:pointer; text-decoration:none;
-  transition:background var(--t), color var(--t),
-             border-color var(--t), transform var(--t);
-  position:relative; white-space:nowrap;
-}
-.notif-nav-btn:hover {
-  background:var(--accent-bg);
-  border-color:var(--accent);
-  color:var(--accent);
-  transform:translateY(-1px);
-}
-.notif-nav-btn svg { width:15px; height:15px; flex-shrink:0; }
- 
 /* badge تعداد اعلان‌های ادمین (اختیاری) */
 .notif-nav-count {
-  min-width:18px; height:18px; border-radius:20px;
+  min-width:18px; height:18px; border-radius:var(--radius-pill);
   background:var(--danger); color:#fff;
   font-size:10px; font-weight:700;
   display:inline-flex; align-items:center; justify-content:center;
@@ -894,7 +928,7 @@ html.theme-instant * { transition: none !important; }
   color: var(--text-2, #64748b);
   background: var(--bg-card, #fff);
   border: 1.5px solid var(--border, #e2e8f0);
-  border-radius: 20px;
+  border-radius: var(--radius-xs);
   padding: 4px 11px;
   letter-spacing: .3px;
   direction: ltr;
@@ -904,4 +938,58 @@ html.theme-instant * { transition: none !important; }
   content: '';
   width: 7px; height: 7px; border-radius: 50%;
   background: var(--accent, #3e7de7);
+}
+
+/* ── راهنمای شناور (tooltip سفارشی) — هماهنگ با radius/استایل پروژه ── */
+.tip-pop {
+  position: fixed; z-index: 4000; pointer-events: none;
+  max-width: 240px; padding: 6px 11px;
+  font-size: 12px; font-weight: 600; line-height: 1.6;
+  color: #f8fafc; text-align: center; white-space: normal;
+  background: rgba(15, 23, 42, .95);
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .28);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  opacity: 0; transform: translateY(3px) scale(.97);
+  transition: opacity .14s ease, transform .14s ease;
+}
+.tip-pop.is-on { opacity: 1; transform: none; }
+.tip-pop::after {
+  content: ''; position: absolute; top: 100%;
+  left: var(--tip-ax, 50%); margin-left: -5px;
+  border: 5px solid transparent; border-top-color: rgba(15, 23, 42, .95);
+}
+.tip-pop--below::after {
+  top: auto; bottom: 100%;
+  border-top-color: transparent; border-bottom-color: rgba(15, 23, 42, .95);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip-pop { transition: opacity .12s ease; transform: none; }
+}
+
+/* ── مدیریت نشست‌های فعال ── */
+.sess-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.sess-hint { font-size:12.5px; color:var(--text-3); line-height:1.7; margin:0; flex:1 1 240px; }
+.sess-toolbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.sess-list { display:flex; flex-direction:column; gap:8px; }
+.sess-ttl-row {
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  background:var(--bg-2, rgba(127,127,127,.06)); border:1px solid var(--border);
+  border-radius:var(--radius-xs); padding:10px 12px; margin-bottom:12px;
+  font-size:13px; color:var(--text-2);
+}
+.sess-ttl-row label { font-weight:600; color:var(--text); }
+.sess-ttl-row input {
+  width:64px; text-align:center; padding:5px 6px; border-radius:var(--radius-xs);
+  border:1px solid var(--border); background:var(--bg-card); color:var(--text);
+  font-size:13px; font-weight:700;
+}
+.sess-ttl-hint { flex:1 1 100%; font-size:11.5px; color:var(--text-3); line-height:1.6; }
+.sess-user-btn { position:relative; overflow:visible; }
+.sess-count-dot {
+  position:absolute; top:-5px; left:-5px; min-width:16px; height:16px; padding:0 4px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; line-height:1; border-radius:999px;
+  background:var(--accent); color:#fff; box-shadow:0 0 0 2px var(--bg-card);
 }

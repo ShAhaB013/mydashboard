@@ -45,7 +45,7 @@ class UserModel
 
     /**
      * صفحه‌بندی سمت سرور + جستجوی اختیاری (نام نمایشی/نام/فامیل/ایمیل/نام‌کاربری).
-     * فقط ردیف‌های صفحهٔ جاری از DB می‌آیند.
+     * فقط ردیف‌های صفحه جاری از DB می‌آیند.
      */
     public function allPaginated(int $page, int $perPage, string $search = ''): array
     {

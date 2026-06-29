@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/version.php';
-require_once __DIR__ . '/admin/Core/UserSession.php';
+// Bootstrap مشترک: autoload + config + DB + session
+$config = require __DIR__ . '/bootstrap.php';
 
 // اگر از قبل وارد شده، مستقیم به داشبورد
-UserSession::start();
 if (UserSession::check()) {
     header('Location: /');
     exit;
@@ -38,6 +38,7 @@ $startMode = (($_GET['tab'] ?? '') === 'register') ? 'register' : 'login';
     })();
   </script>
   <script src="/assets/js/theme.js?v=<?= $v_theme ?>" defer></script>
+  <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
   <!-- توجه: روی صفحه ورود از speculationrules استفاده نمی‌کنیم؛ prerender داشبورد در حالت
        مهمان ساخته می‌شد و پس از ورود تا رفرش، حالت مهمان را نشان می‌داد. ورود → بارگذاری تازه احرازشده. -->
 </head>
@@ -124,7 +125,7 @@ $startMode = (($_GET['tab'] ?? '') === 'register') ? 'register' : 'login';
         <!-- سربرگ صفحه بازیابی (جایگزین تب‌ها) با یک دکمه بازگشت هوشمند -->
         <div class="forgot-head">
           <button type="button" class="forgot-back-top" id="fpBack" aria-label="بازگشت به ورود" title="بازگشت به ورود">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
           </button>
           <h2 class="forgot-title">بازیابی رمز عبور</h2>
         </div>
@@ -210,7 +211,7 @@ $startMode = (($_GET['tab'] ?? '') === 'register') ? 'register' : 'login';
       <form class="login-card-body login-form login-register" id="registerForm" autocomplete="on" novalidate data-step="1"
             <?= $startMode === 'register' ? '' : 'hidden' ?>>
 
-        <!-- مرحله ۱: حساب (نام + نام خانوادگی + ایمیل) — کامپوننتِ یکپارچهٔ .field -->
+        <!-- مرحله ۱: حساب (نام + نام خانوادگی + ایمیل) — کامپوننت یکپارچه .field -->
         <div class="reg-step" data-step="1">
           <div class="field" data-state="idle">
             <label class="field-label" for="regFullName">نام و نام خانوادگی</label>
@@ -284,7 +285,7 @@ $startMode = (($_GET['tab'] ?? '') === 'register') ? 'register' : 'login';
         <!-- ناوبری مراحل -->
         <div class="reg-nav">
           <button type="button" class="reg-back-btn" id="regBackBtn" aria-label="مرحله قبلی" title="مرحله قبلی" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
           </button>
           <button type="submit" class="login-submit-btn" id="registerSubmitBtn">
             <span class="btn-spinner" aria-hidden="true"></span>

@@ -63,7 +63,7 @@ const Toast = {
 
 // ═══════════════════════════════════════════════════════════
 // FieldErr — خطای inline برای فرم‌های کلیدی (قاب قرمز + پیام زیر فیلد)
-// مارک‌آپ تغییر نمی‌کند؛ پیام داخلِ .field تزریق می‌شود. اگر فیلد در .field
+// مارک‌آپ تغییر نمی‌کند؛ پیام داخل .field تزریق می‌شود. اگر فیلد در .field
 // نبود، به Toast برمی‌گردد. همیشه false برمی‌گرداند تا در شرط‌ها return شود.
 // ═══════════════════════════════════════════════════════════
 const FieldErr = {
@@ -122,13 +122,13 @@ const Confirm = {
     document.getElementById('confirmHeading').textContent = heading;
     document.getElementById('confirmBody').innerHTML      = body;
     const warnEl = document.getElementById('confirmWarn');
-    if (warn) { warnEl.innerHTML = `⚠️ ${warn}`; warnEl.classList.add('show'); }
+    if (warn) { warnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-3px;margin-left:5px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>${warn}`; warnEl.classList.add('show'); }
     else       { warnEl.innerHTML = ''; warnEl.classList.remove('show'); }
     const iconEl = document.getElementById('confirmIcon');
     iconEl.className = `confirm-icon ${type}`;
     iconEl.innerHTML = icon || this._defaultIcon;
     const btn = document.getElementById('confirmActionBtn');
-    btn.className   = `btn btn-sm ${type === 'warning' ? 'btn-warning' : 'btn-danger'}`;
+    btn.className   = `btn btn-sm ${type === 'warning' ? 'btn-warning' : type === 'save' ? 'btn-primary' : 'btn-danger'}`;
     btn.textContent = btnLabel;
     btn.disabled    = false;
     Modal.open('confirmModal');
@@ -157,6 +157,7 @@ const Preview = {
     return `#${[r[1],r[2],r[3]].map(v => l(v).toString(16).padStart(2,'0')).join('')}`;
   },
   update() {
+    if (!document.getElementById('f-title')) return;   // فرم ابزار حذف شده (به داشبورد منتقل شد)
     const title = document.getElementById('f-title').value || 'عنوان ابزار';
     const desc  = document.getElementById('f-desc').value  || 'توضیح کوتاه درباره این ابزار';
     const badge = document.getElementById('f-badge').value || 'ابزار';
@@ -180,186 +181,6 @@ const Preview = {
       decoEl.innerHTML = DECOS_DATA[State.selDeco] || DECOS_DATA['generic'] || '';
       void decoEl.offsetWidth;
     }
-  },
-};
-
-// ═══════════════════════════════════════════════════════════
-// ToolForm — با dirty tracking برای هشدار تغییرات ذخیره‌نشده
-// ═══════════════════════════════════════════════════════════
-const ToolForm = {
-  _dirty: false,
-
-  _markDirty() { this._dirty = true; },
-  _clearDirty() { this._dirty = false; },
-
-  // بستن فرم — اگر تغییر ذخیره‌نشده باشد، با مودال سفارشی تایید می‌گیرد
-  requestClose() {
-    if (!this._dirty) { Modal.close('formModal'); return; }
-    Confirm.show({
-      title:    'بستن فرم',
-      heading:  'تغییرات ذخیره‌نشده دارید',
-      body:     'تغییرات را ذخیره نکرده‌اید، آیا از بستن فرم اطمینان دارید؟',
-      type:     'warning',
-      btnLabel: 'بستن بدون ذخیره',
-      icon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-      onConfirm: () => {
-        this._clearDirty();
-        Confirm.close();
-        Modal.close('formModal');
-      },
-    });
-  },
-
-  reset() {
-    ['f-title','f-desc','f-path','f-badge'].forEach(id => document.getElementById(id).value = '');
-    State.selIcon  = 'star';
-    State.selDeco  = 'generic';
-    State.selColor = '';
-    document.querySelectorAll('.color-preset').forEach((b, i) => b.classList.toggle('active', i === 0));
-    IconPicker.build();
-    DecoPicker.build();
-    Preview.update();
-    this._clearDirty();
-  },
-
-  openAdd() {
-    State.editId = 0;
-    document.getElementById('modalTitle').textContent = 'ابزار جدید';
-    this.reset();
-    Modal.open('formModal');
-    setTimeout(() => document.getElementById('f-title').focus(), 100);
-  },
-
-  openEdit(id) {
-    // ردیفِ کاملِ ابزار از کشِ صفحهٔ جاریِ ToolsView (دکمهٔ ویرایش فقط روی
-    // ردیف‌های همان صفحه است). fallback به آرایهٔ سبک اگر یافت نشد.
-    const t = (Array.isArray(ToolsView._pageRows) ? ToolsView._pageRows : [])
-                .find(x => Number(x.id) === Number(id))
-           || (Array.isArray(tools) ? tools : []).find(x => Number(x.id) === Number(id));
-    if (!t) { Toast.show('ابزار یافت نشد', 'error'); return; }
-    State.editId = Number(id);
-    document.getElementById('modalTitle').textContent = 'ویرایش ابزار';
-    document.getElementById('f-title').value = t.title       || '';
-    document.getElementById('f-desc').value  = t.description || '';
-    document.getElementById('f-path').value  = t.path        || '';
-    document.getElementById('f-badge').value = t.badge       || '';
-    State.selIcon  = t.iconKey     || 'star';
-    State.selDeco  = t.deco        || 'generic';
-    State.selColor = t.accentColor || '';
-    const presets = document.querySelectorAll('.color-preset');
-    let found = false;
-    presets.forEach(b => {
-      const match = b.dataset.color === State.selColor;
-      b.classList.toggle('active', match);
-      if (match) found = true;
-    });
-    if (State.selColor && !found) document.getElementById('customColor').value = State.selColor;
-    IconPicker.build();
-    DecoPicker.build();
-    Preview.update();
-    this._clearDirty();
-    Modal.open('formModal');
-    setTimeout(() => document.getElementById('f-title').focus(), 100);
-  },
-
-  async save() {
-    const title = document.getElementById('f-title').value.trim();
-    const path  = document.getElementById('f-path').value.trim();
-    if (!title) return FieldErr.set('f-title', 'عنوان الزامی است');
-    if (!path)  return FieldErr.set('f-path', 'مسیر الزامی است');
-    const btn = document.getElementById('saveBtn');
-    btn.disabled = true;
-    const isEdit  = State.editId > 0;
-    const payload = {
-      title,
-      description: document.getElementById('f-desc').value.trim(),
-      path,
-      badge:       document.getElementById('f-badge').value.trim(),
-      iconKey:     State.selIcon,
-      deco:        State.selDeco,
-      accentColor: State.selColor || '',
-    };
-    if (isEdit) payload.id = State.editId;
-    const res = await Api.call(isEdit ? 'edit' : 'add', payload);
-    if (res.ok) {
-      this._clearDirty();
-      Modal.close('formModal');
-      Toast.show(isEdit ? 'ابزار ویرایش شد' : 'ابزار اضافه شد');
-      setTimeout(() => location.reload(), 900);
-    } else {
-      Toast.show(res.msg || 'خطا در ذخیره', 'error');
-    }
-    btn.disabled = false;
-  },
-
-  openDelete(id, name) {
-    State.deleteId = Number(id);
-    Confirm.show({
-      title:    'حذف ابزار',
-      heading:  'آیا از حذف این ابزار اطمینان دارید؟',
-      body:     `ابزار <span class="item-name">${esc(name)}</span> به‌طور دائم حذف خواهد شد.`,
-      type:     'danger',
-      btnLabel: 'حذف ابزار',
-      onConfirm: async () => {
-        const res = await Api.call('delete', { id: State.deleteId });
-        if (res.ok) {
-          Confirm.close();
-          Toast.show('ابزار با موفقیت حذف شد');
-          setTimeout(() => location.reload(), 900);
-        } else {
-          Toast.show(res.msg || 'خطا در حذف', 'error');
-        }
-      },
-    });
-  },
-};
-
-// ═══════════════════════════════════════════════════════════
-// TogglePublic
-// ═══════════════════════════════════════════════════════════
-const TogglePublic = {
-  async toggle(id, btn) {
-    btn.disabled = true;
-    const res = await Api.call('toggle_public', { id });
-    if (!res.ok) {
-      Toast.show(res.msg || 'خطا', 'error');
-      btn.disabled = false;
-      return;
-    }
-    const row      = btn.closest('.tool-row');
-    const isNowPublic = row.dataset.public === '0';
-    row.dataset.public = isNowPublic ? '1' : '0';
-
-    // به‌روزرسانی داده‌های در حافظه تا مودال دسترسی بدون رفرش بروز بماند
-    const newPublic = isNowPublic ? 1 : 0;
-    const raw = Array.isArray(TOOLS_RAW) ? TOOLS_RAW.find(t => Number(t.id) === Number(id)) : null;
-    if (raw) raw.is_public = newPublic;
-    if (Array.isArray(tools)) {
-      const t = tools.find(t => Number(t.id) === Number(id));
-      if (t) t.is_public = newPublic;
-    }
-
-    btn.classList.toggle('is-public', isNowPublic);
-    btn.title = isNowPublic ? 'خصوصی کردن' : 'عمومی کردن';
-    btn.innerHTML = isNowPublic
-      ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
-
-    const meta = row.querySelector('.tool-row-meta');
-    let pill = meta.querySelector('.public-pill');
-    if (isNowPublic) {
-      if (!pill) {
-        pill = document.createElement('span');
-        pill.className = 'public-pill';
-        meta.insertBefore(pill, meta.firstChild);
-      }
-      pill.textContent = '🔓 عمومی';
-    } else {
-      pill?.remove();
-    }
-
-    btn.disabled = false;
-    Toast.show(isNowPublic ? 'ابزار عمومی شد' : 'ابزار خصوصی شد');
   },
 };
 
@@ -414,42 +235,73 @@ const UserSearch = {
 // UserManager
 // ═══════════════════════════════════════════════════════════
 const UserManager = {
-  async add() {
-    const fullName = document.getElementById('newFullName').value.trim();
-    const email    = document.getElementById('newEmail').value.trim();
-    const password = document.getElementById('newUserPassword').value;
-    const role     = document.getElementById('newUserRole')?.value || 'user';
-    if (!fullName) return FieldErr.set('newFullName', 'نام و نام خانوادگی الزامی است');
-    if (!email)    return FieldErr.set('newEmail', 'ایمیل الزامی است');
-    if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(email)) return FieldErr.set('newEmail', 'قالب ایمیل نامعتبر است');
-    if (!password) return FieldErr.set('newUserPassword', 'رمز عبور الزامی است');
-    if (!pwMeetsPolicy(password)) return FieldErr.set('newUserPassword', PW_POLICY_MSG);
-
-    const res = await Api.call('add_user', { full_name: fullName, email, password, role });
-    if (res.ok) {
-      Toast.show('کاربر اضافه شد');
-      setTimeout(() => location.reload(), 900);
-    } else {
-      Toast.show(res.msg || 'خطا در ثبت کاربر', 'error');
-    }
+  _dirty: false,
+  _wiredDirty: false,
+  _wireDirty() {
+    if (this._wiredDirty) return;
+    const m = document.getElementById('userModal');
+    if (!m) return;
+    m.addEventListener('input', () => { this._dirty = true; });
+    m.addEventListener('change', () => { this._dirty = true; });
+    this._wiredDirty = true;
   },
-
+  _isAdd: false,
+  close(force) {
+    if (!force && this._dirty) {
+      Confirm.show({
+        title: 'تغییرات ذخیره نشده',
+        heading: 'تغییرات ذخیره نشده دارید',
+        body: 'آیا می‌خواهید تغییرات را ذخیره کنید؟',
+        type: 'save',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        btnLabel: 'ذخیره تغییرات',
+        onConfirm: () => { Confirm.close(); this.save(); },
+      });
+      return;
+    }
+    this._dirty = false;
+    Modal.close('userModal');
+  },
+  openAdd() {
+    this._wireDirty();
+    this._isAdd = true;
+    document.getElementById('userModalTitle').textContent = 'افزودن کاربر';
+    document.getElementById('userModalSaveLabel').textContent = 'افزودن کاربر';
+    document.getElementById('editPassLabel').innerHTML = 'رمز عبور <span class="req">*</span>';
+    document.getElementById('editUserId').value = '';
+    document.getElementById('editFullName').value = '';
+    document.getElementById('editEmail').value = '';
+    const editPass = document.getElementById('editUserPassword');
+    editPass.value = ''; editPass.type = 'password';
+    checkStrength('', 'editPassStrength', 'editPassStrengthLabel');
+    const roleSel = document.getElementById('editUserRole');
+    if (roleSel) { roleSel.value = 'user'; CustomSelect.refresh(roleSel); }
+    Modal.open('userModal');
+    this._dirty = false;
+    setTimeout(() => document.getElementById('editFullName').focus(), 100);
+  },
   openEdit(id, fullName, email, role) {
+    this._wireDirty();
+    this._isAdd = false;
+    document.getElementById('userModalTitle').textContent = 'ویرایش کاربر';
+    document.getElementById('userModalSaveLabel').textContent = 'ذخیره';
+    document.getElementById('editPassLabel').innerHTML = 'رمز عبور جدید <span style="color:var(--text-3);font-weight:400;">(خالی = بدون تغییر)</span>';
     document.getElementById('editUserId').value   = id;
     document.getElementById('editFullName').value = fullName;
     document.getElementById('editEmail').value    = email;
     const editPass = document.getElementById('editUserPassword');
-    editPass.value = '';
-    editPass.type  = 'password';            // در صورت باز ماندن از دفعه قبل
-    checkStrength('', 'editPassStrength', 'editPassStrengthLabel'); // ریست نوار قدرت
+    editPass.value = ''; editPass.type = 'password';
+    checkStrength('', 'editPassStrength', 'editPassStrengthLabel');
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = (role === 'admin') ? 'admin' : 'user'; CustomSelect.refresh(roleSel); }
     Modal.open('userModal');
+    this._dirty = false;
     setTimeout(() => document.getElementById('editFullName').focus(), 100);
   },
 
-  async saveEdit() {
-    const id       = parseInt(document.getElementById('editUserId').value);
+  async save() {
+    const idVal    = document.getElementById('editUserId').value.trim();
+    const isAdd    = !idVal;
     const fullName = document.getElementById('editFullName').value.trim();
     const email    = document.getElementById('editEmail').value.trim();
     const password = document.getElementById('editUserPassword').value;
@@ -457,15 +309,20 @@ const UserManager = {
     if (!fullName) return FieldErr.set('editFullName', 'نام و نام خانوادگی الزامی است');
     if (!email)    return FieldErr.set('editEmail', 'ایمیل الزامی است');
     if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(email)) return FieldErr.set('editEmail', 'قالب ایمیل نامعتبر است');
+    if (isAdd && !password) return FieldErr.set('editUserPassword', 'رمز عبور الزامی است');
     if (password && !pwMeetsPolicy(password)) return FieldErr.set('editUserPassword', PW_POLICY_MSG);
 
-    const res = await Api.call('edit_user', { id, full_name: fullName, email, password, role });
+    const action = isAdd ? 'add_user' : 'edit_user';
+    const body   = isAdd
+      ? { full_name: fullName, email, password, role }
+      : { id: parseInt(idVal), full_name: fullName, email, password, role };
+    const res = await Api.call(action, body);
     if (res.ok) {
-      Modal.close('userModal');
-      Toast.show('کاربر ویرایش شد');
+      this.close(true);
+      Toast.show(isAdd ? 'کاربر اضافه شد' : 'کاربر ویرایش شد');
       setTimeout(() => location.reload(), 900);
     } else {
-      Toast.show(res.msg || 'خطا در ویرایش', 'error');
+      Toast.show(res.msg || 'خطا', 'error');
     }
   },
 
@@ -520,8 +377,35 @@ const UserManager = {
 const AccessManager = {
   _currentUserId: null,
   _currentBadges: [],
+  _dirty: false,
+  _wiredDirty: false,
+  _wireDirty() {
+    if (this._wiredDirty) return;
+    const m = document.getElementById('accessModal');
+    if (!m) return;
+    m.addEventListener('input', () => { this._dirty = true; });
+    m.addEventListener('change', () => { this._dirty = true; });
+    this._wiredDirty = true;
+  },
+  close(force) {
+    if (!force && this._dirty) {
+      Confirm.show({
+        title: 'تغییرات ذخیره نشده',
+        heading: 'تغییرات ذخیره نشده دارید',
+        body: 'آیا می‌خواهید تغییرات را ذخیره کنید؟',
+        type: 'save',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        btnLabel: 'ذخیره تغییرات',
+        onConfirm: () => { Confirm.close(); this.save(); },
+      });
+      return;
+    }
+    this._dirty = false;
+    Modal.close('accessModal');
+  },
 
   async open(userId, userName) {
+    this._wireDirty();
     this._currentUserId = userId;
     this._currentBadges = [];
 
@@ -531,6 +415,7 @@ const AccessManager = {
     document.getElementById('accessToolsList').innerHTML  = '<div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>';
 
     Modal.open('accessModal');
+    this._dirty = false;
 
     const [badgesRes, accessRes] = await Promise.all([
       Api.call('badges', {}),
@@ -591,8 +476,8 @@ const AccessManager = {
       row.dataset.badge = tool.badge || '';
 
       let statusBadge = '';
-      if (isPublic)    statusBadge = '<span class="access-status-badge public">🔓 عمومی</span>';
-      else if (inBadge) statusBadge = '<span class="access-status-badge from-badge">✓ از دسته</span>';
+      if (isPublic)    statusBadge = '<span class="access-status-badge public"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>عمومی</span>';
+      else if (inBadge) statusBadge = '<span class="access-status-badge from-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته</span>';
 
       row.innerHTML = `
         <label class="access-tool-label ${isDisabled ? 'disabled' : ''}">
@@ -634,7 +519,7 @@ const AccessManager = {
             row.querySelector('.access-tool-label').appendChild(statusBadge);
           }
           statusBadge.className   = 'access-status-badge from-badge';
-          statusBadge.textContent = '✓ از دسته';
+          statusBadge.innerHTML   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته';
         } else {
           statusBadge?.remove();
         }
@@ -654,7 +539,7 @@ const AccessManager = {
 
     const res = await Api.call('set_access', { user_id: userId, tool_ids: toolIds, badges });
     if (res.ok) {
-      Modal.close('accessModal');
+      this.close(true);
       Toast.show('دسترسی‌ها ذخیره شد');
     } else {
       Toast.show(res.msg || 'خطا در ذخیره', 'error');
@@ -669,6 +554,7 @@ const AccessManager = {
 const IconPicker = {
   build() {
     const grid = document.getElementById('iconGrid');
+    if (!grid) return;   // گرید فقط در مودال ابزار بود که حذف شده — مدیریت ابزار به داشبورد منتقل شد
     grid.innerHTML = '';
     for (const [key, path] of Object.entries(ICONS_DATA)) {
       const btn = document.createElement('button');
@@ -683,7 +569,6 @@ const IconPicker = {
   },
   select(key) {
     State.selIcon = key;
-    ToolForm._markDirty();
     document.querySelectorAll('#iconGrid .icon-opt').forEach(b =>
       b.classList.toggle('active', b.dataset.key === key)
     );
@@ -697,6 +582,7 @@ const IconPicker = {
 const DecoPicker = {
   build() {
     const grid = document.getElementById('decoGrid');
+    if (!grid) return;   // مدیریت ابزار به داشبورد منتقل شد — این گرید دیگر در پنل نیست
     grid.innerHTML = '';
     for (const key of Object.keys(DECOS_DATA)) {
       const btn = document.createElement('button');
@@ -710,7 +596,6 @@ const DecoPicker = {
   },
   select(key) {
     State.selDeco = key;
-    ToolForm._markDirty();
     document.querySelectorAll('#decoGrid .deco-opt').forEach(b =>
       b.classList.toggle('active', b.dataset.deco === key)
     );
@@ -901,277 +786,6 @@ const DecoEditor = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// ToolsView — رندر سمت کلاینت + صفحه‌بندی + جستجو + حالت مرتب‌سازی
-// (گلوگاه واقعی رندر صدها کارت در DOM است؛ هر بار فقط یک صفحه رندر می‌شود)
-// ═══════════════════════════════════════════════════════════
-const ToolsView = {
-  perPage: 20,
-  page:    1,
-  query:   '',
-  mode:    'normal',   // 'normal' | 'reorder'
-  total:     0,        // کل ابزارهای مطابق جستجو (از سرور)
-  pageCount: 1,
-  _pageRows: [],       // ردیف‌های کاملِ صفحهٔ جاری (برای ویرایش)
-  _loading:  false,
-
-  init() {
-    this._list  = document.getElementById('toolList');
-    if (!this._list) return;
-    this._pager = document.getElementById('toolPagination');
-    this._badge = document.getElementById('toolCountBadge');
-    this._search = document.getElementById('toolSearchInput');
-    this._searchWrap = document.getElementById('toolSearchWrap');
-    this._reorderBtn = document.getElementById('reorderModeBtn');
-
-    if (this._search) {
-      let t = null;
-      this._search.addEventListener('input', () => {
-        clearTimeout(t);
-        t = setTimeout(() => { this.query = this._search.value.trim(); this.page = 1; this.render(); }, 250);
-      });
-      const clr = document.getElementById('toolSearchClear');
-      const syncClear = () => this._searchWrap?.classList.toggle('has-value', this._search.value !== '');
-      this._search.addEventListener('input', syncClear);
-      clr?.addEventListener('click', () => { this._search.value=''; this.query=''; this.page=1; syncClear(); this.render(); this._search.focus(); });
-    }
-
-    DragDrop.init(this._list);
-    this.render();
-  },
-
-  // نسخهٔ سبکِ «همهٔ ابزارها» (برای مرتب‌سازی و شمارش) — از سرور تزریق شده
-  _all() { return Array.isArray(tools) ? tools : []; },
-
-  _iconSvg(key) {
-    const inner = (typeof ICONS_DATA !== 'undefined' && (ICONS_DATA[key] || ICONS_DATA['star'])) || '';
-    return `<svg viewBox="0 0 24 24" width="18" height="18">${inner}</svg>`;
-  },
-
-  _isExternal(path) { return /^https?:\/\//i.test(path || ''); },
-
-  // کارت کامل (نمای عادی)
-  _cardRow(t) {
-    const isPub = Number(t.is_public) === 1;
-    const ext = this._isExternal(t.path)
-      ? `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.6"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
-      : '';
-    const lockOpen  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`;
-    const lockClose = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
-    return `
-      <div class="tool-row" data-id="${Number(t.id)}" data-public="${isPub?1:0}">
-        <div class="tool-row-handle">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
-        </div>
-        <div class="tool-row-icon">${this._iconSvg(t.iconKey || 'star')}</div>
-        <div class="tool-row-info">
-          <h3>${esc(t.title)}</h3>
-          <p>${esc(t.description)}</p>
-        </div>
-        <div class="tool-row-meta">
-          ${isPub ? '<span class="public-pill">🔓 عمومی</span>' : ''}
-          ${t.badge ? `<span class="badge-pill">${esc(t.badge)}</span>` : ''}
-          <span class="tool-row-path">${ext}<span class="tool-row-path-txt">${esc(t.path)}</span></span>
-        </div>
-        <div class="tool-row-actions">
-          <button class="btn btn-secondary btn-icon btn-sm toggle-public-btn ${isPub?'is-public':''}" onclick="togglePublic(${Number(t.id)}, this)" title="${isPub?'خصوصی کردن':'عمومی کردن'}">${isPub?lockOpen:lockClose}</button>
-          <button class="btn btn-secondary btn-icon btn-sm" onclick="openEditModal(${Number(t.id)})" title="ویرایش"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="btn btn-danger btn-icon btn-sm" onclick="openDeleteModal(${Number(t.id)},'${esc(t.title).replace(/'/g,"\\'")}')" title="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
-        </div>
-      </div>`;
-  },
-
-  // ردیف سبک (نمای مرتب‌سازی) — برای جابه‌جایی صدها مورد بدون افت کارایی
-  _reorderRow(t) {
-    return `
-      <div class="tool-row reorder-row" data-id="${Number(t.id)}" draggable="true">
-        <div class="tool-row-handle">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
-        </div>
-        <div class="tool-row-icon">${this._iconSvg(t.iconKey || 'star')}</div>
-        <div class="tool-row-info"><h3>${esc(t.title)}</h3></div>
-        <div class="tool-row-meta">${t.badge ? `<span class="badge-pill">${esc(t.badge)}</span>` : ''}</div>
-      </div>`;
-  },
-
-  // صفحه‌بندیِ سمت سرور: فقط ردیف‌های صفحهٔ جاری از DB می‌آیند
-  async render() {
-    if (this._badge) this._badge.textContent = this._all().length;
-    if (this._loading) return;
-    this._loading = true;
-    const res = await Api.call('list_tools', { page: this.page, per_page: this.perPage, search: this.query });
-    this._loading = false;
-
-    if (!res || !res.ok) { Toast.show((res && res.msg) || 'خطا در بارگذاری ابزارها', 'error'); return; }
-
-    this._pageRows = res.tools || [];
-    const pg = res.pagination || {};
-    this.total     = pg.total      ?? this._pageRows.length;
-    this.pageCount = pg.page_count ?? 1;
-    this.page      = pg.page       ?? this.page;
-
-    // اگر صفحهٔ جاری خالی شد (مثلاً پس از حذف/جستجو) یک صفحه عقب برو
-    if (this._pageRows.length === 0 && this.page > 1) { this.page = this.pageCount; return this.render(); }
-
-    if (this._pageRows.length === 0) {
-      this._list.innerHTML = `<div class="empty-tools"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><p>${this.query ? 'موردی یافت نشد' : 'هنوز هیچ ابزاری اضافه نشده'}</p></div>`;
-      if (this._pager) this._pager.hidden = true;
-      return;
-    }
-
-    this._list.classList.remove('reordering');
-    this._list.innerHTML = this._pageRows.map(t => this._cardRow(t)).join('');
-    this._renderPager(this.pageCount, this.total);
-  },
-
-  _renderPager(totalPages, totalItems) {
-    if (!this._pager) return;
-    if (totalPages <= 1) { this._pager.hidden = true; this._pager.innerHTML=''; return; }
-    this._pager.hidden = false;
-    const btn = (label, page, opts={}) =>
-      `<button class="pg-btn ${opts.active?'active':''}" ${opts.disabled?'disabled':''} onclick="ToolsView.goto(${page})">${label}</button>`;
-    let nums = '';
-    const win = 2;
-    for (let p = 1; p <= totalPages; p++) {
-      if (p === 1 || p === totalPages || (p >= this.page - win && p <= this.page + win)) {
-        nums += btn(p, p, { active: p === this.page });
-      } else if (p === this.page - win - 1 || p === this.page + win + 1) {
-        nums += `<span class="pg-ellipsis">…</span>`;
-      }
-    }
-    this._pager.innerHTML =
-      `<span class="pg-info">${totalItems} ابزار · صفحه ${this.page} از ${totalPages}</span>
-       <div class="pg-controls">
-         ${btn('« قبلی', this.page - 1, { disabled: this.page <= 1 })}
-         ${nums}
-         ${btn('بعدی »', this.page + 1, { disabled: this.page >= totalPages })}
-       </div>`;
-  },
-
-  async goto(p) {
-    if (this.mode !== 'normal') return;
-    this.page = Math.max(1, p);
-    await this.render();
-    this._list.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  },
-
-  // ── حالت مرتب‌سازی (همه کارت‌ها با هم) ──────────────────
-  enterReorder() {
-    if (this._all().length < 2) return;
-    this.mode = 'reorder';
-    this._list.classList.add('reordering');
-    this._list.innerHTML = this._all().map(t => this._reorderRow(t)).join('');
-    if (this._pager) this._pager.hidden = true;
-    if (this._searchWrap) this._searchWrap.style.display = 'none';
-    if (this._reorderBtn) this._reorderBtn.style.display = 'none';
-    const bar = document.getElementById('reorderBar');
-    if (bar) bar.hidden = false;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  },
-
-  exitReorder() {
-    this.mode = 'normal';
-    const bar = document.getElementById('reorderBar');
-    if (bar) bar.hidden = true;
-    if (this._searchWrap) this._searchWrap.style.display = '';
-    if (this._reorderBtn) this._reorderBtn.style.display = '';
-    this.render(); // بازرندر از ترتیب اصلی در حافظه → تغییرات نمایشی دور ریخته می‌شوند
-  },
-
-  // ذخیره ترتیب: یک ریکوئست با آرایه کامل id ها
-  async save() {
-    const ids = [...this._list.querySelectorAll('.tool-row')].map(r => Number(r.dataset.id));
-    const btn = document.getElementById('reorderSaveBtn');
-    if (btn) btn.disabled = true;
-    const res = await Api.call('reorder', { ids });
-    if (res.ok) {
-      Toast.show('ترتیب ذخیره شد');
-      setTimeout(() => location.reload(), 700);
-    } else {
-      if (btn) btn.disabled = false;
-      Toast.show(res.msg || 'خطا در ذخیره ترتیب', 'error');
-    }
-  },
-};
-
-// ═══════════════════════════════════════════════════════════
-// DragDrop — فقط در حالت مرتب‌سازی فعال است
-// ═══════════════════════════════════════════════════════════
-const DragDrop = {
-  init(list) {
-    this._list = list || document.getElementById('toolList');
-    if (!this._list) return;
-    this._initDesktop(this._list);
-    this._initMobile(this._list);
-  },
-  _active() { return ToolsView.mode === 'reorder'; },
-  _insertAt(list, dragEl, clientY) {
-    const rows = [...list.querySelectorAll('.tool-row')].filter(r => r !== dragEl);
-    let inserted = false;
-    for (const row of rows) {
-      const rect = row.getBoundingClientRect();
-      if (clientY < rect.top + rect.height / 2) {
-        list.insertBefore(dragEl, row);
-        inserted = true;
-        break;
-      }
-    }
-    if (!inserted) list.appendChild(dragEl);
-  },
-  _initDesktop(list) {
-    let drag = null;
-    list.addEventListener('dragstart', e => {
-      if (!this._active()) return;
-      drag = e.target.closest('.tool-row');
-      if (drag) { drag.style.opacity = '.4'; e.dataTransfer.effectAllowed = 'move'; }
-    });
-    list.addEventListener('dragend', () => { if (drag) { drag.style.opacity = ''; drag = null; } });
-    list.addEventListener('dragover', e => {
-      if (!this._active() || !drag) return;
-      e.preventDefault();
-      const t = e.target.closest('.tool-row');
-      if (t && t !== drag) this._insertAt(list, drag, e.clientY);
-    });
-    list.addEventListener('drop', e => { if (this._active()) e.preventDefault(); });
-  },
-  _initMobile(list) {
-    let touchDrag = null, touchClone = null, touchOffsetY = 0;
-    list.addEventListener('touchstart', e => {
-      if (!this._active()) return;
-      const handle = e.target.closest('.tool-row-handle');
-      if (!handle) return;
-      const row = handle.closest('.tool-row');
-      if (!row) return;
-      e.preventDefault();
-      touchDrag = row;
-      const rect = row.getBoundingClientRect();
-      touchOffsetY = e.touches[0].clientY - rect.top;
-      touchClone = row.cloneNode(true);
-      Object.assign(touchClone.style, {
-        position:'fixed', zIndex:'999', left:`${rect.left}px`, top:`${rect.top}px`,
-        width:`${rect.width}px`, opacity:'.85', pointerEvents:'none',
-        boxShadow:'0 8px 24px rgba(0,0,0,.4)', borderRadius:'var(--radius-lg)',
-      });
-      document.body.appendChild(touchClone);
-      row.style.opacity = '.3';
-    }, { passive: false });
-    list.addEventListener('touchmove', e => {
-      if (!touchDrag) return;
-      e.preventDefault();
-      const y = e.touches[0].clientY;
-      touchClone.style.top = (y - touchOffsetY) + 'px';
-      this._insertAt(list, touchDrag, y);
-    }, { passive: false });
-    const endTouch = () => {
-      if (touchDrag) { touchDrag.style.opacity = ''; }
-      touchClone?.remove();
-      touchDrag = touchClone = null;
-    };
-    list.addEventListener('touchend',    endTouch);
-    list.addEventListener('touchcancel', endTouch);
-  },
-};
-
-// ═══════════════════════════════════════════════════════════
 // Theme
 // ═══════════════════════════════════════════════════════════
 const Theme = {
@@ -1222,14 +836,9 @@ const Theme = {
 // ═══════════════════════════════════════════════════════════
 function toggleBox(id)              { document.getElementById(id).classList.toggle('open'); }
 function toggleTheme()              { Theme.toggle(); }
-function updatePreview()            { ToolForm._markDirty(); Preview.update(); }
-function openAddModal()             { ToolForm.openAdd(); }
-function openEditModal(id)          { ToolForm.openEdit(id); }
-function openDeleteModal(i, n)      { ToolForm.openDelete(i, n); }
-function saveForm()                 { ToolForm.save(); }
 function closeConfirm()             { Confirm.close(); }
 function runConfirm()               { Confirm.run(); }
-function closeModal(id)             { if (id === 'formModal') { ToolForm.requestClose(); return; } Modal.close(id); }
+function closeModal(id)             { Modal.close(id); }
 function saveIconEdit()             { IconEditor.save(); }
 function deleteIcon()               { IconEditor.delete(); }
 function addNewIcon()               { IconEditor.add(); }
@@ -1237,17 +846,11 @@ function saveDecoEdit()             { DecoEditor.save(); }
 function deleteDeco()               { DecoEditor.delete(); }
 function addNewDeco()               { DecoEditor.add(); }
 function refreshDecoPreview()       { DecoEditor.refreshPreview(); }
-function togglePublic(id, btn)      { TogglePublic.toggle(id, btn); }
-function addNewUser()               { UserManager.add(); }
 function openEditUserModal(id,n,e,r){ UserManager.openEdit(id, n, e, r); }
-function saveUserEdit()             { UserManager.saveEdit(); }
 function toggleUser(id, btn)        { UserManager.toggle(id, btn); }
 function openDeleteUserModal(id, n) { UserManager.openDelete(id, n); }
 function openAccessModal(id, name)  { AccessManager.open(id, name); }
 function saveAccess()               { AccessManager.save(); }
-function saveReorder()              { ToolsView.save(); }
-function cancelReorder()            { ToolsView.exitReorder(); }
-function enterReorderMode()         { ToolsView.enterReorder(); }
 
 /* ── نمایش/مخفی کردن رمز عبور ── */
 function togglePass(inputId, btn) {
@@ -1358,20 +961,165 @@ const SecurityManager = {
 };
 function openBlocksModal() { SecurityManager.open(); }
 
-function selectColor(btn, color) {
-  State.selColor = color;
-  ToolForm._markDirty();
-  document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  if (color) document.getElementById('customColor').value = color;
-  Preview.update();
-}
-function onCustomColor(input) {
-  State.selColor = input.value;
-  ToolForm._markDirty();
-  document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
-  Preview.update();
-}
+// ═══════════════════════════════════════════════════════════
+// SessionsManager — مدیریت نشست‌های فعال کاربران
+// روی داشبورد (پنل کلی همه نشست‌ها) و صفحه کاربران (مودال هر کاربر).
+// ═══════════════════════════════════════════════════════════
+const SessionsManager = {
+  _loaded: false,
+  _curUser: 0,
+  _curUserName: '',
+
+  // ── پنل داشبورد (همه نشست‌ها) ──
+  toggleBox() {
+    const box = document.getElementById('sessionsBox');
+    if (!box) return;
+    box.classList.toggle('open');
+    if (box.classList.contains('open') && !this._loaded) this.loadPanel();
+  },
+
+  async loadPanel() {
+    const box = document.getElementById('sessionsPanel');
+    if (!box) return;
+    box.innerHTML = '<div class="blocks-loading">در حال بارگذاری…</div>';
+    const res = await Api.call('list_sessions', {});
+    if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت نشست‌ها</div>'; return; }
+    this._loaded = true;
+    const list = res.sessions || [];
+    const badge = document.getElementById('sessionsCountBadge');
+    if (badge) badge.textContent = list.length;
+    box.innerHTML = list.length
+      ? list.map(s => this._row(s, true)).join('')
+      : '<div class="blocks-empty">هیچ نشست فعالی وجود ندارد.</div>';
+  },
+
+  // ── مودال یک کاربر ──
+  openUser(uid, name) {
+    this._curUser = uid;
+    this._curUserName = name || '';
+    const t = document.getElementById('sessionsUserTitle');
+    if (t) t.textContent = 'نشست‌های فعال — ' + (name || '');
+    Modal.open('sessionsUserModal');
+    this.loadUser();
+  },
+
+  async loadUser() {
+    const box = document.getElementById('sessionsUserList');
+    if (!box) return;
+    box.innerHTML = '<div class="blocks-loading">در حال بارگذاری…</div>';
+    const res = await Api.call('list_sessions', { user_id: this._curUser });
+    if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت نشست‌ها</div>'; return; }
+    const list = res.sessions || [];
+    box.innerHTML = list.length
+      ? list.map(s => this._row(s, false)).join('')
+      : '<div class="blocks-empty">این کاربر نشست فعالی ندارد.</div>';
+  },
+
+  _row(s, showName) {
+    const when  = s.last_seen ? new Date(s.last_seen * 1000).toLocaleString('fa-IR') : '—';
+    const ip    = esc(s.ip || '—');
+    const agent = esc(s.agent || 'نامشخص');
+    let remaining = '';
+    if (s.expires_at) {
+      const diff = s.expires_at - Math.floor(Date.now() / 1000);
+      if (diff > 0) {
+        const h = Math.floor(diff / 3600);
+        const m = Math.floor((diff % 3600) / 60);
+        remaining = h > 0 ? `${h} ساعت و ${m} دقیقه` : `${m} دقیقه`;
+      } else { remaining = 'منقضی‌شده'; }
+    }
+    const title = showName
+      ? `${esc(s.name)}${s.is_admin ? ' <span class="blk-badge blk-watch">مدیر</span>' : ''}`
+      : agent;
+    const remStr = remaining ? ` · باقیمانده: ${remaining}` : '';
+    const meta  = showName
+      ? `${agent} · <span dir="ltr">${ip}</span> · آخرین فعالیت: ${when}${remStr}`
+      : `<span dir="ltr">${ip}</span> · آخرین فعالیت: ${when}${remStr}`;
+    const current = s.is_current ? '<span class="blk-badge blk-blocked">این دستگاه</span>' : '';
+    const id = esc(s.id);
+    return `
+      <div class="blk-row">
+        <div class="blk-info">
+          <div class="blk-ip">${title}</div>
+          <div class="blk-meta">${meta}</div>
+        </div>
+        <div class="blk-side">
+          ${current}
+          <button class="btn btn-danger btn-sm" onclick="SessionsManager.terminate('${id}', ${s.is_current ? 'true' : 'false'})">پایان</button>
+        </div>
+      </div>`;
+  },
+
+  // ── تنظیم مدت فعال‌بودن نشست (ساعت) ──
+  async saveTtl() {
+    const el = document.getElementById('sessTtlInput');
+    const v  = parseInt(String(el ? el.value : '').replace(/[^\d]/g, ''), 10);
+    if (!v || v < 1 || v > 720) { Toast.show('عددی بین ۱ تا ۷۲۰ وارد کنید', 'error'); return; }
+    const res = await Api.call('save_session_ttl', { session_ttl_hours: v });
+    if (res.ok) { if (el) el.value = res.hours; Toast.show(res.msg || 'ذخیره شد'); }
+    else        { Toast.show(res.msg || 'خطا در ذخیره', 'error'); }
+  },
+
+  // ── عملیات ──
+  terminate(id, isCurrent) {
+    Confirm.show({
+      title:    'پایان نشست',
+      heading:  isCurrent ? 'پایان نشست همین دستگاه؟' : 'این نشست پایان یابد؟',
+      body:     isCurrent
+        ? 'این نشست <b>همین مرورگر</b> است؛ با پایان آن از پنل خارج می‌شوید.'
+        : 'دستگاه مربوط به این نشست بلافاصله از حساب خارج می‌شود.',
+      type:     'warning',
+      btnLabel: 'پایان نشست',
+      icon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
+      onConfirm: async () => {
+        Confirm.close();
+        const res = await Api.call('terminate_session', { session_id: id });
+        if (!res.ok) { Toast.show(res.msg || 'خطا', 'error'); return; }
+        Toast.show('نشست پایان یافت');
+        if (isCurrent) { location.href = '/'; return; }
+        const um = document.getElementById('sessionsUserModal');
+        if (um && um.classList.contains('open')) this.loadUser(); else this.loadPanel();
+      },
+    });
+  },
+
+  terminateOthers() {
+    Confirm.show({
+      title:    'پایان نشست‌های دیگر',
+      heading:  'همه نشست‌های دیگر پایان یابد؟',
+      body:     'همه نشست‌های فعال به‌جز نشست همین مرورگر بسته می‌شوند (همه کاربران از همه دستگاه‌ها خارج می‌شوند).',
+      type:     'warning',
+      btnLabel: 'پایان بقیه',
+      icon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
+      onConfirm: async () => {
+        Confirm.close();
+        const res = await Api.call('terminate_other_sessions', {});
+        if (!res.ok) { Toast.show(res.msg || 'خطا', 'error'); return; }
+        Toast.show(res.msg || 'انجام شد');
+        this.loadPanel();
+      },
+    });
+  },
+
+  terminateUser() {
+    if (!this._curUser) return;
+    Confirm.show({
+      title:    'خروج از همه دستگاه‌ها',
+      heading:  `همه نشست‌های «${esc(this._curUserName)}» پایان یابد؟`,
+      body:     'این کاربر از همه دستگاه‌ها خارج می‌شود و برای ادامه باید دوباره وارد شود.',
+      type:     'warning',
+      btnLabel: 'خروج اجباری',
+      icon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
+      onConfirm: async () => {
+        Confirm.close();
+        const res = await Api.call('terminate_user_sessions', { user_id: this._curUser });
+        if (!res.ok) { Toast.show(res.msg || 'خطا', 'error'); return; }
+        Toast.show(res.msg || 'انجام شد');
+        this.loadUser();
+      },
+    });
+  },
+};
 
 // ═══════════════════════════════════════════════════════════
 // Bootstrap
@@ -1493,19 +1241,11 @@ document.addEventListener('click', () =>
   document.querySelectorAll('.cselect.open').forEach(w => w.classList.remove('open')));
 
 document.addEventListener('DOMContentLoaded', () => {
-  // مقداردهی‌های مخصوص داشبورد ابزارها فقط وقتی عناصرش موجود است
-  if (document.getElementById('iconGrid'))       IconPicker.build();
-  if (document.getElementById('decoGrid'))       DecoPicker.build();
+  // مدیریت آیکون/انیمیشن (مدیریت ابزارها به داشبورد اصلی منتقل شده است)
   if (document.getElementById('iconAssetGrid'))  IconEditor.buildGrid();
   if (document.getElementById('decoAssetGrid'))  DecoEditor.buildGrid();
-  if (document.getElementById('toolList'))        ToolsView.init();
   Theme.init();
   CustomSelect.enhanceAll();   // ارتقای همه <select>های بومی به dropdown هماهنگ با تم
-
-  // dirty tracking روی input های فرم
-  ['f-title', 'f-desc', 'f-path', 'f-badge'].forEach(id => {
-    document.getElementById(id)?.addEventListener('input', () => ToolForm._markDirty());
-  });
 
   // جستجوی کاربران (صفحه مدیریت کاربران)
   if (typeof UserSearch !== 'undefined' && document.getElementById('userSearchInput')) {
@@ -1516,13 +1256,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
       if (e.target !== o) return;
-      if (o.id === 'confirmModal') {
-        Confirm.close();
-      } else if (o.id === 'formModal') {
-        ToolForm.requestClose();
-      } else {
-        Modal.close(o.id);
-      }
+      if (o.id === 'confirmModal') { Confirm.close(); }
+      else                         { Modal.close(o.id); }
     });
   });
 
@@ -1532,8 +1267,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const open = document.querySelectorAll('.modal-overlay.open');
     if (!open.length) return;
     const top = open[open.length - 1];
-    if (top.id === 'confirmModal')   { Confirm.close(); }
-    else if (top.id === 'formModal') { ToolForm.requestClose(); }
-    else                             { Modal.close(top.id); }
+    if (top.id === 'confirmModal') { Confirm.close(); }
+    else                           { Modal.close(top.id); }
   });
 });
+
+// ═══════════════════════════════════════════════════════════
+// افکت ripple (موج کلیک) روی دکمه‌های هدر و دکمه‌های عملیات — مشترک با theme.js
+// ═══════════════════════════════════════════════════════════
+(function () {
+  const SEL = '.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn,'
+    + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close';
+  document.addEventListener('pointerdown', function (e) {
+    const btn = e.target.closest(SEL);
+    if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    r.style.width = r.style.height = size + 'px';
+    r.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    r.style.top  = (e.clientY - rect.top  - size / 2) + 'px';
+    btn.appendChild(r);
+    r.addEventListener('animationend', () => r.remove());
+  });
+  // ناوبری لینک‌های هدر را ~160ms نگه می‌داریم تا ریپل دیده شود (prerender فوری است)
+  document.addEventListener('click', function (e) {
+    const a = e.target.closest(SEL);
+    if (!a || a.tagName !== 'A') return;
+    const href = a.getAttribute('href');
+    if (!href || href.charAt(0) === '#' || a.target === '_blank') return;
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault();
+    setTimeout(function () { window.location.href = href; }, 160);
+  });
+})();
+
+// هدر چسبان هنگام اسکرول (مشترک با theme.js): .is-stuck با اسکرول به پایین
+(function () {
+  const header = document.querySelector('.app-header');
+  if (!header) return;
+  let ticking = false;
+  function update() {
+    header.classList.toggle('is-stuck', window.scrollY > 4);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { requestAnimationFrame(update); ticking = true; }
+  }, { passive: true });
+  update();
+})();

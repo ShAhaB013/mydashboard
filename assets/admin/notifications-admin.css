@@ -36,7 +36,7 @@
     .notif-row-text { font-size:12px; color:var(--text-2); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:8px; }
     .notif-row-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
 
-    .pill { font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px; display:inline-flex; align-items:center; gap:4px; }
+    .pill { font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:2px 9px; display:inline-flex; align-items:center; gap:4px; }
     .pill-public   { background:rgba(14,164,114,.10); color:#0ea472; border:1px solid rgba(14,164,114,.25); }
     .pill-all      { background:var(--accent-bg); color:var(--accent); border:1px solid rgba(88,166,255,.25); }
     .pill-badge    { background:rgba(139,92,246,.10); color:#8b5cf6; border:1px solid rgba(139,92,246,.25); }
@@ -83,7 +83,7 @@
     }
     .file-item[hidden] { display:none; }
     .file-item-thumb {
-      width:40px; height:40px; flex-shrink:0; border-radius:9px; overflow:hidden;
+      width:40px; height:40px; flex-shrink:0; border-radius:var(--radius-xs); overflow:hidden;
       background:var(--accent-bg); color:var(--accent);
       display:flex; align-items:center; justify-content:center;
     }
@@ -138,7 +138,7 @@
 
     .toggle-sw { position:relative; width:36px; height:20px; flex-shrink:0; }
     .toggle-sw input { opacity:0; width:0; height:0; position:absolute; }
-    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:20px; cursor:pointer; transition:background var(--t); }
+    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:var(--radius-pill); cursor:pointer; transition:background var(--t); }
     .toggle-sw input:checked + .toggle-sw-track { background:var(--accent); }
     .toggle-sw-track::after { content:''; position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:right var(--t); box-shadow:0 1px 3px rgba(0,0,0,.25); }
     .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
@@ -146,7 +146,7 @@
     .badge-check-grid { display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px; }
     .badge-check-label {
       display:inline-flex; align-items:center; gap:6px; padding:4px 10px;
-      border-radius:20px; cursor:pointer; border:1.5px solid var(--border);
+      border-radius:var(--radius-xs); cursor:pointer; border:1.5px solid var(--border);
       background:var(--bg-input); font-size:12px; font-weight:600; color:var(--text-2);
       transition:all var(--t); user-select:none;
     }
@@ -180,7 +180,7 @@
     .rte-btn {
       min-width:30px; height:30px; padding:0 7px;
       display:inline-flex; align-items:center; justify-content:center;
-      border:1px solid transparent; border-radius:7px;
+      border:1px solid transparent; border-radius:var(--radius-xs);
       background:transparent; color:var(--text-2); cursor:pointer;
       font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:700;
       transition:background var(--t), color var(--t), border-color var(--t);
@@ -193,7 +193,7 @@
     /* ── انتخاب‌گر رنگ بومی ساده ── */
     .rte-color {
       display:inline-flex; align-items:center; gap:5px;
-      height:30px; padding:0 8px; border-radius:7px; cursor:pointer;
+      height:30px; padding:0 8px; border-radius:var(--radius-xs); cursor:pointer;
       border:1px solid transparent; color:var(--text-2); font-size:12px; font-weight:600;
       position:relative; transition:background var(--t), border-color var(--t);
     }
@@ -201,7 +201,7 @@
     .rte-color input[type="color"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
     .rte-color-swatch { width:16px; height:16px; border-radius:4px; background:#e11d48; border:1px solid var(--border); flex-shrink:0; }
     .rte-color-label { pointer-events:none; }
-    /* هایلایتِ مصنوعیِ متنی که در حالِ تغییرِ رنگ است (انتخابِ مرورگر هنگامِ بازشدنِ دیالوگِ رنگ می‌پرد) */
+    /* هایلایت مصنوعی متنی که در حال تغییر رنگ است (انتخاب مرورگر هنگام بازشدن دیالوگ رنگ می‌پرد) */
     .rte-editor [data-color-marker] {
       background:rgba(88,166,255,.28);
       box-shadow:0 0 0 1px rgba(88,166,255,.5);
@@ -257,7 +257,7 @@
       appearance:none; -webkit-appearance:none; -moz-appearance:none;
       font-family:inherit; font-size:13px; font-weight:600; height:100%;
       color:var(--text-2); background:var(--bg-card);
-      border:1px solid var(--border); border-radius:var(--radius,10px);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
       padding:0 12px 0 30px; cursor:pointer; min-height:42px;
       direction:rtl; text-align:right;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -270,9 +270,9 @@
     .nm-adv-toggle {
       display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
       font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
-      padding:0 14px; min-height:42px; cursor:pointer; white-space:nowrap;
+      padding:0 16px; min-height:42px; cursor:pointer; white-space:nowrap;
       color:var(--text-2); background:var(--bg-card);
-      border:1px solid var(--border); border-radius:var(--radius);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
       transition:border-color var(--t), color var(--t), background var(--t);
     }
     .nm-adv-toggle svg { width:16px; height:16px; flex-shrink:0; }
@@ -292,7 +292,7 @@
       appearance:none; -webkit-appearance:none; -moz-appearance:none; cursor:pointer;
       font-family:'DashboardFont',sans-serif; font-size:14px; height:42px;
       color:var(--text); background:var(--bg-input);
-      border:1px solid var(--border); border-radius:var(--radius);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
       padding:0 30px 0 12px;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
       background-repeat:no-repeat; background-position:left 10px center;
@@ -301,12 +301,14 @@
     .nm-adv-field select:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,166,255,.12); }
     .nm-adv-field .datetime-ltr { height:42px; }
     /* CustomSelect (هماهنگ با سایر صفحات پنل) داخل کنترل‌های این صفحه */
+    /* همه کنترل‌های جستجو/فیلتر این صفحه pill — هماهنگ با نوار جستجوی سراسری پروژه */
     .nm-perpage .cselect { width:auto; }
-    .nm-perpage .cselect-trigger { min-height:42px; font-weight:600; }
-    .nm-adv-field .cselect-trigger { min-height:42px; }
+    .nm-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); }
+    .nm-adv-field .cselect-trigger { min-height:42px; border-radius:var(--radius-xs); }
+    .nm-adv-field .tdp-trigger { min-height:42px; border-radius:var(--radius-xs); }
     .nm-adv-actions { display:flex; gap:8px; align-items:center; }
-    /* هم‌ارتفاع کردن دکمه‌ها با تاریخ‌گزین/دراپ‌داون (همگی 42px) */
-    .nm-adv-actions .btn { height:42px; }
+    /* هم‌ارتفاع کردن دکمه‌ها با تاریخ‌گزین/دراپ‌داون (همگی 42px) + pill هماهنگ با پنل فیلتر */
+    .nm-adv-actions .btn { height:42px; border-radius:var(--radius-xs); }
     @media (max-width:560px) {
       .notif-list-controls { flex-wrap:wrap; }
       .nm-adv-field { min-width:120px; }
@@ -320,7 +322,7 @@
       width:100%; box-sizing:border-box;
       font-family:'DashboardFont',sans-serif; font-size:14px;
       background:var(--bg-input); color:var(--text);
-      border:1px solid var(--border); border-radius:var(--radius);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
       padding:11px 44px 11px 40px; outline:none;
       transition:border-color var(--t), box-shadow var(--t);
     }
@@ -330,6 +332,7 @@
       width:26px; height:26px; border-radius:50%; border:none;
       background:var(--bg-card); color:var(--text-3); cursor:pointer;
       display:none; align-items:center; justify-content:center;
+      overflow:hidden; /* ریپل را به دایره می‌برد (موقعیت absolute حفظ می‌شود) */
       transition:background var(--t), color var(--t);
     }
     .notif-search-clear svg { width:13px; height:13px; }

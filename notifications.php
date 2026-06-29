@@ -152,6 +152,7 @@ foreach ($items as $item) {
   <link rel="stylesheet" href="/assets/css/style.css?v=<?= $vCss ?>">
   <link rel="stylesheet" href="/assets/css/datepicker.css?v=<?= $vDpCss ?>">
   <script src="/assets/js/theme.js?v=<?= $vTheme ?>" defer></script>
+  <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
   <script src="/assets/js/lightbox.js?v=<?= $vLightbox ?>" defer></script>
   <script src="/assets/js/datepicker.js?v=<?= $vDpJs ?>" defer></script>
   <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
@@ -172,32 +173,24 @@ foreach ($items as $item) {
 </head>
 <body class="notif-page-wrap">
 
-  <header role="banner">
-    <div class="header-container">
-      <h1>داشبورد مجموعه ابزارهای کمکی</h1>
-      <div class="header-actions">
-        <a href="/" class="btn-back" aria-label="بازگشت به داشبورد">
+  <!-- ── هدر یکپارچه (سبک تلگرام) ── -->
+  <header class="app-header">
+    <div class="app-header__inner">
+      <div class="app-header__lead">
+        <h1 class="app-header__title">اعلان‌ها</h1>
+        <span class="app-header__count"><?= (int) $total ?></span>
+      </div>
+      <div class="app-header__actions">
+        <a href="/" class="hdr-btn" title="بازگشت به داشبورد" aria-label="بازگشت به داشبورد">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
           </svg>
-          <span class="btn-back-label">بازگشت به داشبورد</span>
         </a>
       </div>
     </div>
   </header>
 
   <main class="notif-page-main" role="main">
-
-    <div class="notif-page-head">
-      <h2>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-        اعلان‌ها
-      </h2>
-      <span class="notif-total-badge"><?= $total ?> اعلان</span>
-    </div>
 
     <!-- فرم جستجو -->
     <form class="notif-search-form" method="GET" action="/notifications" role="search">
@@ -330,7 +323,7 @@ foreach ($items as $item) {
                 <?php elseif (!$isRead):    ?><span class="npill npill-unread">جدید</span><?php endif; ?>
                 <?php if ($isExpired):  ?><span class="npill npill-expired">منقضی</span><?php endif; ?>
                 <?php if ($item['is_public']): ?><span class="npill npill-public">عمومی</span><?php endif; ?>
-                <?php if ($hasImage):   ?><span class="npill npill-img">📎 تصویر</span><?php endif; ?>
+                <?php if ($hasImage):   ?><span class="npill npill-img"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>تصویر</span><?php endif; ?>
                 <?php foreach ($badges as $b): ?>
                   <span class="npill npill-badge"><?= htmlspecialchars($b) ?></span>
                 <?php endforeach; ?>

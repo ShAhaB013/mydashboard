@@ -29,8 +29,8 @@
         document.getElementById('profileAvatar').textContent      =
           display ? [...display][0] : '؟';
 
-        // بازگرداندنِ مرحلهٔ تأییدِ تغییرِ ایمیل پس از ریلود — کول‌داون از سرور می‌آید
-        // (پس با رفرشِ صفحه، محدودیتِ ارسالِ مجدد دور زده نمی‌شود)
+        // بازگرداندن مرحله تأیید تغییر ایمیل پس از ریلود — کول‌داون از سرور می‌آید
+        // (پس با رفرش صفحه، محدودیت ارسال مجدد دور زده نمی‌شود)
         if (data.email_change && data.email_change.email) {
           document.getElementById('newEmail').value = data.email_change.email;
           _revealEmailCodeStep(data.email_change.email);
@@ -114,7 +114,7 @@
       document.getElementById('profileMsg').className = 'profile-msg';
     }
 
-    /* خطای اعتبارسنجی فقط زیرِ باکسِ همان فیلد (نه profile-msg) */
+    /* خطای اعتبارسنجی فقط زیر باکس همان فیلد (نه profile-msg) */
     function fieldErr(id, msg) {
       if (window.Field) Field.set(id, 'error', msg);
       else showMsg(msg);
@@ -129,7 +129,7 @@
       const confirmPassword = document.getElementById('confirmPassword').value;
       const btn             = document.getElementById('profileSubmitBtn');
 
-      // اعتبارسنجی فقط زیرِ باکس (field-msg) — بدونِ profile-msg
+      // اعتبارسنجی فقط زیر باکس (field-msg) — بدون profile-msg
       if (!currentPassword) { fieldErr('currentPassword', 'رمز عبور فعلی الزامی است'); return; }
       if (!newPassword)     { fieldErr('newPassword', 'رمز عبور جدید الزامی است'); return; }
       if (!confirmPassword) { fieldErr('confirmPassword', 'تکرار رمز عبور الزامی است'); return; }
@@ -211,7 +211,7 @@
       if (lbl) lbl.textContent = on ? 'در حال ارسال…' : 'ارسال مجدد';
     }
 
-    /* کول‌داونِ «ارسال مجدد» — مقدار همیشه از سرور می‌آید (retry_after) تا با ریلود دور زده نشود */
+    /* کول‌داون «ارسال مجدد» — مقدار همیشه از سرور می‌آید (retry_after) تا با ریلود دور زده نشود */
     function _runEmailCooldown(seconds) {
       const btn = document.getElementById('emailResendBtn');
       const lbl = btn.querySelector('.profile-resend-label');
@@ -233,7 +233,7 @@
       _emailTarget = target;
       document.getElementById('emailCodeField').style.display = '';
       document.getElementById('emailCodeTarget').textContent  = target;
-      // فیلدِ ایمیل قفل می‌شود → حالتِ disabled (تا با رنگِ success تداخل نکند)
+      // فیلد ایمیل قفل می‌شود → حالت disabled (تا با رنگ success تداخل نکند)
       if (window.Field) Field.set('newEmail', 'disabled');
       else document.getElementById('newEmail').setAttribute('disabled', 'disabled');
       _setEmailLabel('تایید و تغییر ایمیل');
@@ -274,12 +274,12 @@
           showEmailMsg(isResend ? 'کد جدید ارسال شد' : (data.msg || 'کد تایید ارسال شد'), 'success');
           document.getElementById('emailCode').focus();
         } else if (data.retry_after) {
-          // محدودیت سمت سرور (حتی پس از ریلودِ صفحه دور زده نمی‌شود) — مرحله کد را نشان بده و شمارشِ سرور را اعمال کن
+          // محدودیت سمت سرور (حتی پس از ریلود صفحه دور زده نمی‌شود) — مرحله کد را نشان بده و شمارش سرور را اعمال کن
           _revealEmailCodeStep(data.email || email);
           _runEmailCooldown(data.retry_after);
           showEmailMsg(data.msg || 'برای ارسال مجدد کد کمی صبر کنید');
         } else if (data.field === 'email') {
-          // خطای ایمیلِ سرور (نامعتبر/تکراری/یکسان با فعلی) → زیرِ همان فیلد، یک پیام
+          // خطای ایمیل سرور (نامعتبر/تکراری/یکسان با فعلی) → زیر همان فیلد، یک پیام
           fieldErr('newEmail', data.msg || 'ایمیل معتبر نیست');
         } else {
           showEmailMsg(data.msg || 'ارسال کد ناموفق بود');
@@ -340,7 +340,7 @@
       document.getElementById('emailDevNote').style.display   = 'none';
       document.getElementById('newEmail').removeAttribute('disabled');
       if (clearInput) document.getElementById('newEmail').value = '';
-      // ریستِ کاملِ وضعیتِ فیلد (idle) — رنگِ success/disabled پاک شود
+      // ریست کامل وضعیت فیلد (idle) — رنگ success/disabled پاک شود
       if (window.Field) Field.clear('newEmail');
       const rb = document.getElementById('emailResendBtn');
       rb.disabled = true; rb.classList.remove('sending');
@@ -357,7 +357,7 @@
       else if (id === 'currentPassword' || id === 'newPassword' || id === 'confirmPassword') submitChangePassword();
     });
 
-    /* ── اعتبارسنجیِ زندهٔ فیلدها (مثلِ فرمِ ثبت‌نام) ── */
+    /* ── اعتبارسنجی زنده فیلدها (مثل فرم ثبت‌نام) ── */
     if (window.Field) {
       const $ = (id) => document.getElementById(id);
       const emailValid = (v) => /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(v);
@@ -367,7 +367,7 @@
       };
       const newEmail = $('newEmail'), newPass = $('newPassword'), confPass = $('confirmPassword');
       if (newEmail) {
-        // ایمیل: تاییدِ نهایی با سرور است؛ سبزِ زودهنگام نده تا با ردِ سرور تداخل نکند.
+        // ایمیل: تایید نهایی با سرور است؛ سبز زودهنگام نده تا با رد سرور تداخل نکند.
         newEmail.addEventListener('input', () => setFocusIdle(newEmail));
         newEmail.addEventListener('blur', () => {
           const v = newEmail.value.trim();
@@ -401,5 +401,89 @@
       }
     }
 
+    /* ── نشست‌های فعال (دستگاه‌ها) — مانند تلگرام ── */
+    function _escHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function loadMySessions() {
+      const box = document.getElementById('acctSessionsList');
+      if (!box) return;
+      try {
+        const res  = await fetch(`${API_URL}?action=my_sessions`);
+        const data = await res.json();
+        if (!data.ok) { box.innerHTML = '<div class="acct-sessions-empty">خطا در دریافت نشست‌ها</div>'; return; }
+        renderMySessions(data.sessions || []);
+      } catch {
+        box.innerHTML = '<div class="acct-sessions-empty">خطا در ارتباط با سرور</div>';
+      }
+    }
+
+    function renderMySessions(list) {
+      const box     = document.getElementById('acctSessionsList');
+      const killBtn = document.getElementById('acctKillOthers');
+      if (!list.length) {
+        box.innerHTML = '<div class="acct-sessions-empty">نشست فعالی یافت نشد.</div>';
+        if (killBtn) killBtn.style.display = 'none';
+        return;
+      }
+      list.sort((a, b) => (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0));
+      box.innerHTML = list.map(s => {
+        const when = s.last_seen ? new Date(s.last_seen * 1000).toLocaleString('fa-IR') : '—';
+        const dev  = _escHtml(s.device || 'نامشخص');
+        const ip   = _escHtml(s.ip || '—');
+        const cur  = s.is_current;
+        let remaining = '';
+        if (s.expires_at) {
+          const diff = s.expires_at - Math.floor(Date.now() / 1000);
+          if (diff > 0) {
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
+            remaining = h > 0 ? `${h} ساعت و ${m} دقیقه` : `${m} دقیقه`;
+          } else {
+            remaining = 'منقضی‌شده';
+          }
+        }
+        return `
+          <div class="acct-sess-row${cur ? ' is-current' : ''}">
+            <div class="acct-sess-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <div class="acct-sess-info">
+              <div class="acct-sess-dev">${dev}${cur ? ' <span class="acct-sess-cur">دستگاه فعلی</span>' : ''}</div>
+              <div class="acct-sess-meta"><span dir="ltr">${ip}</span> · ${when}</div>
+              ${remaining ? `<div class="acct-sess-meta">باقیمانده: ${remaining}</div>` : ''}
+            </div>
+            ${cur ? '' : `<button type="button" class="acct-sess-kill" onclick="terminateMySession('${_escHtml(s.id)}')">پایان</button>`}
+          </div>`;
+      }).join('');
+      const others = list.filter(s => !s.is_current).length;
+      if (killBtn) killBtn.style.display = others > 0 ? '' : 'none';
+    }
+
+    async function terminateMySession(id) {
+      try {
+        const res  = await fetch(`${API_URL}?action=terminate_my_session`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: id }),
+        });
+        const data = await res.json();
+        if (!data.ok) return;
+        if (data.self) { window.location.href = 'index.php'; return; }
+        loadMySessions();
+      } catch {}
+    }
+
+    async function terminateMyOtherSessions() {
+      const btn = document.getElementById('acctKillOthers');
+      if (btn) btn.disabled = true;
+      try {
+        await fetch(`${API_URL}?action=terminate_my_other_sessions`, { method: 'POST' });
+        loadMySessions();
+      } catch {} finally { if (btn) btn.disabled = false; }
+    }
+
     /* ── init ── */
     loadProfile();
+    loadMySessions();

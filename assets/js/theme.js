@@ -132,3 +132,65 @@
   if (mq.addEventListener) mq.addEventListener('change', onSys);
   else if (mq.addListener) mq.addListener(onSys);
 })();
+
+/* ═══════════════════════════════════════════════════════════
+   افکت ripple (موج کلیک) روی دکمه‌های هدر — سبک متریال/تلگرام.
+   روی دکمه زنگ اعمال نمی‌شود (بج اعلان بیرون کادر است).
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  const SEL = '.hdr-btn, .theme-toggle, .user-menu-btn, .btn, .btn-icon, .chip,'
+    + ' .auth-btn, .user-menu-item, .notif-drop-item, .login-submit-btn,'
+    + ' .profile-submit-btn, .login-tab, .npag-btn, .notif-view-btn, .notif-row,'
+    + ' .notif-search-btn, .notif-adv-toggle, .notif-adv-apply, .cselect-option,'
+    + ' .pg-btn, .access-tool-label, .deco-opt, .nm-adv-toggle, .section-box-head,'
+    + ' .notif-drop-view-all, .notif-detail-view-all, .notif-detail-close-btn,'
+    + ' .notif-detail-close, .header-search-close, .clear-button,'
+    + ' .nd-close-btn, .nd-close-action,'
+    + ' .login-forgot-link, .login-back-link, .forgot-back-top, .reg-back-btn,'
+    + ' .reg-resend, .login-pass-toggle, .login-pass-gen, .profile-pass-toggle,'
+    + ' .profile-link-btn, .tm-icon-opt, .tm-deco-opt, .tm-close,'
+    + ' .reorder-toggle, .cab-btn, .card-add-tile';
+  document.addEventListener('pointerdown', function (e) {
+    const btn = e.target.closest(SEL);
+    if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    r.style.width = r.style.height = size + 'px';
+    r.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    r.style.top  = (e.clientY - rect.top  - size / 2) + 'px';
+    btn.appendChild(r);
+    r.addEventListener('animationend', () => r.remove());
+  });
+  /* لینک‌های هدر/منو با prerender فوری باز می‌شوند و ریپل دیده نمی‌شود؛
+     ناوبری را ~160ms نگه می‌داریم تا موج کلیک پخش شود. */
+  document.addEventListener('click', function (e) {
+    const a = e.target.closest(SEL);
+    if (!a || a.tagName !== 'A') return;
+    const href = a.getAttribute('href');
+    if (!href || href.charAt(0) === '#' || a.target === '_blank') return;
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault();
+    setTimeout(function () { window.location.href = href; }, 160);
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   هدر چسبان هنگام اسکرول: با اسکرول به پایین کلاس .is-stuck اضافه می‌شود
+   (نوار به بالای صفحه می‌چسبد و سایه‌ی کم‌رنگ می‌گیرد)؛ با برگشت به بالا حذف.
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  const header = document.querySelector('.app-header');
+  if (!header) return;
+  let ticking = false;
+  function update() {
+    header.classList.toggle('is-stuck', window.scrollY > 4);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { requestAnimationFrame(update); ticking = true; }
+  }, { passive: true });
+  update();
+})();
+

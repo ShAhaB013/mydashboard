@@ -15,6 +15,7 @@ class Router
     private AccessController       $accessCtrl;
     private NotificationController $notifCtrl;
     private SettingsController     $settingsCtrl;
+    private SessionController      $sessionCtrl;
 
     private const ROUTES = [
         // ── ابزارها ─────────────────────────────────────────
@@ -59,6 +60,13 @@ class Router
         // ── تنظیمات ایمیل/SMTP ──────────────────────────────
         'save_settings' => [SettingsController::class, 'save'],
         'test_email'    => [SettingsController::class, 'sendTest'],
+
+        // ── نشست‌های فعال کاربران ────────────────────────────
+        'list_sessions'           => [SessionController::class, 'list'],
+        'terminate_session'       => [SessionController::class, 'terminate'],
+        'terminate_user_sessions' => [SessionController::class, 'terminateUser'],
+        'terminate_other_sessions'=> [SessionController::class, 'terminateOthers'],
+        'save_session_ttl'        => [SessionController::class, 'saveTtl'],
     ];
 
     public function __construct(
@@ -69,7 +77,8 @@ class Router
         UserController         $userCtrl,
         AccessController       $accessCtrl,
         NotificationController $notifCtrl,
-        SettingsController     $settingsCtrl
+        SettingsController     $settingsCtrl,
+        SessionController      $sessionCtrl
     ) {
         $this->request      = $request;
         $this->toolCtrl     = $toolCtrl;
@@ -79,6 +88,7 @@ class Router
         $this->accessCtrl   = $accessCtrl;
         $this->notifCtrl    = $notifCtrl;
         $this->settingsCtrl = $settingsCtrl;
+        $this->sessionCtrl  = $sessionCtrl;
     }
 
     public function dispatch(): void
@@ -105,6 +115,7 @@ class Router
             AccessController::class       => $this->accessCtrl,
             NotificationController::class => $this->notifCtrl,
             SettingsController::class     => $this->settingsCtrl,
+            SessionController::class      => $this->sessionCtrl,
             default => (function () {
                 Response::error('کنترلر یافت نشد');
                 exit;

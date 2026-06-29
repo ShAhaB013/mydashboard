@@ -1,0 +1,22 @@
+---
+# ═══════════════════════════════════════════════════════════════
+# .cpanel.yml — اسکریپتِ دیپلویِ cPanel Git™ Version Control
+#
+# با هر بار «Update from Remote» + «Deploy» در cPanel اجرا می‌شود و
+# محتوای ریپو را داخل public_html کپی می‌کند.
+#
+# ⚠️ قبل از اولین استفاده: مقدارِ USERNAME را با نام‌کاربریِ cPanel خودت
+#    عوض کن (مسیرِ document root میزبان). اگر دامنه addon است، مسیرِ
+#    document root را به مسیرِ واقعیِ آن دامنه تغییر بده.
+#
+# نکته‌ها:
+#  • بدونِ --delete است (افزایشی) تا چیزی پاک نشود؛ پس uploads/ (تصاویرِ
+#    آپلودیِ کاربر) و فایل‌های رانتایم امن می‌مانند.
+#  • data/ مستثناست تا ویرایش‌های رانتایمِ آیکون/دکو (که از پنل روی هاست
+#    انجام می‌شوند) با نسخه‌ی ریپو بازنویسی نشوند.
+#  • dotfileها (.htaccess / .user.ini) با rsync کپی می‌شوند.
+# ═══════════════════════════════════════════════════════════════
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/USERNAME/public_html
+    - /usr/bin/rsync -a --exclude='.git' --exclude='.cpanel.yml' --exclude='data/' ./ "$DEPLOYPATH/"

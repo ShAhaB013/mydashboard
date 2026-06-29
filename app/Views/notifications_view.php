@@ -17,36 +17,39 @@
     })();
   </script>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/admin/assets/admin.css?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.css') ?>">
+  <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
   <link rel="stylesheet" href="/assets/css/datepicker.css?v=<?= asset_v(__DIR__ . '/../../assets/css/datepicker.css') ?>">
-  <link rel="stylesheet" href="/admin/assets/notifications-admin.css?v=<?= asset_v(__DIR__ . '/../../admin/assets/notifications-admin.css') ?>">
+  <link rel="stylesheet" href="/assets/admin/notifications-admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/notifications-admin.css') ?>">
 </head>
 <body>
 
-<div class="admin-wrap">
-
-  <div class="topbar">
-    <div class="topbar-title">مدیریت اعلان‌ها</div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <a href="/admin" class="btn-back" aria-label="بازگشت به پنل مدیریت">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        <span class="btn-back-label">بازگشت</span>
-      </a>
-      <a href="/" class="btn btn-secondary btn-sm" style="text-decoration:none;">
+<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
+<header class="app-header">
+  <div class="app-header__inner">
+    <div class="app-header__lead"><h1 class="app-header__title">مدیریت اعلان‌ها</h1></div>
+    <div class="app-header__actions">
+      <a href="/" class="hdr-btn" title="داشبورد" aria-label="داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-        داشبورد
+      </a>
+      <a href="/admin" class="hdr-btn" title="بازگشت به پنل مدیریت" aria-label="بازگشت به پنل مدیریت">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       </a>
     </div>
   </div>
+</header>
+
+<div class="admin-wrap">
 
   <div class="tools-header">
     <h2>اعلان‌ها <span class="count-badge" id="notifCountBadge">0</span></h2>
-    <button class="btn btn-primary btn-sm" onclick="NM.openAdd()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      اعلان جدید
-    </button>
+    <div class="tools-header-actions">
+      <button class="btn btn-primary btn-sm" onclick="NM.openAdd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        اعلان جدید
+      </button>
+    </div>
   </div>
 
   <div class="notif-list-controls">
@@ -349,7 +352,8 @@
 const CSRF_TOKEN   = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
 const AVAIL_BADGES = <?= $badgesJson ?>;
 </script>
-<script src="/admin/assets/notifications-admin.js?v=<?= asset_v(__DIR__ . '/../../admin/assets/notifications-admin.js') ?>"></script>
+<script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
+<script src="/assets/admin/notifications-admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/notifications-admin.js') ?>"></script>
 <script src="/assets/js/datepicker.js?v=<?= asset_v(__DIR__ . '/../../assets/js/datepicker.js') ?>"></script>
 
 <footer class="admin-footer">

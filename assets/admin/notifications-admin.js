@@ -92,8 +92,8 @@ const RTE = {
       }
     });
 
-    // شروعِ هر انتخابِ جدید در ویرایشگر → markerِ رنگِ نهایی‌نشده‌ی قبلی را پاک‌سازی کن
-    // (وگرنه اگر دیالوگِ رنگ بدونِ تایید بسته شده باشد، رنگِ بعدی روی متنِ قبلی می‌نشیند)
+    // شروع هر انتخاب جدید در ویرایشگر → marker رنگ نهایی‌نشده‌ی قبلی را پاک‌سازی کن
+    // (وگرنه اگر دیالوگ رنگ بدون تایید بسته شده باشد، رنگ بعدی روی متن قبلی می‌نشیند)
     this._el.addEventListener('mousedown', () => { if (this._colorMarker) this._finalizeColorTarget(); });
     this._el.addEventListener('keydown',   () => { if (this._colorMarker) this._finalizeColorTarget(); });
 
@@ -783,8 +783,8 @@ const NM = {
     if (!file.type.startsWith('image/')) { Toast.show('فقط فایل‌های تصویری مجاز هستند', 'error'); return; }
     if (file.size > 52_428_800)          { Toast.show('حجم فایل بیشتر از ۵۰ مگابایت است', 'error'); return; }
 
-    // نمایش فوری ردیف فایل + ساختِ پیش‌نمایشِ کوچک خارج از thread اصلی
-    // (تصویرِ تمام‌اندازه را مستقیم به <img> نمی‌دهیم تا UI با عکس‌های سنگین فریز نشود)
+    // نمایش فوری ردیف فایل + ساخت پیش‌نمایش کوچک خارج از thread اصلی
+    // (تصویر تمام‌اندازه را مستقیم به <img> نمی‌دهیم تا UI با عکس‌های سنگین فریز نشود)
     this._showFileItem({ name: file.name });
     this._setPreviewFromFile(file);
     this._setFileState('uploading');
@@ -836,8 +836,8 @@ const NM = {
   },
   _basename(p) { return String(p || '').split('/').pop().split('\\').pop() || 'تصویر'; },
 
-  // ساختِ پیش‌نمایشِ کوچک بدون فریز: createImageBitmap تصویر را خارج از thread
-  // اصلی decode و resize می‌کند، سپس یک بندانگشتیِ سبک (≈۲۰۰px) روی <img> می‌نشیند.
+  // ساخت پیش‌نمایش کوچک بدون فریز: createImageBitmap تصویر را خارج از thread
+  // اصلی decode و resize می‌کند، سپس یک بندانگشتی سبک (≈۲۰۰px) روی <img> می‌نشیند.
   async _setPreviewFromFile(file) {
     const img      = document.getElementById('imgPreview');
     const thumbBox = document.getElementById('imgFileThumb');
@@ -857,9 +857,9 @@ const NM = {
           thumbBox.classList.add('has-img');
           return;
         }
-      } catch (e) { /* افتادن به مسیرِ جایگزین */ }
+      } catch (e) { /* افتادن به مسیر جایگزین */ }
     }
-    // جایگزین (مرورگرِ قدیمی): object URL مستقیم + decode غیرهمزمان
+    // جایگزین (مرورگر قدیمی): object URL مستقیم + decode غیرهمزمان
     this._previewURL = URL.createObjectURL(file);
     img.src = this._previewURL;
     thumbBox.classList.add('has-img');
@@ -1138,3 +1138,47 @@ const CSelect = {
 document.addEventListener('click', () => document.querySelectorAll('.cselect.open').forEach(w => w.classList.remove('open')));
 
 document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(); NM._initPerPage(); CSelect.enhanceAll(); NM.load(); });
+
+// ── افکت ripple (موج کلیک) — این صفحه admin.js را لود نمی‌کند پس هندلر اینجا تکرار می‌شود ──
+(function () {
+  const SEL = '.btn, .hdr-btn, .btn-icon, .notif-row, .nm-adv-toggle,'
+    + ' .cselect-option, .pg-btn, .nm-pag-btn, .modal-close, .notif-search-clear';
+  document.addEventListener('pointerdown', function (e) {
+    const btn = e.target.closest(SEL);
+    if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    r.style.width = r.style.height = size + 'px';
+    r.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    r.style.top  = (e.clientY - rect.top  - size / 2) + 'px';
+    btn.appendChild(r);
+    r.addEventListener('animationend', () => r.remove());
+  });
+  // ناوبری لینک‌های هدر را ~160ms نگه می‌داریم تا ریپل دیده شود (prerender فوری است)
+  document.addEventListener('click', function (e) {
+    const a = e.target.closest(SEL);
+    if (!a || a.tagName !== 'A') return;
+    const href = a.getAttribute('href');
+    if (!href || href.charAt(0) === '#' || a.target === '_blank') return;
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault();
+    setTimeout(function () { window.location.href = href; }, 160);
+  });
+})();
+
+// هدر چسبان هنگام اسکرول (مشترک با theme.js): .is-stuck با اسکرول به پایین
+(function () {
+  const header = document.querySelector('.app-header');
+  if (!header) return;
+  let ticking = false;
+  function update() {
+    header.classList.toggle('is-stuck', window.scrollY > 4);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { requestAnimationFrame(update); ticking = true; }
+  }, { passive: true });
+  update();
+})();

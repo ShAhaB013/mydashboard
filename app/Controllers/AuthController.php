@@ -48,8 +48,19 @@ class AuthController
         )->fetch();
 
         if ($row && password_verify($password, $row['password_hash'])) {
+            // پاکسازی سشن‌های قبلی همین کاربر از همین مرورگر/IP (جلوگیری از سشن تکراری)
+            $uid = (int) $row['id'];
+            $ip  = mb_substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+            $ua  = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+            try {
+                DB::run(
+                    'DELETE FROM sessions WHERE user_id = :uid AND ip = :ip AND user_agent = :ua',
+                    [':uid' => $uid, ':ip' => $ip, ':ua' => $ua]
+                );
+            } catch (\Throwable $e) {}
+
             session_regenerate_id(true);
-            $_SESSION['user_id']      = (int) $row['id'];
+            $_SESSION['user_id']      = $uid;
             $_SESSION['username']     = $row['username'];
             $_SESSION['display_name'] = $row['display_name'];
             $_SESSION['email']        = $row['email'] ?? '';
@@ -128,6 +139,31 @@ class AuthController
             return;
         }
 
+        // ── ضد دور زدن کول‌داون ارسال کد با رفت‌وبرگشت مرحله (یا ریلود) ──
+        // اگر همین ایمیل به‌تازگی کد گرفته (داخل پنجره کول‌داون)، کد جدید نفرست و
+        // رکورد در انتظار قبلی را دست‌نخورده نگه دار؛ همان کد ارسال‌شده تایید می‌شود.
+        $resendBase = SettingsModel::getInt('resend_cooldown', 10, 600, 30);
+        $retryReg   = ResendThrottle::retryAfter('register', $email, $resendBase);
+        if ($retryReg > 0) {
+            if ($userModel->findPendingByEmail($email)) {
+                echo json_encode([
+                    'ok'              => true,
+                    'msg'             => 'کد قبلا به ایمیل شما ارسال شده است',
+                    'email'           => $email,
+                    'resend_cooldown' => $resendBase,
+                    'retry_after'     => $retryReg,
+                ], JSON_UNESCAPED_UNICODE);
+            } else {
+                echo json_encode([
+                    'ok'              => false,
+                    'msg'             => 'برای ارسال کد کمی صبر کنید',
+                    'retry_after'     => $retryReg,
+                    'resend_cooldown' => $resendBase,
+                ], JSON_UNESCAPED_UNICODE);
+            }
+            return;
+        }
+
         // پاک‌سازی تلاش‌های نیمه‌کاره قبلی همین ایمیل، سپس ساخت رکورد در انتظار تایید + کد ۶ رقمی
         // نقش به‌صورت سخت‌گیرانه 'user' — هیچ راهی برای ادمین‌شدن از این مسیر نیست. username خودکار ساخته می‌شود.
         $userModel->deletePendingByEmail($email);
@@ -136,13 +172,13 @@ class AuthController
         $userModel->createPending($firstName, $lastName, $email, $password, $codeHash, time() + SettingsModel::getInt('code_ttl', 60, 86400, 600));
 
         $mail = Mailer::sendCode($email, $code, 'register');
-        if (!$mail['ok'] && !Mailer::isLocal()) {
+        if (!$mail['ok'] && !Mailer::devCodeAllowed()) {
             echo json_encode(['ok' => false, 'msg' => 'ارسال ایمیل تایید ممکن نشد؛ کمی بعد دوباره تلاش کنید'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         $resp = ['ok' => true, 'msg' => 'کد تایید به ایمیل ارسال شد', 'email' => $email, 'resend_cooldown' => SettingsModel::getInt('resend_cooldown', 10, 600, 30)];
-        if (!$mail['ok'] && Mailer::isLocal()) {
+        if (!$mail['ok'] && Mailer::devCodeAllowed()) {
             $resp['dev_code'] = $code; // فقط وقتی ارسال واقعی ناموفق بوده و محیط محلی است (نه وقتی SMTP ایمیل فرستاده)
         }
         // ثبت ارسال در شمارنده سمت‌سرور تا کول‌داون «ارسال مجدد» با ریلود دور زده نشود
@@ -262,13 +298,13 @@ class AuthController
         $codeHash = password_hash($code, PASSWORD_BCRYPT);
         $userModel->setVerifyCode((int) $pending['id'], $codeHash, time() + SettingsModel::getInt('code_ttl', 60, 86400, 600));
         $mail = Mailer::sendCode($pending['email'], $code, 'register');
-        if (!$mail['ok'] && !Mailer::isLocal()) {
+        if (!$mail['ok'] && !Mailer::devCodeAllowed()) {
             echo json_encode(['ok' => false, 'msg' => 'ارسال ایمیل ممکن نشد؛ کمی بعد دوباره تلاش کنید'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         $resp = ['ok' => true, 'msg' => 'کد جدید ارسال شد', 'resend_cooldown' => $base];
-        if (!$mail['ok'] && Mailer::isLocal()) {
+        if (!$mail['ok'] && Mailer::devCodeAllowed()) {
             $resp['dev_code'] = $code;
         }
         ResendThrottle::record('register', $email);
@@ -314,7 +350,7 @@ class AuthController
             $codeHash = password_hash($code, PASSWORD_BCRYPT);
             $userModel->setVerifyCode((int) $user['id'], $codeHash, time() + SettingsModel::getInt('code_ttl', 60, 86400, 600));
             $mail = Mailer::sendCode($email, $code, 'reset');
-            if (!$mail['ok'] && Mailer::isLocal()) {
+            if (!$mail['ok'] && Mailer::devCodeAllowed()) {
                 $resp['dev_code'] = $code; // فقط وقتی ارسال واقعی ناموفق بوده و محیط محلی است
             }
         }
@@ -538,17 +574,17 @@ class AuthController
         ];
 
         $mail = Mailer::sendCode($email, $code, 'email_change');
-        if (!$mail['ok'] && !Mailer::isLocal()) {
+        if (!$mail['ok'] && !Mailer::devCodeAllowed()) {
             echo json_encode(['ok' => false, 'msg' => 'ارسال ایمیل تایید ممکن نشد؛ کمی بعد دوباره تلاش کنید'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         $resp = ['ok' => true, 'msg' => 'کد تایید به ایمیل جدید ارسال شد', 'email' => $email, 'resend_cooldown' => $base];
-        if (!$mail['ok'] && Mailer::isLocal()) {
+        if (!$mail['ok'] && Mailer::devCodeAllowed()) {
             $resp['dev_code'] = $code; // فقط محیط محلی وقتی SMTP ایمیل نفرستاده
         }
         ResendThrottle::record('email_change', $email);
-        // کول‌داونِ قطعیِ سمت سرور تا ارسالِ مجددِ بعدی (کلاینت همین را نشان می‌دهد)
+        // کول‌داون قطعی سمت سرور تا ارسال مجدد بعدی (کلاینت همین را نشان می‌دهد)
         $resp['retry_after'] = ResendThrottle::retryAfter('email_change', $email, $base);
         echo json_encode($resp, JSON_UNESCAPED_UNICODE);
     }
@@ -613,8 +649,8 @@ class AuthController
     }
 
     // ── cancel_email_change ──────────────────────────────────
-    // لغوِ درخواستِ در انتظارِ تغییرِ ایمیل (پاک‌کردنِ کدِ نشست). محدودیتِ
-    // ارسالِ مجدد (ResendThrottle) عمداً پاک نمی‌شود تا با لغو/درخواستِ دوباره دور زده نشود.
+    // لغو درخواست در انتظار تغییر ایمیل (پاک‌کردن کد نشست). محدودیت
+    // ارسال مجدد (ResendThrottle) عمدا پاک نمی‌شود تا با لغو/درخواست دوباره دور زده نشود.
     public function cancelEmailChange(): void
     {
         if (!UserSession::check()) {

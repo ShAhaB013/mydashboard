@@ -21,6 +21,7 @@
   --radius-xs: 8px;
   --radius-sm: 12px;
   --radius-lg: 22px;
+  --radius-pill: 999px; /* کنترل‌های کاملا گرد: چیپ، دکمه‌های pill، نوار جستجو */
 
   --transition:        0.22s cubic-bezier(0.4,0,0.2,1);
   --transition-bounce: 0.32s cubic-bezier(0.34,1.56,0.64,1);
@@ -176,22 +177,31 @@ body {
   overflow-x: clip;
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.4s ease, color 0.4s ease;
-  /* Aurora */
   background-color: var(--aurora-bg);
+}
+
+/* لایه Aurora — لایه ثابت کامپوزیت‌شده (به‌جای background-attachment:fixed که هنگام اسکرول
+   هر فریم repaint می‌شد و لگ می‌داد). translateZ(0) آن را به لایه GPU می‌برد تا اسکرول repaintش نکند. */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+  transform: translateZ(0);
   background-image:
     radial-gradient(ellipse 75% 60% at  8% 15%, var(--aurora-blob-1) 0%, transparent 65%),
     radial-gradient(ellipse 60% 65% at 92%  8%, var(--aurora-blob-2) 0%, transparent 60%),
     radial-gradient(ellipse 65% 55% at 88% 90%, var(--aurora-blob-3) 0%, transparent 58%),
     radial-gradient(ellipse 55% 60% at  4% 92%, var(--aurora-blob-4) 0%, transparent 55%),
     radial-gradient(ellipse 80% 50% at 50% 50%, var(--aurora-center) 0%, transparent 70%);
-  background-attachment: fixed;
+  transition: background 0.4s ease;
 }
 
-/* Noise layer */
-body::before {
+/* لایه نویز — ثابت و کامپوزیت‌شده */
+body::after {
   content: '';
   position: fixed; inset: 0; z-index: 0;
   pointer-events: none;
+  transform: translateZ(0);
   opacity: var(--noise-opacity);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 180px 180px;
@@ -201,39 +211,111 @@ body::before {
 header, main { position: relative; z-index: 1; }
 
 /* =============================================================================
-   Header
+   Header — کامپوننت یکپارچه .app-header در بخش بالاتر تعریف شده است.
+   (قواعد قدیمی header/.header-container/h1 حذف شدند چون همه صفحات به
+   .app-header مهاجرت کرده‌اند.) .header-actions فقط ظرف دکمه‌های صفحه اصلی است.
    ============================================================================= */
-header {
-  position: sticky; top: 0; height: var(--header-h);
+.header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-inline-start: auto; }
+
+/* =============================================================================
+   هدر یکپارچه (سبک تلگرام) — مشترک با admin.css (پنل مدیریت)
+   نوار چسبان شیشه‌ای تمام‌عرض: [بازگشت] عنوان … [دکمه‌های آیکونی دایره‌ای]
+   هر تغییری اینجا باید در admin.css هم آینه شود.
+   ============================================================================= */
+/* نوار شناور جمع‌وجور (pill): پس‌زمینه/قاب روی __inner است تا مثل یک کارت
+   گرد بالای صفحه شناور شود؛ پدینگ افقی __inner با پدینگ محتوای صفحه (main: 28px)
+   یکی است تا دکمه‌ها دقیقا با ستون محتوا هم‌تراز شوند. */
+.app-header {
+  position: sticky; top: 0; z-index: 100;
+  padding-top: 12px; background: transparent;
+  transition: padding-top 0.28s cubic-bezier(.4,0,.2,1), background 0.4s ease;
+}
+.app-header__inner {
+  position: relative; /* مرجع overlay جستجو (inset:0) تا دقیقا روی همین نوار بنشیند */
+  max-width: var(--page-w, 1100px); margin: 0 auto; height: 50px; padding: 0 var(--page-pad, 28px);
+  display: flex; align-items: center; gap: 4px;
   background: var(--header-bg);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border); z-index: 100;
-  box-shadow: 0 1px 12px var(--header-shadow);
-  transition: background 0.4s ease, border-color 0.4s ease;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 24px var(--header-shadow);
+  transition: background 0.4s ease, border-color 0.4s ease,
+              box-shadow 0.28s ease, border-radius 0.28s ease;
 }
-.header-container {
-  max-width: 1100px; height: 100%; margin: 0 auto; padding: 0 28px;
-  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+/* حالت چسبیده هنگام اسکرول (کلاس .is-stuck را اسکریپت اضافه می‌کند): گپ بالا حذف،
+   گوشه‌های بالا صاف می‌شوند تا نوار به لبه بچسبد، و یک سایه‌ی کم‌رنگ زیر آن می‌نشیند. */
+.app-header.is-stuck { padding-top: 0; }
+.app-header.is-stuck .app-header__inner {
+  border-top-left-radius: 0; border-top-right-radius: 0;
+  border-top-color: transparent;
+  box-shadow: 0 6px 18px var(--header-shadow);
 }
-h1 {
+.app-header__title {
   font-family: 'HeadingFont', 'DashboardFont', sans-serif;
-  font-size: clamp(15px,2.5vw,19px); font-weight: 700;
-  color: var(--color-text-primary); letter-spacing: -.3px;
+  font-size: 17px; font-weight: 700; letter-spacing: -.3px; color: var(--color-text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 9px; min-width: 0; margin: 0 6px;
 }
-h1::before {
-  content: ''; display: inline-block; width: 8px; height: 8px;
-  background: var(--color-accent); border-radius: 50%;
-  margin-left: 10px; vertical-align: middle; margin-bottom: 2px;
+.app-header__title::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--color-accent); flex-shrink: 0;
 }
-.header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.app-header__actions { display: flex; align-items: center; gap: 2px; margin-inline-start: auto; flex-shrink: 0; }
+/* خوشه‌ی عنوان (عنوان + چیپ شمارنده) — در گوشه‌ی شروع (راست در RTL) می‌ماند */
+.app-header__lead { display: flex; align-items: center; gap: 9px; min-width: 0; }
+/* شمارنده‌ی کنار عنوان (مثل تعداد اعلان‌ها) — جایگزین تایتل تکراری در بدنه */
+.app-header__count {
+  flex-shrink: 0; font-size: 12px; font-weight: 700;
+  background: var(--color-accent-bg); color: var(--color-accent);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-sm); padding: 1px 9px; line-height: 1.7;
+}
+
+/* دکمه آیکونی دایره‌ای (سبک تلگرام) — مشترک با theme-toggle/bell/user */
+.hdr-btn {
+  position: relative; width: 40px; height: 40px; flex-shrink: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; border-radius: 50%;
+  color: var(--color-text-secondary); cursor: pointer; text-decoration: none;
+  transition: background var(--transition), color var(--transition), transform var(--transition-bounce);
+}
+.hdr-btn:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+.hdr-btn:active { transform: scale(.9); }
+.hdr-btn.is-active { color: var(--color-accent); background: var(--color-accent-bg); }
+.hdr-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.hdr-btn svg { width: 21px; height: 21px; flex-shrink: 0; }
+
+/* ── افکت ripple (موج کلیک، سبک تلگرام) — روی همه آیتم‌های تعاملی به‌جز کارت‌ها ──
+   استثناها: دکمه زنگ (بج اعلان بیرون از کادر است → overflow آن را می‌برد) و
+   کارت‌های ابزار (.card) که عمدا ریپل ندارند. مشترک با admin.css. */
+.hdr-btn, .theme-toggle, .user-menu-btn, .chip, .auth-btn, .user-menu-item,
+.notif-drop-item, .login-submit-btn, .profile-submit-btn, .login-tab,
+.npag-btn, .notif-view-btn, .notif-row, .notif-search-btn,
+.notif-adv-toggle, .notif-adv-apply,
+.notif-drop-view-all, .notif-detail-view-all, .notif-detail-close-btn,
+.notif-detail-close, .header-search-close, .clear-button,
+.nd-close-btn, .nd-close-action,
+.login-forgot-link, .login-back-link, .forgot-back-top, .reg-back-btn,
+.reg-resend, .login-pass-toggle, .login-pass-gen, .profile-pass-toggle,
+.profile-link-btn,
+.tm-icon-opt, .tm-deco-opt, .tm-close, .tm-foot .btn,
+.reorder-toggle, .reorder-bar .btn, .cab-btn, .card-add-tile {
+  position: relative; overflow: hidden;
+}
+.ripple {
+  position: absolute; border-radius: 50%;
+  background: currentColor; opacity: .22;
+  transform: scale(0); pointer-events: none;
+  animation: ripple .55s ease-out forwards;
+}
+@keyframes ripple { to { transform: scale(2.4); opacity: 0; } }
 
 /* =============================================================================
    Theme Toggle Button — دایره آیکون‌دار
    ============================================================================= */
 .theme-toggle {
   position: relative;
-  width: 38px; height: 38px; flex-shrink: 0;
+  width: 40px; height: 40px; flex-shrink: 0;
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border);
   border-radius: 50%;
@@ -296,7 +378,7 @@ h1::before {
   color: var(--color-text-secondary); text-decoration: none;
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border);
-  border-radius: 20px; cursor: pointer;
+  border-radius: var(--radius-sm); cursor: pointer;
   transition: color var(--transition), border-color var(--transition),
               background var(--transition), transform var(--transition-bounce);
 }
@@ -314,35 +396,52 @@ h1::before {
 }
 
 /* =============================================================================
-   Search
+   Search — آیکون همیشگی (#searchToggle) + نوار جستجوی تمام‌عرض (سبک تلگرام)
+   با کلیک روی آیکون، نوار جستجو روی محتوای هدر باز می‌شود و کارت‌ها فیلتر می‌شوند.
    ============================================================================= */
-.search-box { position: relative; flex-shrink: 0; width: 240px; }
-.search-box input {
-  font-family: 'DashboardFont', sans-serif; font-size: 14px;
-  width: 100%; height: 40px; padding: 0 40px 0 36px;
-  border-radius: 40px; border: 1.5px solid var(--color-border);
-  background: var(--color-bg-card); color: var(--color-text-primary); outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+.header-search {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 8px;
+  border-radius: inherit; /* رادیوس را از .app-header__inner می‌گیرد تا با همه‌ی حالت‌های هدر (شناور/چسبیده) هماهنگ بماند */
+  overflow: hidden;
+  background: var(--color-bg-card); /* مات تا عنوان/دکمه‌های زیرش دیده نشوند */
+  opacity: 0; visibility: hidden; transform: translateY(-8px);
+  transition: opacity var(--transition), transform var(--transition), visibility var(--transition);
+  z-index: 5;
 }
-.search-box input:hover { border-color: var(--color-text-muted); }
-.search-box input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(var(--field-focus-rgb),.10), 0 0 9px rgba(var(--field-focus-rgb),.12); }
-.search-box input::placeholder { color: var(--color-text-muted); }
-.search-icon {
-  position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
-  width: 16px; height: 16px; fill: var(--color-text-muted);
-  pointer-events: none; transition: fill var(--transition);
+/* دکمه جستجو با بوردر — هماهنگ با دکمه زنگ/تم */
+#searchToggle { background: var(--color-bg-card); border: 1.5px solid var(--color-border); }
+#searchToggle:hover { border-color: var(--color-accent); }
+.app-header.searching .header-search { opacity: 1; visibility: visible; transform: none; }
+.header-search-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--color-text-muted); margin: 0 6px; }
+.header-search input {
+  flex: 1; min-width: 0; height: 100%;
+  border: none; background: transparent; outline: none;
+  font-family: 'DashboardFont', sans-serif; font-size: 15px;
+  color: var(--color-text-primary);
 }
-.search-box:focus-within .search-icon { fill: var(--color-accent); }
+.header-search input::placeholder { color: var(--color-text-muted); }
+/* دکمه پاک‌کردن متن (درون نوار) */
 .clear-button {
-  position: absolute; left: 10px; top: 50%; transform: translateY(-50%) scale(.7);
+  position: relative; flex-shrink: 0; /* relative تا موج ریپل داخل خود دکمه قرار گیرد */
   width: 22px; height: 22px; border-radius: 50%; background: var(--color-text-muted);
   border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  padding: 0; opacity: 0; pointer-events: none;
+  padding: 0; opacity: 0; pointer-events: none; transform: scale(.85);
   transition: opacity var(--transition), transform var(--transition-bounce), background var(--transition);
 }
-.clear-button.visible { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
-.clear-button:hover { background: var(--color-text-secondary); transform: translateY(-50%) scale(1.12); }
+.clear-button.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+.clear-button:hover { background: var(--color-text-secondary); transform: scale(1.12); }
 .clear-button svg { width: 10px; height: 10px; stroke: #fff; fill: none; display: block; }
+/* دکمه بستن نوار جستجو — دایره‌ای مثل دکمه‌های هدر */
+.header-search-close {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+  border: none; background: transparent; color: var(--color-text-secondary);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+.header-search-close:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+.header-search-close svg { width: 20px; height: 20px; }
 
 /* =============================================================================
    Main
@@ -350,32 +449,35 @@ h1::before {
 main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 
 /* Filter chips */
-.filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.filter-bar { display: flex; flex-wrap: nowrap; gap: 8px; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; padding-bottom: 6px; }
+.filter-bar::-webkit-scrollbar { height: 4px; }
+.filter-bar::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+.filter-bar::-webkit-scrollbar-track { background: transparent; }
 .chip {
   font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
-  padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--color-border);
+  padding: 5px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
   background: var(--color-bg-card); color: var(--color-text-secondary); cursor: pointer;
-  transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--transition-bounce), box-shadow var(--transition);
-  white-space: nowrap;
+  transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
+  white-space: nowrap; flex-shrink: 0;
 }
-.chip:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); transform: translateY(-1px); }
+.chip:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
 .chip.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); box-shadow: 0 3px 10px var(--color-shadow-card); }
 .chip:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
 /* Section header */
 .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .section-title { font-family: 'HeadingFont', 'DashboardFont', sans-serif; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); letter-spacing: .3px; text-transform: uppercase; }
-.section-count { font-size: 12px; font-weight: 600; background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); border-radius: 20px; padding: 2px 9px; }
+.section-count { font-size: 12px; font-weight: 600; background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); border-radius: var(--radius-sm); padding: 2px 9px; }
 
-/* Grid */
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 320px)); justify-content: center; gap: 22px; }
+/* Grid — کارت‌ها تمام‌عرض ناحیه محتوا را پر می‌کنند تا با هدر بخش (و دکمه مرتب‌سازی) هم‌تراز شوند */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 18px; }
 
 /* =============================================================================
    Card
    ============================================================================= */
 .card {
   background: var(--color-bg-card); border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-lg); padding: 26px 24px 28px;
+  border-radius: var(--radius-lg); padding: 24px 22px 26px;
   cursor: pointer; position: relative; overflow: hidden;
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition);
   box-shadow: 0 2px 10px rgba(15,23,42,.05);
@@ -384,7 +486,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   /* ── بهینه‌سازی رندر برای لیست‌های بزرگ ── */
   contain: layout paint style;
   content-visibility: auto;
-  contain-intrinsic-size: auto 220px;
+  contain-intrinsic-size: auto 176px;
 
   --card-color:   var(--color-accent);
   --card-color-l: var(--color-accent-light);
@@ -421,11 +523,12 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .card:nth-child(5){animation-delay:.24s} .card:nth-child(6){animation-delay:.30s}
 
 .card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 1;
   background: linear-gradient(90deg, var(--card-color) 0%, var(--card-color-l) 100%);
   transform: scaleX(0); transform-origin: right;
-  transition: transform var(--transition);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  transition: transform .4s cubic-bezier(.25,.8,.25,1);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 .card::after {
   content: ''; position: absolute; inset: 0; border-radius: var(--radius-lg);
@@ -443,7 +546,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 
 /* Corner Decoration */
 .card-corner-deco {
-  position: absolute; top: 0; left: 0; width: 110px; height: 110px;
+  position: absolute; top: 0; left: 0; width: 88px; height: 88px; z-index: 0;
   pointer-events: none; transition: transform var(--transition);
 }
 .card-corner-deco svg { width: 100%; height: 100%; }
@@ -464,24 +567,25 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .card:hover .corner-dot-3{opacity:.30} .card:hover .corner-dot-4{opacity:.20}
 .card:hover .corner-dot-5{opacity:.14}
 
-/* Card content */
+/* Card content — متن و آیکون بالای لایه انیمیشن (deco) قرار می‌گیرند */
+.card-icon, .card-badge, .card > h3, .card > p { position: relative; z-index: 1; }
 .card-icon {
-  width: 52px; height: 52px; background: var(--card-bg); border: 1.5px solid var(--card-border);
+  width: 44px; height: 44px; background: var(--card-bg); border: 1.5px solid var(--card-border);
   border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
-  margin-bottom: 16px; color: var(--card-color);
+  margin-bottom: 11px; color: var(--card-color);
   transition: background var(--transition), transform var(--transition-bounce), box-shadow var(--transition);
 }
 .card:hover .card-icon { background: var(--card-bg-h); transform: scale(1.1) rotate(-3deg); box-shadow: 0 6px 16px var(--card-shadow); }
-.card-icon svg { width: 24px; height: 24px; }
+.card-icon svg { width: 22px; height: 22px; }
 
 .card-badge {
   display: inline-block; font-size: 11px; font-weight: 700;
   color: var(--card-color); background: var(--card-bg); border: 1px solid var(--card-border);
-  border-radius: 20px; padding: 2px 9px; margin-bottom: 8px; letter-spacing: .3px;
+  border-radius: var(--radius-sm); padding: 2px 9px; margin-bottom: 8px; letter-spacing: .3px;
 }
-.card h3 { font-family: 'HeadingFont', 'DashboardFont', sans-serif; font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 7px; letter-spacing: -.2px; transition: color var(--transition); }
+.card h3 { font-family: 'HeadingFont', 'DashboardFont', sans-serif; font-size: 14.5px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px; letter-spacing: -.2px; transition: color var(--transition); }
 .card:hover h3 { color: var(--card-color); }
-.card p { font-size: 13.5px; color: var(--color-text-secondary); line-height: 1.65; margin: 0; padding-bottom: 80px; }
+.card p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; margin: 0; padding-bottom: 80px; }
 
 .card-arrow {
   position: absolute; bottom: 20px; left: 20px; width: 28px; height: 28px;
@@ -494,9 +598,9 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .card:hover .card-arrow { opacity: 1; transform: translateX(0); background: var(--card-bg-h); }
 .card:focus-visible { outline: 2.5px solid var(--card-color); outline-offset: 3px; }
 
-/* Bottom deco */
+/* Bottom deco — لایه زیرین انیمیشن (z-index: 0) که زیر متن قرار می‌گیرد */
 .card-deco-wrap {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 72px;
+  position: absolute; bottom: 0; left: 0; right: 0; height: 64px; z-index: 0;
   pointer-events: none; overflow: hidden;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   opacity: .28; transition: opacity var(--transition);
@@ -533,7 +637,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 /* =============================================================================
    Skeleton & Empty State
    ============================================================================= */
-/* اسکلت هم‌ساختار با کارت واقعی (آیکون/بَج/عنوان/خطوط) + shimmer جاروبی */
+/* اسکلت هم‌ساختار با کارت واقعی (آیکون/بج/عنوان/خطوط) + shimmer جاروبی */
 .skeleton-card {
   background: var(--color-bg-card); border: 1.5px solid var(--color-border);
   border-radius: var(--radius-lg); padding: 26px 24px 28px;
@@ -541,13 +645,13 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   --sk-base: rgba(100,116,139,.13); --sk-glow: rgba(255,255,255,.55);
 }
 [data-theme="dark"] .skeleton-card { --sk-base: rgba(148,163,184,.12); --sk-glow: rgba(255,255,255,.06); }
-.skeleton-card .sk { position: relative; overflow: hidden; background: var(--sk-base); border-radius: 8px; }
-.skeleton-card .sk-icon  { width: 48px; height: 48px; border-radius: 14px; margin-bottom: 18px; }
-.skeleton-card .sk-badge { width: 64px; height: 20px; border-radius: 20px; margin-bottom: 16px; }
+.skeleton-card .sk { position: relative; overflow: hidden; background: var(--sk-base); border-radius: var(--radius-xs); }
+.skeleton-card .sk-icon  { width: 48px; height: 48px; border-radius: var(--radius-sm); margin-bottom: 18px; }
+.skeleton-card .sk-badge { width: 64px; height: 20px; border-radius: var(--radius-sm); margin-bottom: 16px; }
 .skeleton-card .sk-title { width: 68%; height: 18px; margin-bottom: 14px; }
 .skeleton-card .sk-line  { width: 100%; height: 12px; margin-bottom: 9px; }
 .skeleton-card .sk-line--short { width: 52%; margin-bottom: 0; }
-/* جاروبِ نور روی هر قطعه (با تاخیرِ پلکانی برای حسِ موجی) */
+/* جاروب نور روی هر قطعه (با تاخیر پلکانی برای حس موجی) */
 .skeleton-card .sk::after {
   content: ''; position: absolute; inset: 0; transform: translateX(100%);
   background: linear-gradient(90deg, transparent, var(--sk-glow), transparent);
@@ -567,7 +671,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .empty-state p { font-size: 15px; color: var(--color-text-secondary); margin-bottom: 14px; }
 .reset-link {
   font-size: 13px; color: var(--color-accent); background: var(--color-accent-bg);
-  border: 1px solid var(--color-accent-border); border-radius: 20px; padding: 5px 14px;
+  border: 1px solid var(--color-accent-border); border-radius: var(--radius-sm); padding: 5px 14px;
   cursor: pointer; display: inline-block;
   transition: background var(--transition), transform var(--transition-bounce);
 }
@@ -590,41 +694,11 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
    Responsive
    ============================================================================= */
 @media (max-width: 768px) {
-  header { height: auto; }
-  .header-container {
-    height: auto;
-    flex-wrap: wrap;
-    align-items: center;
-    padding: 8px 14px;
-    gap: 6px;
-  }
-  h1 {
-    flex: 1;
-    min-width: 0;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    order: 1;
-  }
-  /* فرزندان header-actions مستقیما در flex شرکت می‌کنند */
-  .header-actions {
-    display: contents;
-  }
-  /* آیکون‌ها در ردیف اول کنار عنوان */
-  .theme-toggle,
-  #notifBellWrap,
-  .auth-area {
-    order: 2;
-    flex-shrink: 0;
-  }
-  /* جستجو به ردیف دوم می‌رود */
-  .search-box {
-    order: 10;
-    flex-basis: 100%;
-    width: 100%;
-    max-width: 100%;
-  }
+  /* هدر یکپارچه روی موبایل: عنوان + آیکون‌ها در یک ردیف؛ جستجو روی هدر باز می‌شود */
+  .app-header { padding-top: 8px; }
+  .app-header__inner { height: 46px; padding: 0 14px; }
+  .app-header__title { flex: 1; min-width: 0; font-size: 15px; margin: 0 4px; }
+  .header-actions { gap: 2px; }
   main { margin: 20px auto; padding: 0 14px 40px; }
   .grid { grid-template-columns: 1fr; gap: 14px; }
   .card { padding: 20px 18px 24px; }
@@ -642,7 +716,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
    Accessibility
    ============================================================================= */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-.search-box input:focus-visible { outline: none; }
+.header-search input:focus-visible { outline: none; }
 .clear-button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
 /* =============================================================================
@@ -812,7 +886,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   gap: 6px;
   padding: 0 14px;
   height: 36px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   border: 1.5px solid var(--color-border);
   background: var(--color-bg-card);
   color: var(--color-text-secondary);
@@ -899,7 +973,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .login-modal-close {
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--radius-xs);
   background: none;
   border: none;
   cursor: pointer;
@@ -989,7 +1063,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .login-pass-toggle {
   position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
   background: none; border: none; cursor: pointer; color: var(--color-text-muted);
-  display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: var(--radius-xs);
   transition: color var(--transition);
 }
 .login-pass-toggle:hover { color: var(--color-accent); }
@@ -1000,7 +1074,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .login-pass-gen {
   position: absolute; left: 38px; top: 50%; transform: translateY(-50%);
   background: none; border: none; cursor: pointer; color: var(--color-text-muted);
-  display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: var(--radius-xs);
   transition: color var(--transition), transform .25s ease;
 }
 .login-pass-gen:hover { color: var(--color-accent); transform: translateY(-50%) rotate(-12deg); }
@@ -1051,7 +1125,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   display: flex; align-items: center; gap: 9px;
   max-width: 92vw; font-family: 'DashboardFont', sans-serif;
   font-size: 13px; font-weight: 600; line-height: 1.6;
-  padding: 11px 16px; border-radius: 12px;
+  padding: 11px 16px; border-radius: var(--radius-sm);
   background: var(--color-bg-card); color: var(--color-text-primary);
   border: 1px solid var(--color-border);
   box-shadow: 0 12px 32px rgba(0, 0, 0, .22);
@@ -1144,7 +1218,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   width: 100%; max-width: 410px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 28px 30px 22px;
   box-shadow: 0 24px 60px rgba(0,0,0,.18);
   animation: loginCardIn .35s cubic-bezier(0.22,1,0.36,1);
@@ -1238,6 +1312,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .reg-nav { display: flex; gap: 10px; align-items: stretch; }
 .reg-nav .login-submit-btn { flex: 1; min-width: 0; }
 .reg-back-btn {
+  order: 2;                       /* دکمه برگشت سمت چپ (مثل کل پروژه) */
   display: inline-flex; align-items: center; justify-content: center;
   height: 40px; width: 40px; padding: 0; border-radius: var(--radius-sm);
   background: none; border: none;
@@ -1251,7 +1326,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 /* نشانگر مرحله (الگو از تصویر مرجع) */
 .reg-footer { display: flex; flex-direction: column; align-items: center; gap: 9px; }
 .reg-progress { display: flex; gap: 7px; }
-.reg-seg { width: 34px; height: 4px; border-radius: 999px; background: var(--color-border); transition: background .3s ease; }
+.reg-seg { width: 34px; height: 4px; border-radius: var(--radius-pill); background: var(--color-border); transition: background .3s ease; }
 .reg-seg.active { background: var(--color-accent); }
 .reg-step-label { font-size: 12px; font-weight: 600; color: var(--color-text-muted); letter-spacing: .3px; }
 
@@ -1288,11 +1363,12 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 @keyframes regResendSpin { to { transform: rotate(360deg); } }
 
 /* ── سربرگ صفحه بازیابی رمز (به‌جای تب‌ها) ── */
-.forgot-head { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.forgot-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
 .forgot-back-top {
+  order: 2;                       /* دکمه برگشت سمت چپ (مثل کل پروژه) */
   display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; flex: 0 0 auto; margin-inline-start: -6px;
-  background: none; border: none; padding: 0; border-radius: 8px;
+  width: 30px; height: 30px; flex: 0 0 auto; margin-inline-end: -6px;
+  background: none; border: none; padding: 0; border-radius: var(--radius-xs);
   color: var(--color-text-secondary); cursor: pointer;
   transition: color var(--transition);
 }
@@ -1313,7 +1389,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   display: grid; grid-template-columns: 1fr 1fr;
   background: var(--color-bg-primary);
   border: 1.5px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   padding: 4px; margin-bottom: 22px;
   transition: border-color var(--transition), background var(--transition);
 }
@@ -1323,7 +1399,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   font-size: 14px; font-weight: 700;
   height: 36px; border: none; background: none; cursor: pointer;
   color: var(--color-text-secondary);
-  border-radius: 10px;
+  border-radius: var(--radius-xs);
   transition: color var(--transition);
 }
 .login-tab.active { color: #fff; }
@@ -1332,7 +1408,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   position: absolute; z-index: 0; top: 4px; bottom: 4px; right: 4px;
   width: calc(50% - 4px);
   background: var(--color-accent);
-  border-radius: 10px;
+  border-radius: var(--radius-xs);
   box-shadow: 0 4px 12px var(--color-accent-bg-hover);
   /* فقط transform انیمیت می‌شود (GPU، بدون لگ) */
   transition: transform .34s cubic-bezier(.34, 1.4, .5, 1);
@@ -1416,30 +1492,47 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   flex-shrink: 0;
 }
 
+/* ── فلش اشاره به دکمه‌ی مربوطه (دراپ‌داون‌های زنگ و کاربر) ──
+   روی wrapper گذاشته می‌شود چون خود دراپ‌داون overflow:hidden دارد. */
+#notifBellWrap::after,
+.user-menu-wrap::after {
+  content: ''; position: absolute; z-index: 151;
+  top: calc(100% + 3px); left: 14px;
+  width: 12px; height: 12px;
+  background: var(--color-bg-card);
+  border-left: 1.5px solid var(--color-border);
+  border-top: 1.5px solid var(--color-border);
+  border-radius: 3px 0 0 0;
+  transform: rotate(45deg) scale(0);
+  opacity: 0; pointer-events: none;
+  /* بسته‌شدن: سریع و بدون بانس تا فلش با دراپ‌داون هم‌زمان محو شود (رفع لگ لوزی باقی‌مانده) */
+  transition: opacity .1s ease, transform .1s ease;
+}
+#notifBellWrap:has(.notif-dropdown.open)::after,
+.user-menu-wrap:has(.user-menu-dropdown.open)::after {
+  opacity: 1; transform: rotate(45deg) scale(1);
+  /* باز‌شدن: ورود نرم با بانس ملایم */
+  transition: opacity .18s ease, transform .22s cubic-bezier(.34,1.4,.64,1);
+}
+
 /* دکمه‌ای که منو رو باز می‌کنه */
 .user-menu-btn {
-  font-family: 'DashboardFont', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px 0 12px;
-  height: 36px;
-  border-radius: 20px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-bg-card);
+  justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
-  white-space: nowrap;
-  transition: background var(--transition), color var(--transition),
-              border-color var(--transition), transform var(--transition-bounce);
+  flex-shrink: 0;
+  transition: background var(--transition), transform var(--transition-bounce);
 }
-.user-menu-btn:hover {
-  background: var(--color-accent-bg);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
+/* در تریگر فقط آواتار دیده می‌شود (سبک تلگرام)؛ نام در منوی بازشونده است */
+.user-menu-name, .user-menu-chevron { display: none; }
+.user-menu-btn:hover { transform: scale(1.06); }
+.user-menu-btn:hover .user-menu-avatar { border-color: var(--color-accent); background: var(--color-accent-bg-hover); }
 .user-menu-btn:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
@@ -1447,19 +1540,21 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 
 /* avatar دایره‌ای با اول حرف نام */
 .user-menu-avatar {
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--color-accent-bg);
   border: 1.5px solid var(--color-accent-border);
   color: var(--color-accent);
-  font-size: 11px;
+  font-family: 'DashboardFont', sans-serif; /* بدون این، دکمه فونت پیش‌فرض Arial را می‌گیرد */
+  font-size: 15px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   line-height: 1;
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .user-menu-name {
@@ -1525,7 +1620,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   text-overflow: ellipsis;
 }
 .user-menu-header-uname {
-  /* فونتِ لاتینِ واضح برای ایمیل (مثل بخش پروفایل، نه monospace) */
+  /* فونت لاتین واضح برای ایمیل (مثل بخش پروفایل، نه monospace) */
   font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
   font-size: 12px;
   font-weight: 500;
@@ -1599,8 +1694,8 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 /* ── دکمه زنگ ── */
 .notif-bell-btn {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border);
@@ -1650,7 +1745,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   left: -3px;
   min-width: 17px;
   height: 17px;
-  border-radius: 20px;
+  border-radius: var(--radius-sm);
   background: #ef4444;
   color: #fff;
   font-size: 9.5px;
@@ -1720,7 +1815,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   background: var(--color-accent-bg);
   color: var(--color-accent);
   border: 1px solid var(--color-accent-border);
-  border-radius: 20px;
+  border-radius: var(--radius-sm);
   padding: 1px 7px;
 }
  
@@ -1734,7 +1829,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   border: none;
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   transition: background var(--transition), color var(--transition);
   white-space: nowrap;
 }
@@ -1871,7 +1966,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   color: var(--color-accent);
   text-decoration: none;
   padding: 6px 18px;
-  border-radius: 20px;
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--color-accent-border);
   background: var(--color-accent-bg);
   display: inline-flex;
@@ -1906,10 +2001,10 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   flex-shrink: 0;
 }
  
-/* ── دکمه زنگ ── */
+/* ── دکمه زنگ (دایره‌ای با بوردر — هماهنگ با دکمه تم) ── */
 .notif-bell-btn {
   position: relative;
-  width: 38px; height: 38px;
+  width: 40px; height: 40px;
   border-radius: 50%;
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border);
@@ -1927,7 +2022,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   transform: scale(1.08);
 }
 .notif-bell-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.notif-bell-btn svg { width: 17px; height: 17px; pointer-events: none; }
+.notif-bell-btn svg { width: 20px; height: 20px; pointer-events: none; }
  
 /* انیمیشن زنگ */
 .notif-bell-btn.has-unread svg {
@@ -1946,7 +2041,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 /* badge تعداد */
 .notif-bell-badge {
   position: absolute; top: -3px; left: -3px;
-  min-width: 17px; height: 17px; border-radius: 20px;
+  min-width: 17px; height: 17px; border-radius: var(--radius-sm);
   background: #ef4444; color: #fff;
   font-size: 9.5px; font-weight: 700;
   display: none;
@@ -1995,7 +2090,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   font-family: 'DashboardFont', sans-serif;
   font-size: 11.5px; font-weight: 600;
   color: var(--color-accent); background: none; border: none;
-  cursor: pointer; padding: 4px 6px; border-radius: 6px;
+  cursor: pointer; padding: 4px 6px; border-radius: var(--radius-xs);
   transition: background var(--transition);
   white-space: nowrap;
 }
@@ -2065,7 +2160,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .notif-drop-view-all {
   font-family: 'DashboardFont', sans-serif;
   font-size: 13px; font-weight: 600; color: var(--color-accent);
-  text-decoration: none; padding: 6px 18px; border-radius: 20px;
+  text-decoration: none; padding: 6px 18px; border-radius: var(--radius-sm);
   border: 1.5px solid var(--color-accent-border); background: var(--color-accent-bg);
   display: inline-flex; align-items: center; gap: 6px; width: 100%; justify-content: center;
   transition: background var(--transition), border-color var(--transition), transform var(--transition-bounce);
@@ -2086,15 +2181,15 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   padding: 16px;
   opacity: 0; pointer-events: none;
   transition: opacity .2s ease;
-  /* blur فقط هنگام باز بودن اعمال می‌شود (در حالت بسته هیچ لایهٔ کامپوزیت/هزینه‌ای ندارد) */
+  /* blur فقط هنگام باز بودن اعمال می‌شود (در حالت بسته هیچ لایه کامپوزیت/هزینه‌ای ندارد) */
 }
 .notif-detail-overlay.open {
   opacity: 1; pointer-events: auto;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 
-/* هنگام باز بودنِ مودال، انیمیشن‌های متحرکِ پس‌زمینه (deco کارت‌ها) متوقف
-   می‌شوند؛ این‌طور backdrop-filter به‌جای محاسبهٔ blur در هر فریم، یک‌بار
+/* هنگام باز بودن مودال، انیمیشن‌های متحرک پس‌زمینه (deco کارت‌ها) متوقف
+   می‌شوند؛ این‌طور backdrop-filter به‌جای محاسبه blur در هر فریم، یک‌بار
    محاسبه و کش می‌کند → باز/بسته‌شدن روان می‌شود. */
 body.notif-modal-open .card-deco-wrap *,
 body.notif-modal-open .card-corner-deco * {
@@ -2112,7 +2207,7 @@ body.notif-modal-open .card-corner-deco * {
   transform: translateY(16px) scale(.97);
   transition: transform .24s cubic-bezier(.34,1.2,.64,1);
   overflow: hidden;
-  /* روی لایهٔ GPU جدا تا transform بدون repaint کامپوزیت شود */
+  /* روی لایه GPU جدا تا transform بدون repaint کامپوزیت شود */
   will-change: transform; backface-visibility: hidden;
 }
 .notif-detail-overlay.open .notif-detail-box {
@@ -2132,7 +2227,7 @@ body.notif-modal-open .card-corner-deco * {
   line-height: 1.5; flex: 1;
 }
 .notif-detail-close {
-  width: 30px; height: 30px; border-radius: 8px;
+  width: 30px; height: 30px; border-radius: var(--radius-xs);
   background: none; border: none; cursor: pointer;
   color: var(--color-text-muted); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
@@ -2229,7 +2324,7 @@ body.notif-modal-open .card-corner-deco * {
     position: fixed;
     left: 10px;
     right: 10px;
-    top: 108px;
+    top: 64px; /* درست زیر هدر ۵۶px (قبلا 108px بود و فاصله می‌افتاد) */
     width: auto;
     min-width: unset;
     max-height: 70vh;
@@ -2240,6 +2335,8 @@ body.notif-modal-open .card-corner-deco * {
   .user-menu-dropdown.open {
     transform: translateY(0) scale(1);
   }
+  /* روی موبایل دراپ‌داون تمام‌عرض fixed است؛ فلش معنا ندارد */
+  #notifBellWrap::after, .user-menu-wrap::after { display: none; }
 }
 @media (max-width: 480px) {
   .notif-detail-box { max-height: 94vh; }
@@ -2300,7 +2397,7 @@ body.notif-modal-open .card-corner-deco * {
   align-self: center;
   margin: 0 12px;
   padding: 4px 11px;
-  border-radius: 20px;
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--color-accent-border);
   background: transparent;
   color: var(--color-accent);
@@ -2330,7 +2427,7 @@ body.notif-modal-open .card-corner-deco * {
 }
 .notif-pag-arrow {
   width: 26px; height: 26px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   border: 1.5px solid var(--color-border);
   background: var(--color-bg-card);
   color: var(--color-text-secondary);
@@ -2421,7 +2518,7 @@ body.notif-modal-open .card-corner-deco * {
   color: var(--color-text-secondary);
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: var(--radius-sm);
   padding: 4px 11px;
   letter-spacing: .3px;
   direction: ltr;
@@ -2476,7 +2573,7 @@ body.notif-modal-open .card-corner-deco * {
 .lightbox-img {
   max-width: 100%; max-height: 100%;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   box-shadow: 0 24px 70px rgba(0,0,0,.6);
   transform-origin: center center;
   transition: transform .24s cubic-bezier(.2,.8,.3,1);
@@ -2505,14 +2602,14 @@ body.notif-modal-open .card-corner-deco * {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   کامپوننتِ یکپارچهٔ فیلدِ ورودی + اعتبارسنجی (.field)
+   کامپوننت یکپارچه فیلد ورودی + اعتبارسنجی (.field)
    حالات: idle / focus / error / success / loading / disabled
    ساختار:
      <div class="field" data-state="idle">
        <label class="field-label" for="x">برچسب</label>
        <div class="field-box">
          <input id="x" class="field-input" ...>
-         <span class="field-status"> … آیکونِ وضعیت … </span>
+         <span class="field-status"> … آیکون وضعیت … </span>
        </div>
        <p class="field-msg"><span class="field-msg-icon"></span><span class="field-msg-text"></span></p>
      </div>
@@ -2520,18 +2617,18 @@ body.notif-modal-open .card-corner-deco * {
 :root {
   --field-bg:        rgba(120,130,150,.06);
   --field-border:    var(--color-border);
-  --field-focus:     #3e7de7;          /* آبیِ تمِ پروژه (--color-accent) */
+  --field-focus:     #3e7de7;          /* آبی تم پروژه (--color-accent) */
   --field-focus-rgb: 62,125,231;
   --field-error:     #ef4444;
   --field-error-rgb: 239,68,68;
   --field-ok:        #22c55e;
   --field-ok-rgb:    34,197,94;
-  --field-autofill:  #f1f3f7;   /* ماسکِ رنگِ autofill (هم‌خوان با کادر) */
+  --field-autofill:  #f1f3f7;   /* ماسک رنگ autofill (هم‌خوان با کادر) */
 }
 [data-theme="dark"] {
   --field-bg:        rgba(255,255,255,.035);
   --field-autofill:  #1c222c;
-  --field-focus:     #58a6ff;          /* آبیِ تمِ تیره (--color-accent) */
+  --field-focus:     #58a6ff;          /* آبی تم تیره (--color-accent) */
   --field-focus-rgb: 88,166,255;
   --field-error:     #f87171;
   --field-error-rgb: 248,113,113;
@@ -2544,13 +2641,13 @@ body.notif-modal-open .card-corner-deco * {
 .field-label {
   font-family: 'HeadingFont', 'DashboardFont', sans-serif;
   font-size: 11.5px; font-weight: 600; letter-spacing: .2px;
-  color: var(--color-text-secondary);   /* #64748b در تمِ روشن */
+  color: var(--color-text-secondary);   /* #64748b در تم روشن */
   transition: color var(--transition);
 }
 
 .field-box {
   position: relative; display: flex; align-items: center;
-  border-radius: 11px;
+  border-radius: var(--radius-sm);
   border: 1.5px solid var(--field-border);
   background: var(--field-bg);
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
@@ -2562,15 +2659,15 @@ body.notif-modal-open .card-corner-deco * {
   border: 0; outline: 0; background: transparent;
   color: var(--color-text-primary);
   font-family: 'DashboardFont', sans-serif; font-size: 13.5px;
-  border-radius: 11px;
+  border-radius: var(--radius-sm);
 }
 .field-input::placeholder { color: var(--color-text-muted); }
 .field-input[dir="ltr"] { letter-spacing: .3px; }
 
-/* رفعِ پس‌زمینهٔ طوسیِ مرورگر هنگامِ autofill (Chrome/Safari/Edge):
-   مرورگر background را با مکانیزمِ داخلی override می‌کند؛ تنها راهِ پوشاندنش
-   box-shadow داخلیِ تو‌پُر + text-fill-color است. transitionِ بسیار طولانی هم
-   از بازگشتِ لحظه‌ایِ رنگِ زرد/طوسی جلوگیری می‌کند. */
+/* رفع پس‌زمینه طوسی مرورگر هنگام autofill (Chrome/Safari/Edge):
+   مرورگر background را با مکانیزم داخلی override می‌کند؛ تنها راه پوشاندنش
+   box-shadow داخلی تو‌پر + text-fill-color است. transition بسیار طولانی هم
+   از بازگشت لحظه‌ای رنگ زرد/طوسی جلوگیری می‌کند. */
 .field-input:-webkit-autofill,
 .field-input:-webkit-autofill:hover,
 .field-input:-webkit-autofill:focus,
@@ -2579,11 +2676,11 @@ body.notif-modal-open .card-corner-deco * {
   caret-color: var(--color-text-primary);
   -webkit-box-shadow: 0 0 0 100px var(--field-autofill) inset;
           box-shadow: 0 0 0 100px var(--field-autofill) inset;
-  border-radius: 11px;
+  border-radius: var(--radius-sm);
   transition: background-color 99999s ease-out 0s;
 }
 
-/* آیکونِ وضعیت (داخلِ کادر، سمتِ پایانی) */
+/* آیکون وضعیت (داخل کادر، سمت پایانی) */
 .field-status {
   display: none; flex: 0 0 auto; align-items: center; justify-content: center;
   width: 18px; height: 18px; margin-inline-end: 11px;
@@ -2591,7 +2688,7 @@ body.notif-modal-open .card-corner-deco * {
 }
 .field-status svg { width: 100%; height: 100%; display: block; }
 
-/* پیامِ زیرِ فیلد */
+/* پیام زیر فیلد */
 .field-msg {
   display: none; align-items: center; gap: 5px;
   font-size: 11.5px; font-weight: 600; line-height: 1.45;
@@ -2627,10 +2724,10 @@ body.notif-modal-open .card-corner-deco * {
 }
 .field[data-state="success"] .field-status { display: flex; color: var(--field-ok); }
 .field[data-state="success"] .field-label  { color: var(--field-ok); }
-/* success: فقط بوردر سبز + تیک؛ پیامِ زیر نمایش داده نمی‌شود */
+/* success: فقط بوردر سبز + تیک؛ پیام زیر نمایش داده نمی‌شود */
 .field[data-state="success"] .field-msg    { display: none; }
 
-/* ── حالت loading (در حالِ بررسی) ── */
+/* ── حالت loading (در حال بررسی) ── */
 .field[data-state="loading"] .field-box { border-color: var(--color-text-muted); }
 .field[data-state="loading"] .field-status { display: flex; }
 .field[data-state="loading"] .field-status svg { animation: field-spin .7s linear infinite; }
@@ -2646,19 +2743,20 @@ body.notif-modal-open .card-corner-deco * {
   .field[data-state="loading"] .field-status svg { animation: none; }
 }
 
-/* دکمه‌های داخلِ کادرِ .field (نمایش/مخفیِ رمز + تولیدِ رمز) به‌صورتِ flex-item */
+/* دکمه‌های داخل کادر .field (نمایش/مخفی رمز + تولید رمز) به‌صورت flex-item */
 .field-box .login-pass-toggle,
 .field-box .login-pass-gen,
 .field-box .profile-pass-toggle {
-  position: static; transform: none; inset: auto;
+  position: relative; transform: none; inset: auto;
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; margin: 0; padding: 0;
   background: none; border: 0; cursor: pointer; color: var(--color-text-muted);
   transition: color var(--transition), transform var(--transition);
 }
 .field-box .login-pass-gen { margin-inline-start: 2px; }
-.field-box .login-pass-toggle,
 .field-box .profile-pass-toggle { margin-inline-end: 8px; }
+/* دکمه نمایش/مخفی رمز در صفحه ورود سمت راست کادر قرار می‌گیرد (order در فلکس RTL) */
+.field-box .login-pass-toggle { order: -1; margin-inline: 8px 4px; }
 .field-box .login-pass-toggle:hover,
 .field-box .login-pass-gen:hover,
 .field-box .profile-pass-toggle:hover { color: var(--color-accent); }
@@ -2667,7 +2765,337 @@ body.notif-modal-open .card-corner-deco * {
 .field-box .login-pass-gen svg,
 .field-box .profile-pass-toggle svg { width: 16px; height: 16px; pointer-events: none; }
 
-/* متنِ راهنمای کمکیِ زیرِ فیلد (غیر از پیامِ اعتبارسنجی) */
+/* متن راهنمای کمکی زیر فیلد (غیر از پیام اعتبارسنجی) */
 .field .field-hint {
   font-size: 11.5px; color: var(--color-text-muted); margin-top: 1px; padding-inline: 2px;
+}
+
+/* =============================================================================
+   مدیریت اینلاین ابزارها (فقط ادمین) — کنترل‌های روی کارت + تایل افزودن + مودال
+   ============================================================================= */
+.card-admin-bar {
+  position: absolute; top: 8px; left: 8px; z-index: 4;
+  display: flex; gap: 4px;
+  opacity: .55;                  /* همیشه قابل‌مشاهده؛ روی hover/فوکوس کاملا پررنگ */
+  transition: opacity var(--transition);
+}
+.card--admin:hover .card-admin-bar,
+.card--admin:focus-within .card-admin-bar { opacity: 1; }
+.cab-btn {
+  width: 28px; height: 28px; flex-shrink: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-border); background: var(--color-bg-card);
+  color: var(--color-text-secondary); cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15,23,42,.10);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.cab-btn svg { width: 15px; height: 15px; pointer-events: none; }
+.cab-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.cab-del:hover { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,.08); }
+.cab-toggle.is-public { color: var(--color-accent); border-color: var(--color-accent-border); background: var(--color-accent-bg); }
+.card-private-tag {
+  position: absolute; bottom: 10px; right: 10px; top: auto; z-index: 4;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700; padding: 2px 9px 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(100,116,139,.18); color: var(--color-text-secondary);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.card-private-tag svg { width: 11px; height: 11px; flex: none; }
+.card--private { opacity: .8; }
+
+/* تایل «افزودن ابزار» — دکمه‌ای هم‌اندازه کارت با قاب نقطه‌چین */
+.card-add-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; min-height: 200px;
+  background: transparent; border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg); color: var(--color-text-secondary);
+  cursor: pointer; font-family: 'DashboardFont', sans-serif; font-size: 14px; font-weight: 600;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.card-add-tile::after { display: none; }
+.card-add-tile svg { width: 30px; height: 30px; }
+.card-add-tile:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
+
+/* مودال افزودن/ویرایش + تایید حذف */
+.tm-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(0,0,0,.6);
+  opacity: 0; visibility: hidden;
+  transition: opacity .2s ease, visibility .2s ease;
+}
+.tm-overlay.open {
+  opacity: 1; visibility: visible;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.tm-dialog {
+  width: 100%; max-width: 470px; max-height: 88vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--color-bg-card); border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg); box-shadow: 0 24px 64px rgba(0,0,0,.4);
+  transform: translateY(16px) scale(.97);
+  transition: transform .24s cubic-bezier(.34,1.2,.64,1);
+  will-change: transform; backface-visibility: hidden;
+}
+.tm-overlay.open .tm-dialog { transform: translateY(0) scale(1); }
+.tm-dialog-sm { max-width: 390px; }
+.tm-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--color-border); flex-shrink: 0;
+}
+.tm-head h3 { font-family: 'HeadingFont', 'DashboardFont', sans-serif; font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
+.tm-close {
+  width: 30px; height: 30px; border: none; background: none; cursor: pointer;
+  color: var(--color-text-muted); border-radius: var(--radius-xs);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+.tm-close:hover { color: #ef4444; background: rgba(239,68,68,.08); }
+.tm-close svg { width: 16px; height: 16px; }
+.tm-body {
+  padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;
+  flex: 1; overflow-y: auto; overscroll-behavior: contain;
+}
+.tm-body::-webkit-scrollbar { width: 5px; }
+.tm-body::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+.tm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tm-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tm-field > label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
+.tm-field input[type="text"], .tm-field textarea, .tm-field select {
+  width: 100%; font-family: 'DashboardFont', sans-serif; font-size: 13.5px;
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border); background: var(--color-bg-primary);
+  color: var(--color-text-primary); outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.tm-field textarea { resize: none; min-height: 52px; line-height: 1.6; }
+.tm-field input:focus, .tm-field textarea:focus, .tm-field select:focus {
+  border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg);
+}
+.tm-color-row { display: flex; align-items: center; gap: 8px; }
+.tm-color-row input[type="color"] {
+  width: 46px; height: 38px; padding: 2px; cursor: pointer;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-primary);
+}
+.tm-color-clear {
+  font-size: 12px; padding: 8px 11px; border-radius: var(--radius-sm); cursor: pointer;
+  border: 1.5px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-secondary);
+  transition: border-color var(--transition), color var(--transition);
+}
+.tm-color-clear:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.tm-error { font-size: 12.5px; font-weight: 600; color: #ef4444; margin: 0; }
+.tm-error:empty { display: none; }
+.tm-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--color-border); flex-shrink: 0; }
+.tm-confirm-text { font-size: 14px; line-height: 1.85; color: var(--color-text-primary); margin: 0; }
+.tm-confirm-body { align-items: center; text-align: center; }
+.tm-confirm-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: rgba(239,68,68,.1); color: #ef4444;
+}
+.tm-confirm-icon svg { width: 22px; height: 22px; }
+.tm-confirm-heading {
+  font-family: 'HeadingFont', 'DashboardFont', sans-serif;
+  font-size: 15px; font-weight: 700; color: var(--color-text-primary); margin: 0;
+}
+.tm-confirm-desc {
+  font-size: 13px; color: var(--color-text-secondary); line-height: 1.75; margin: 0;
+}
+.tm-confirm-desc .item-name {
+  display: inline-block; font-family: monospace; font-size: 12.5px;
+  background: var(--color-bg-primary); border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs); padding: 0 6px; color: var(--color-text-primary);
+}
+.tm-confirm-warn {
+  width: 100%; background: rgba(217,119,6,.08); border: 1px solid rgba(217,119,6,.25);
+  border-radius: var(--radius-xs); padding: 10px 12px;
+  font-size: 12.5px; color: #d97706; line-height: 1.6; text-align: right;
+}
+.tm-confirm-warn svg { width: 15px; height: 15px; vertical-align: -3px; margin-left: 5px; }
+.tm-confirm-foot { justify-content: center; gap: 10px; padding: 14px 24px 20px; }
+/* دکمه‌های مودال (مستقل از .btn ادمین که اینجا لود نمی‌شود) — هم‌تراز با دکمه‌های مودال پروژه */
+.tm-foot .btn {
+  font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
+  height: 38px; padding: 0 18px; border-radius: var(--radius-sm); border: 1.5px solid transparent;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.tm-foot .btn-primary { background: var(--color-accent); color: #fff; }
+.tm-foot .btn-primary:hover { background: var(--color-accent-dark); }
+.tm-foot .btn-secondary { background: var(--color-bg-card); color: var(--color-text-secondary); border-color: var(--color-border); }
+.tm-foot .btn-secondary:hover { color: var(--color-text-primary); border-color: var(--color-text-muted); }
+.tm-foot .btn-danger { background: rgba(239,68,68,.08); color: #ef4444; border-color: rgba(248,81,73,.25); }
+.tm-foot .btn-danger:hover { background: rgba(239,68,68,.18); }
+.tm-foot .btn:disabled { opacity: .6; cursor: default; }
+.tm-btn-save .btn-spinner {
+  display: none; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff; border-radius: 50%; animation: tmspin .7s linear infinite;
+}
+.tm-btn-save.loading .btn-spinner { display: inline-block; }
+@keyframes tmspin { to { transform: rotate(360deg); } }
+@media (max-width: 480px) { .tm-row { grid-template-columns: 1fr; } }
+
+/* ── انتخابگر آیکون/طرح + رنگ + پیش‌نمایش (مودال غنی ابزار) ── */
+.tm-label-opt { font-weight: 400; color: var(--color-text-muted); font-size: 11px; }
+.tm-picker-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 6px;
+}
+.tm-icon-opt {
+  height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--color-border); background: var(--color-bg-primary);
+  border-radius: var(--radius-sm); color: var(--color-text-secondary); cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.tm-icon-opt svg { width: 16px; height: 16px; pointer-events: none; }
+.tm-icon-opt:hover  { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
+.tm-icon-opt.active { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
+.tm-deco-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.tm-deco-opt {
+  padding: 5px 12px; border-radius: var(--radius-sm); font-size: 11.5px; font-weight: 600;
+  border: 1.5px solid var(--color-border); background: var(--color-bg-primary);
+  color: var(--color-text-secondary); cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.tm-deco-opt:hover  { border-color: var(--color-accent); color: var(--color-accent); }
+.tm-deco-opt.active { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
+.tm-color-presets { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tm-preset {
+  width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer;
+  padding: 0; transition: transform var(--transition), box-shadow var(--transition); flex-shrink: 0;
+}
+.tm-preset-reset {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-bg-card); border-color: var(--color-border); color: var(--color-text-muted);
+}
+.tm-preset:hover  { transform: scale(1.15); }
+.tm-preset.active { box-shadow: 0 0 0 2px var(--color-bg-card), 0 0 0 4px currentColor; }
+.tm-preset-reset.active { color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-bg-card), 0 0 0 4px var(--color-accent); }
+.tm-preset-custom { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: 11.5px; color: var(--color-text-secondary); }
+.tm-preset-custom input[type="color"] {
+  width: 26px; height: 26px; padding: 0; cursor: pointer;
+  border: none; border-radius: 50%; background: none; overflow: hidden;
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+}
+.tm-preset-custom input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.tm-preset-custom input[type="color"]::-webkit-color-swatch { border: 1.5px solid var(--color-border); border-radius: 50%; }
+.tm-preset-custom input[type="color"]::-moz-color-swatch { border: 1.5px solid var(--color-border); border-radius: 50%; }
+.tm-preview {
+  position: relative; overflow: hidden;
+  background: var(--color-bg-primary); border: 1.5px solid var(--card-border, var(--color-border));
+  border-radius: var(--radius-lg); padding: 16px 16px 18px;
+}
+.tm-preview::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--card-color, var(--color-accent)), var(--card-color-l, var(--color-accent)));
+}
+.tm-preview-icon {
+  width: 42px; height: 42px; border-radius: var(--radius-sm); margin-bottom: 11px;
+  display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;
+  background: var(--card-bg, var(--color-accent-bg)); border: 1.5px solid var(--card-border, var(--color-accent-border));
+  color: var(--card-color, var(--color-accent));
+}
+.tm-preview-icon svg { width: 20px; height: 20px; }
+.tm-preview-badge {
+  display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 9px; margin-bottom: 7px;
+  border-radius: var(--radius-sm); position: relative; z-index: 1;
+  color: var(--card-color, var(--color-accent)); background: var(--card-bg, var(--color-accent-bg));
+  border: 1px solid var(--card-border, var(--color-accent-border));
+}
+.tm-preview-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 3px; position: relative; z-index: 1; }
+.tm-preview-desc  { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; position: relative; z-index: 1; }
+.tm-preview-deco { position: absolute; inset: auto 0 0 0; height: 46px; pointer-events: none; color: var(--card-color, var(--color-accent)); opacity: .5; }
+.tm-preview-deco svg { width: 100%; height: 100%; }
+
+/* ═══ حالت مرتب‌سازی کارت‌ها (drag-drop ادمین روی داشبورد) ═══ */
+.reorder-toggle {
+  margin-inline-start: auto; display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'DashboardFont', sans-serif; font-size: 12.5px; font-weight: 600;
+  padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer;
+  border: 1.5px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-secondary);
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.reorder-toggle svg { width: 15px; height: 15px; }
+.reorder-toggle:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.reorder-toggle.is-active { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
+.reorder-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 16px; padding: 11px 16px; border-radius: var(--radius-lg);
+  background: var(--color-accent-bg); border: 1.5px solid var(--color-accent-border);
+}
+.reorder-bar[hidden] { display: none; }
+.reorder-bar-msg { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--color-text-secondary); }
+.reorder-bar-msg svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--color-accent); }
+.reorder-bar-actions { display: flex; gap: 8px; }
+.reorder-bar .btn {
+  font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 700;
+  padding: 8px 16px; border-radius: var(--radius-sm); border: 1.5px solid transparent;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.reorder-bar .btn-primary { background: var(--color-accent); color: #fff; }
+.reorder-bar .btn-primary:hover { background: var(--color-accent-dark); }
+.reorder-bar .btn-secondary { background: var(--color-bg-card); color: var(--color-text-secondary); border-color: var(--color-border); }
+.reorder-bar .btn-secondary:hover { color: var(--color-text-primary); border-color: var(--color-text-muted); }
+.reorder-bar .btn:disabled { opacity: .6; cursor: default; }
+#reorderSave .btn-spinner {
+  display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff; border-radius: 50%; animation: tmspin .7s linear infinite;
+}
+#reorderSave.loading .btn-spinner { display: inline-block; }
+@media (max-width: 560px) { .reorder-bar { flex-direction: column; align-items: stretch; } .reorder-bar-actions { justify-content: flex-end; } }
+
+/* حالت مرتب‌سازی: همان چیدمان گرید فعلی حفظ می‌شود؛ فقط کارت‌ها قابل کشیدن می‌شوند */
+.grid.reordering .card { cursor: grab; }
+.grid.reordering .card:active { cursor: grabbing; }
+.grid.reordering .card.card--dragging { display: none; }   /* مبدأ مخفی؛ جای آن را placeholder مقصد نشان می‌دهد */
+.grid.reordering .card-admin-bar,
+.grid.reordering .card-private-tag,
+.grid.reordering .card-add-tile { display: none; }
+/* توقف انیمیشن deco هنگام مرتب‌سازی → کاهش repaint و لگ حین درگ */
+.grid.reordering .card-deco-wrap *,
+.grid.reordering .card-corner-deco * { animation-play-state: paused !important; }
+/* حین درگ، همه انیمیشن‌های متحرک صفحه (deco، aurora، کلون شناور، …) متوقف می‌شوند */
+body.is-dragging *,
+body.is-dragging *::before,
+body.is-dragging *::after { animation-play-state: paused !important; }
+/* جایگاه مقصد (placeholder) — به کاربر نشان می‌دهد کارت کجا می‌نشیند */
+.card-drop-slot {
+  border: 2px dashed var(--color-accent);
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-bg);
+  animation: drop-slot-pulse 1.1s ease-in-out infinite;
+}
+@keyframes drop-slot-pulse {
+  0%, 100% { border-color: var(--color-accent); opacity: 1; }
+  50%      { border-color: var(--color-accent-border); opacity: .75; }
+}
+
+/* ── راهنمای شناور (tooltip سفارشی) — هماهنگ با radius/استایل پروژه ── */
+.tip-pop {
+  position: fixed; z-index: 4000; pointer-events: none;
+  max-width: 240px; padding: 6px 11px;
+  font-size: 12px; font-weight: 600; line-height: 1.6;
+  color: #f8fafc; text-align: center; white-space: normal;
+  background: rgba(15, 23, 42, .95);
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .28);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  opacity: 0; transform: translateY(3px) scale(.97);
+  transition: opacity .14s ease, transform .14s ease;
+}
+.tip-pop.is-on { opacity: 1; transform: none; }
+.tip-pop::after {
+  content: ''; position: absolute; top: 100%;
+  left: var(--tip-ax, 50%); margin-left: -5px;
+  border: 5px solid transparent; border-top-color: rgba(15, 23, 42, .95);
+}
+.tip-pop--below::after {
+  top: auto; bottom: 100%;
+  border-top-color: transparent; border-bottom-color: rgba(15, 23, 42, .95);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip-pop { transition: opacity .12s ease; transform: none; }
 }

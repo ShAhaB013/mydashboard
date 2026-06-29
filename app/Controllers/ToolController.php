@@ -16,7 +16,7 @@ class ToolController
         $this->request = $request;
     }
 
-    /** لیست صفحه‌بندی‌شدهٔ ابزارها برای پنل ادمین (سمت سرور) */
+    /** لیست صفحه‌بندی‌شده ابزارها برای پنل ادمین (سمت سرور) */
     public function listPaginated(): void
     {
         $page    = max(1, $this->request->inputInt('page', 1));

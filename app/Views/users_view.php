@@ -17,7 +17,7 @@
     })();
   </script>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/admin/assets/admin.css?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.css') ?>">
+  <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
   <style>
     /* ── جستجوی کاربران ── */
     .user-search { position:relative; margin-bottom:16px; }
@@ -54,32 +54,40 @@
 </head>
 <body>
 
-<div class="admin-wrap">
-
-  <!-- ── نوار بالا ── -->
-  <div class="topbar">
-    <div class="topbar-title">مدیریت کاربران</div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <a href="/admin" class="btn-back" aria-label="بازگشت به پنل مدیریت">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        <span class="btn-back-label">بازگشت</span>
-      </a>
-      <a href="/" class="btn btn-secondary btn-sm" style="text-decoration:none;">
+<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
+<header class="app-header">
+  <div class="app-header__inner">
+    <div class="app-header__lead"><h1 class="app-header__title">مدیریت کاربران</h1></div>
+    <div class="app-header__actions">
+      <a href="/" class="hdr-btn" title="داشبورد" aria-label="داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-        داشبورد
+      </a>
+      <a href="/admin" class="hdr-btn" title="بازگشت به پنل مدیریت" aria-label="بازگشت به پنل مدیریت">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       </a>
     </div>
   </div>
+</header>
+
+<div class="admin-wrap">
 
   <!-- ── سرتیتر ── -->
   <div class="tools-header">
     <h2>کاربران <span class="count-badge" id="userCountBadge"><?= (int) ($totalUsers ?? 0) ?></span></h2>
-    <button class="btn btn-secondary btn-sm" onclick="openBlocksModal()" title="مدیریت انسداد ورود">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-      </svg>
-      انسداد ورود
-    </button>
+    <div class="tools-header-actions">
+      <button class="btn btn-primary btn-sm" onclick="UserManager.openAdd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        افزودن کاربر
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="openBlocksModal()" title="مدیریت انسداد ورود">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        انسداد ورود
+      </button>
+    </div>
   </div>
 
   <!-- ── جستجو (سمت سرور) ── -->
@@ -138,6 +146,13 @@
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
             </svg>
+          </button>
+          <button class="btn btn-secondary btn-icon btn-sm sess-user-btn" title="نشست‌های فعال"
+            onclick="SessionsManager.openUser(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: $u['username']), ENT_QUOTES) ?>')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+            </svg>
+            <?php if (!empty($sessionCounts[$u['id']])): ?><span class="sess-count-dot"><?= (int) $sessionCounts[$u['id']] ?></span><?php endif; ?>
           </button>
           <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش"
             onclick="openEditUserModal(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: trim(($u['first_name'] ?? '').' '.($u['last_name'] ?? ''))), ENT_QUOTES) ?>','<?= htmlspecialchars(addslashes($u['email'] ?? ''), ENT_QUOTES) ?>','<?= htmlspecialchars($u['role'] ?? 'user', ENT_QUOTES) ?>')">
@@ -199,61 +214,15 @@
     </nav>
   <?php endif; ?>
 
-  <!-- ── فرم افزودن کاربر جدید ── -->
-  <div class="add-asset-form">
-    <h4>
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      کاربر جدید
-    </h4>
-    <div class="user-add-grid">
-      <div class="field">
-        <label>نام و نام خانوادگی <span class="req">*</span></label>
-        <input type="text" id="newFullName" placeholder="مثال: علی محمدی" maxlength="60">
-      </div>
-      <div class="field">
-        <label>ایمیل <span class="req">*</span></label>
-        <input type="email" id="newEmail" placeholder="example@mail.com" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
-      </div>
-      <div class="field">
-        <label>رمز عبور <span class="req">*</span></label>
-        <div class="pass-wrap">
-          <input type="password" id="newUserPassword" placeholder="حداقل ۶ کاراکتر" autocomplete="new-password"
-                 oninput="checkStrength(this.value,'newPassStrength','newPassStrengthLabel')">
-          <button type="button" class="pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('newUserPassword', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-        <div class="pass-strength" id="newPassStrength" style="display:none;">
-          <div class="pass-strength-bar"></div><div class="pass-strength-bar"></div><div class="pass-strength-bar"></div><div class="pass-strength-bar"></div>
-        </div>
-        <div class="pass-strength-label" id="newPassStrengthLabel"></div>
-      </div>
-      <div class="field">
-        <label>سطح دسترسی</label>
-        <select id="newUserRole">
-          <option value="user">کاربر عادی</option>
-          <option value="admin">مدیر (دسترسی به پنل)</option>
-        </select>
-      </div>
-    </div>
-    <div style="margin-top:10px;">
-      <button class="btn btn-primary btn-sm" onclick="addNewUser()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        افزودن کاربر
-      </button>
-    </div>
-  </div>
 
 </div><!-- /admin-wrap -->
 
-<!-- ── مودال ویرایش کاربر ── -->
+<!-- ── مودال کاربر (افزودن/ویرایش یکپارچه) ── -->
 <div class="modal-overlay" id="userModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:480px;">
     <div class="modal-head">
-      <h3>ویرایش کاربر</h3>
-      <button class="modal-close" onclick="closeModal('userModal')" aria-label="بستن">
+      <h3 id="userModalTitle">افزودن کاربر</h3>
+      <button class="modal-close" onclick="UserManager.close()" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -264,11 +233,11 @@
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="field">
           <label>نام و نام خانوادگی <span class="req">*</span></label>
-          <input type="text" id="editFullName" maxlength="60">
+          <input type="text" id="editFullName" placeholder="مثال: علی محمدی" maxlength="60">
         </div>
         <div class="field">
           <label>ایمیل <span class="req">*</span></label>
-          <input type="email" id="editEmail" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
+          <input type="email" id="editEmail" placeholder="example@mail.com" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
         </div>
         <div class="field">
           <label>سطح دسترسی</label>
@@ -278,11 +247,11 @@
           </select>
         </div>
         <div class="field">
-          <label>رمز عبور جدید <span style="color:var(--text-3);font-weight:400;">(خالی = بدون تغییر)</span></label>
+          <label id="editPassLabel">رمز عبور <span class="req">*</span></label>
           <div class="pass-wrap">
             <input type="password" id="editUserPassword" placeholder="حداقل ۶ کاراکتر" autocomplete="new-password"
                    oninput="checkStrength(this.value,'editPassStrength','editPassStrengthLabel')">
-            <button type="button" class="pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('editUserPassword', this)">
+            <button type="button" class="pass-toggle" aria-label="نمایش/مخفی رمز" onclick="togglePass('editUserPassword', this)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
@@ -294,10 +263,10 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('userModal')">انصراف</button>
-      <button class="btn btn-primary btn-sm" onclick="saveUserEdit()">
+      <button class="btn btn-secondary btn-sm" onclick="UserManager.close()">انصراف</button>
+      <button class="btn btn-primary btn-sm" id="userModalSaveBtn" onclick="UserManager.save()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        ذخیره
+        <span id="userModalSaveLabel">افزودن کاربر</span>
       </button>
     </div>
   </div>
@@ -333,12 +302,39 @@
   </div>
 </div>
 
+<!-- ── مودال نشست‌های فعال کاربر ── -->
+<div class="modal-overlay" id="sessionsUserModal" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-head">
+      <h3 id="sessionsUserTitle">نشست‌های فعال</h3>
+      <button class="modal-close" onclick="closeModal('sessionsUserModal')" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body" style="display:block;padding:18px 20px;max-height:70vh;overflow-y:auto;">
+      <p class="blocks-hint">نشست‌های فعال این کاربر روی دستگاه‌های مختلف. می‌توانید هرکدام را جداگانه، یا همه را با هم پایان دهید (خروج اجباری).</p>
+      <div id="sessionsUserList" class="sess-list">
+        <div class="blocks-loading">در حال بارگذاری…</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm" onclick="SessionsManager.terminateUser()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+        خروج از همه دستگاه‌ها
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('sessionsUserModal')">بستن</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── مودال دسترسی دو سطحی ── -->
 <div class="modal-overlay" id="accessModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:580px;">
     <div class="modal-head">
       <h3 id="accessModalTitle">تنظیم دسترسی</h3>
-      <button class="modal-close" onclick="closeModal('accessModal')" aria-label="بستن">
+      <button class="modal-close" onclick="AccessManager.close()" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -379,7 +375,7 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('accessModal')">انصراف</button>
+      <button class="btn btn-secondary btn-sm" onclick="AccessManager.close()">انصراف</button>
       <button class="btn btn-primary btn-sm" id="saveAccessBtn" onclick="saveAccess()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         ذخیره دسترسی‌ها
@@ -428,7 +424,7 @@
 <script>
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
   window.CSRF_TOKEN = CSRF_TOKEN; // لازم برای ارسال هدر X-CSRF-Token در admin.js
-  // مودال دسترسی به «همهٔ ابزارها» نیاز دارد → نسخهٔ سبک (id/title/badge/is_public)
+  // مودال دسترسی به «همه ابزارها» نیاز دارد → نسخه سبک (id/title/badge/is_public)
   const TOOLS_RAW  = <?= $toolsLite ?>;
   const tools      = TOOLS_RAW;
   window.tools     = tools;
@@ -436,7 +432,8 @@
   const ICONS_DATA = {};
   const DECOS_DATA = {};
 </script>
-<script src="/admin/assets/admin.js?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.js') ?>"></script>
+<script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
+<script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
 
 <footer class="admin-footer">
   <span class="admin-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>

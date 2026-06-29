@@ -10,13 +10,25 @@ class UserSession
 {
     private const SESSION_NAME = 'dash_user';
 
+    /** طول عمر پیش‌فرض نشست (ساعت) اگر تنظیمات در دسترس نباشد */
+    private const TTL_HOURS_DEFAULT = 24;
+
     public static function start(): void
     {
         if (session_status() !== PHP_SESSION_NONE) return;
 
+        // ── ذخیره‌سازی نشست در دیتابیس (به‌جای فایل) ──
+        // نیازمند اتصال برقرار DB است؛ همه نقاط ورود پیش از این، bootstrap.php
+        // را بارگذاری می‌کنند (autoload + DB::connect + همین start).
+        // مدت فعال‌بودن نشست از پنل ادمین قابل تنظیم است (۱ تا ۷۲۰ ساعت).
+        $ttl = SettingsModel::getInt('session_ttl_hours', 1, 720, self::TTL_HOURS_DEFAULT) * 3600;
+        ini_set('session.gc_maxlifetime', (string) $ttl);
+        ini_set('session.use_strict_mode', '1'); // شناسه نامعتبر پذیرفته نشود
+        session_set_save_handler(new DbSessionHandler($ttl), true);
+
         session_name(self::SESSION_NAME);
         session_set_cookie_params([
-            'lifetime' => 0,
+            'lifetime' => $ttl,
             'path'     => '/',
             'secure'   => isset($_SERVER['HTTPS']),
             'httponly' => true,

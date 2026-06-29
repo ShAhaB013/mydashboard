@@ -101,7 +101,7 @@ class EmailValidator
      * آیا دامنه می‌تواند ایمیل دریافت کند؟
      * طبق RFC 5321 اگر MX نبود، به رکورد A/AAAA همان دامنه fallback می‌شود؛
      * پس زیردامنه‌های معتبر (مثل tst.example.ir که فقط A دارند) هم پذیرفته می‌شوند.
-     * اثباتِ نهاییِ مالکیت همان کدِ ۶ رقمی است.
+     * اثبات نهایی مالکیت همان کد ۶ رقمی است.
      */
     private static function domainCanReceiveMail(string $domain): bool
     {

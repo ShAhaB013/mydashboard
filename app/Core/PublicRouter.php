@@ -39,6 +39,11 @@ class PublicRouter
         'unread_count'      => [FeedController::class, 'unreadCount'],
         'mark_read'         => [FeedController::class, 'markRead'],
         'mark_all_read'     => [FeedController::class, 'markAllRead'],
+
+        // ── نشست‌های فعال کاربر (خودش) ───────────────────────
+        'my_sessions'                 => [AppController::class, 'mySessions'],
+        'terminate_my_session'        => [AppController::class, 'terminateMySession'],
+        'terminate_my_other_sessions' => [AppController::class, 'terminateMyOther'],
     ];
 
     public function __construct(AppController $app, AuthController $auth, FeedController $feed)

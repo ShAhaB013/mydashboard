@@ -17,90 +17,36 @@
     })();
   </script>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/admin/assets/admin.css?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.css') ?>">
+  <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
 </head>
 <body>
 
-<div class="admin-wrap">
-
-  <!-- ── نوار بالا ── -->
-  <div class="topbar">
-    <div class="topbar-title">پنل مدیریت ابزارها</div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <a href="/" class="btn-back" aria-label="بازگشت به داشبورد">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M19 12H5M12 5l-7 7 7 7"/>
-        </svg>
-        <span class="btn-back-label">بازگشت به داشبورد</span>
-      </a>
-      <a href="/admin?page=notifications" class="notif-nav-btn" style="text-decoration:none;">
+<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
+<header class="app-header">
+  <div class="app-header__inner">
+    <h1 class="app-header__title">پنل مدیریت ابزارها</h1>
+    <div class="app-header__actions">
+      <a href="/admin?page=notifications" class="hdr-btn" title="مدیریت اعلان‌ها" aria-label="مدیریت اعلان‌ها">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
-        اعلان‌ها
       </a>
-      <a href="/admin?page=settings" class="notif-nav-btn" style="text-decoration:none;">
+      <a href="/admin?page=settings" class="hdr-btn" title="تنظیمات ایمیل" aria-label="تنظیمات ایمیل">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
         </svg>
-        تنظیمات ایمیل
+      </a>
+      <a href="/" class="hdr-btn" title="بازگشت به داشبورد" aria-label="بازگشت به داشبورد">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
       </a>
     </div>
   </div>
+</header>
 
-  <!-- ── لیست ابزارها ── -->
-  <div class="tools-header">
-    <h2>ابزارها <span class="count-badge" id="toolCountBadge"><?= count($tools) ?></span></h2>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button class="btn btn-secondary btn-sm" id="reorderModeBtn" onclick="enterReorderMode()"<?= count($tools) < 2 ? ' style="display:none;"' : '' ?>>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-        </svg>
-        مرتب‌سازی
-      </button>
-      <button class="btn btn-primary btn-sm" onclick="openAddModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        ابزار جدید
-      </button>
-    </div>
-  </div>
-
-  <!-- ── جستجوی ابزارها ── -->
-  <div class="tool-search" id="toolSearchWrap">
-    <svg class="tool-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-    <input type="text" id="toolSearchInput" placeholder="جستجو در عنوان، توضیح، مسیر یا دسته..." autocomplete="off">
-    <button type="button" class="tool-search-clear" id="toolSearchClear" title="پاک کردن">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-  </div>
-
-  <!-- ── نوار حالت مرتب‌سازی (یک ریکوئست فقط هنگام ذخیره) ── -->
-  <div class="reorder-bar" id="reorderBar" hidden>
-    <span class="reorder-bar-msg">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
-      </svg>
-      حالت مرتب‌سازی — همه کارت‌ها را جابه‌جا کن، سپس ذخیره
-    </span>
-    <div class="reorder-bar-actions">
-      <button type="button" class="btn btn-secondary btn-sm" onclick="cancelReorder()">لغو</button>
-      <button type="button" class="btn btn-primary btn-sm" id="reorderSaveBtn" onclick="saveReorder()">ذخیره ترتیب</button>
-    </div>
-  </div>
-
-  <!-- لیست (سمت کلاینت رندر و صفحه‌بندی می‌شود) -->
-  <div class="tool-list" id="toolList"></div>
-
-  <!-- کنترل صفحه‌بندی -->
-  <div class="tool-pagination" id="toolPagination" hidden></div>
+<div class="admin-wrap">
 
   <!-- ── مدیریت کاربران (صفحه مستقل) ── -->
   <div class="section-box" id="usersBox">
@@ -118,6 +64,50 @@
         مدیریت و جستجوی کاربران
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
       </a>
+    </div>
+  </div>
+
+  <!-- ── نشست‌های فعال کاربران ── -->
+  <div class="section-box" id="sessionsBox">
+    <div class="section-box-head" onclick="SessionsManager.toggleBox()">
+      <h2>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+        نشست‌های فعال
+        <span class="count-badge" id="sessionsCountBadge">…</span>
+      </h2>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+    <div class="section-box-body">
+      <div class="sess-toolbar">
+        <p class="sess-hint">نشست‌های فعال همه کاربران روی دستگاه‌های مختلف. می‌توانید موارد غیرضروری را پایان دهید.</p>
+        <div class="sess-toolbar-actions">
+          <button class="btn btn-secondary btn-sm" onclick="SessionsManager.loadPanel()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            بروزرسانی
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="SessionsManager.terminateOthers()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            پایان همه نشست‌های دیگر
+          </button>
+        </div>
+      </div>
+      <div class="sess-ttl-row">
+        <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود:</label>
+        <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
+        <span>ساعت</span>
+        <button class="btn btn-secondary btn-sm" onclick="SessionsManager.saveTtl()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          ذخیره
+        </button>
+        <span class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</span>
+      </div>
+      <div id="sessionsPanel" class="sess-list">
+        <div class="blocks-loading">برای مشاهده، این بخش را باز کنید…</div>
+      </div>
     </div>
   </div>
 
@@ -267,105 +257,6 @@
 
 </div><!-- /admin-wrap -->
 
-<!-- ── مودال افزودن/ویرایش ابزار ── -->
-<div class="modal-overlay" id="formModal" role="dialog" aria-modal="true">
-  <div class="modal">
-    <div class="modal-head">
-      <h3 id="modalTitle">ابزار جدید</h3>
-      <button class="modal-close" onclick="closeModal('formModal')" aria-label="بستن">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-form-col">
-        <div class="form-section">
-          <span class="form-section-label">اطلاعات پایه</span>
-          <div class="form-grid">
-            <div class="field full">
-              <label for="f-title">عنوان <span class="req">*</span></label>
-              <input type="text" id="f-title" placeholder="مثال: فشرده‌سازی تصاویر" maxlength="80" oninput="updatePreview()">
-            </div>
-            <div class="field full">
-              <label for="f-desc">توضیح</label>
-              <input type="text" id="f-desc" placeholder="توضیح کوتاه" maxlength="120" oninput="updatePreview()">
-            </div>
-            <div class="field">
-              <label for="f-path">مسیر <span class="req">*</span></label>
-              <input type="text" id="f-path" placeholder="/my-tool یا https://example.com" dir="ltr" style="direction:ltr;text-align:left;unicode-bidi:plaintext;">
-              <span style="font-size:11px;color:var(--text-3);margin-top:4px;display:block;">مسیر داخلی یا آدرس خارجی</span>
-            </div>
-            <div class="field">
-              <label for="f-badge">برچسب</label>
-              <input type="text" id="f-badge" maxlength="20" oninput="updatePreview()">
-            </div>
-          </div>
-        </div>
-        <div class="form-section">
-          <span class="form-section-label">آیکون</span>
-          <div class="icon-grid" id="iconGrid"></div>
-        </div>
-        <div class="form-section">
-          <span class="form-section-label">انیمیشن پایین کارت</span>
-          <div class="deco-grid" id="decoGrid"></div>
-        </div>
-        <div class="form-section">
-          <span class="form-section-label">رنگ <span style="color:var(--text-3);font-weight:400;text-transform:none;">(اختیاری)</span></span>
-          <div class="color-row">
-            <button type="button" class="color-preset color-reset active" data-color="" onclick="selectColor(this,'')" title="رنگ پیش‌فرض">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-            <button type="button" class="color-preset" style="background:#3e7de7;" data-color="#3e7de7" onclick="selectColor(this,'#3e7de7')"></button>
-            <button type="button" class="color-preset" style="background:#8b5cf6;" data-color="#8b5cf6" onclick="selectColor(this,'#8b5cf6')"></button>
-            <button type="button" class="color-preset" style="background:#0ea472;" data-color="#0ea472" onclick="selectColor(this,'#0ea472')"></button>
-            <button type="button" class="color-preset" style="background:#f59e0b;" data-color="#f59e0b" onclick="selectColor(this,'#f59e0b')"></button>
-            <button type="button" class="color-preset" style="background:#ef4444;" data-color="#ef4444" onclick="selectColor(this,'#ef4444')"></button>
-            <button type="button" class="color-preset" style="background:#ec4899;" data-color="#ec4899" onclick="selectColor(this,'#ec4899')"></button>
-            <label class="color-custom">
-              <input type="color" id="customColor" value="#3e7de7" oninput="onCustomColor(this)">
-              <span>دلخواه</span>
-            </label>
-          </div>
-        </div>
-      </div>
-      <div class="modal-preview-col">
-        <div class="preview-label">پیش‌نمایش</div>
-        <div class="preview-card" id="previewCard">
-          <div class="preview-corner">
-            <svg viewBox="0 0 110 110" aria-hidden="true">
-              <path class="corner-sector" d="M0,0 L80,0 A80,80,0,0,1,0,80 Z"/>
-              <path class="corner-arc-outer" d="M68,0 A68,68,0,0,1,0,68"/>
-              <path class="corner-arc-inner" d="M46,0 A46,46,0,0,1,0,46"/>
-              <circle class="corner-dot" cx="78" cy="16" r="4"/>
-              <circle class="corner-dot" cx="90" cy="34" r="3"/>
-              <circle class="corner-dot" cx="64" cy="8" r="2.5"/>
-            </svg>
-          </div>
-          <div class="preview-card-icon" id="prevIcon">
-            <svg viewBox="0 0 24 24" width="18" height="18">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="preview-card-badge" id="prevBadge">ابزار</div>
-          <div class="preview-card-title" id="prevTitle">عنوان ابزار</div>
-          <div class="preview-card-desc"  id="prevDesc">توضیح کوتاه</div>
-          <div class="preview-deco-wrap"  id="prevDeco"></div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('formModal')">انصراف</button>
-      <button class="btn btn-primary btn-sm" id="saveBtn" onclick="saveForm()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        ذخیره
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- ── مودال ویرایش کاربر ── -->
 <div class="modal-overlay" id="userModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:480px;">
@@ -501,9 +392,9 @@
 <script>
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
   window.CSRF_TOKEN = CSRF_TOKEN; // لازم برای ارسال هدر X-CSRF-Token در admin.js
-  // نسخهٔ «سبک» از همهٔ ابزارها (id/title/badge/iconKey/deco/is_public) — برای
-  // مرتب‌سازی، مودال دسترسی و شمارشِ آیکون/دکو. لیستِ کاملِ کارت‌ها سمت سرور
-  // صفحه‌بندی می‌شود (ToolsView → list_tools). TOOLS_RAW همان آرایهٔ سبک است.
+  // نسخه «سبک» از همه ابزارها (id/title/badge/iconKey/deco/is_public) — برای
+  // مرتب‌سازی، مودال دسترسی و شمارش آیکون/دکو. لیست کامل کارت‌ها سمت سرور
+  // صفحه‌بندی می‌شود (ToolsView → list_tools). TOOLS_RAW همان آرایه سبک است.
   const tools      = <?= $toolsLite ?>;
   const TOOLS_RAW  = tools;
   window.tools     = tools;
@@ -511,7 +402,8 @@
   const ICONS_DATA = <?= $iconsJson ?>;
   const DECOS_DATA = <?= $decosJson ?>;
 </script>
-<script src="/admin/assets/admin.js?v=<?= asset_v(__DIR__ . '/../../admin/assets/admin.js') ?>"></script>
+<script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
+<script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
 
 <footer class="admin-footer">
   <span class="admin-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
