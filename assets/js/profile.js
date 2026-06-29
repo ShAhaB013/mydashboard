@@ -430,7 +430,7 @@
       }
       list.sort((a, b) => (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0));
       box.innerHTML = list.map(s => {
-        const when = s.last_seen ? new Date(s.last_seen * 1000).toLocaleString('fa-IR') : '—';
+        const when = s.last_seen ? new Date(s.last_seen * 1000).toLocaleString('en-GB') : '—';
         const dev  = _escHtml(s.device || 'نامشخص');
         const ip   = _escHtml(s.ip || '—');
         const cur  = s.is_current;

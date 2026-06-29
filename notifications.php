@@ -53,35 +53,11 @@ $filters = [
 // آیا فیلتر پیشرفته‌ای فعال است؟ (برای باز نگه‌داشتن پنل)
 $hasAdvanced = ($fDateFrom !== '' || $fDateTo !== '' || $fStatus !== '');
 
-// ── کمک‌تابع‌های تاریخ: تبدیل میلادی به شمسی + ارقام فارسی ──
-if (!function_exists('g2j')) {
-    function g2j(int $gy, int $gm, int $gd): array
+// ── کمک‌تابع تاریخ میلادی ──
+if (!function_exists('gregorian_datetime')) {
+    function gregorian_datetime(int $ts): string
     {
-        $g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-        $gy2   = ($gm > 2) ? ($gy + 1) : $gy;
-        $days  = 355666 + (365 * $gy) + intdiv($gy2 + 3, 4) - intdiv($gy2 + 99, 100)
-               + intdiv($gy2 + 399, 400) + $gd + $g_d_m[$gm - 1];
-        $jy    = -1595 + (33 * intdiv($days, 12053));
-        $days %= 12053;
-        $jy   += 4 * intdiv($days, 1461);
-        $days %= 1461;
-        if ($days > 365) { $jy += intdiv($days - 1, 365); $days = ($days - 1) % 365; }
-        if ($days < 186) { $jm = 1 + intdiv($days, 31);       $jd = 1 + ($days % 31); }
-        else             { $jm = 7 + intdiv($days - 186, 30); $jd = 1 + (($days - 186) % 30); }
-        return [$jy, $jm, $jd];
-    }
-}
-if (!function_exists('fa_digits')) {
-    function fa_digits($s): string
-    {
-        return strtr((string) $s, ['0'=>'۰','1'=>'۱','2'=>'۲','3'=>'۳','4'=>'۴','5'=>'۵','6'=>'۶','7'=>'۷','8'=>'۸','9'=>'۹']);
-    }
-}
-if (!function_exists('jalali_datetime')) {
-    function jalali_datetime(int $ts): string
-    {
-        [$jy, $jm, $jd] = g2j((int) date('Y', $ts), (int) date('n', $ts), (int) date('j', $ts));
-        return fa_digits(sprintf('%04d/%02d/%02d %s', $jy, $jm, $jd, date('H:i', $ts)));
+        return date('Y/m/d H:i', $ts);
     }
 }
 
@@ -299,10 +275,10 @@ foreach ($items as $item) {
           }
 
           $ts            = strtotime($item['created_at']);
-          $createdShamsi = jalali_datetime($ts);
+          $createdShamsi = gregorian_datetime($ts);
           $expiresTs     = (int) ($item['expires_at'] ?? 0);
-          $expiresShamsi = $expiresTs > 0 ? jalali_datetime($expiresTs) : '';
-          $rowNumFa      = fa_digits(++$rowIndex);
+          $expiresShamsi = $expiresTs > 0 ? gregorian_datetime($expiresTs) : '';
+          $rowNumFa      = ++$rowIndex;
         ?>
           <article
             class="<?= $rowCls ?>"

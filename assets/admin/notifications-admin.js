@@ -547,7 +547,7 @@ const NM = {
     if (n.target_all_users) pills.push(`<span class="pill pill-all">همه کاربران</span>`);
     (n.badges || []).forEach(b => pills.push(`<span class="pill pill-badge">${this._esc(b)}</span>`));
     // تاریخ و ساعت انتشار و انقضا — برچسب‌دار و کنار هم
-    const _fmtDT = ms => new Date(ms).toLocaleString('fa-IR', { dateStyle: 'short', timeStyle: 'short' });
+    const _fmtDT = ms => new Date(ms).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
     pills.push(`<span class="pill pill-created" title="تاریخ و ساعت انتشار">انتشار: ${_fmtDT(n.created_at)}</span>`);
     if (n.expires_at) {
       pills.push(`<span class="pill pill-expiry" title="تاریخ و ساعت انقضا">انقضا: ${_fmtDT(n.expires_at * 1000)}</span>`);
@@ -556,7 +556,7 @@ const NM = {
     }
 
     row.innerHTML = `
-      <div class="notif-row-num" aria-hidden="true">${rowNum.toLocaleString('fa-IR')}</div>
+      <div class="notif-row-num" aria-hidden="true">${rowNum.toLocaleString('en-GB')}</div>
       <div class="notif-row-body">
         <div class="notif-row-title">${this._esc(n.title)}</div>
         ${n.body ? `<div class="notif-row-text">${this._esc(this._stripTags(n.body))}</div>` : ''}
@@ -602,8 +602,8 @@ const NM = {
     const txt  = document.getElementById('expiryDisplayText');
     if (ts) {
       const d = new Date(ts * 1000);
-      const date = d.toLocaleDateString('fa-IR', { year:'numeric', month:'long', day:'numeric' });
-      const time = d.toLocaleTimeString('fa-IR', { hour:'2-digit', minute:'2-digit' });
+      const date = d.toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' });
+      const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
       txt.textContent = `${date} — ساعت ${time}`;
       wrap.classList.add('show');
     } else {
@@ -953,7 +953,7 @@ const NM = {
 
     if (!title) { Toast.show('عنوان الزامی است', 'error'); return; }
     if (RTE.plainLength() > RTE.MAX_CHARS) {
-      Toast.show(`متن اعلان نباید بیشتر از ${RTE.MAX_CHARS.toLocaleString('fa-IR')} کاراکتر باشد`, 'error');
+      Toast.show(`متن اعلان نباید بیشتر از ${RTE.MAX_CHARS.toLocaleString('en-GB')} کاراکتر باشد`, 'error');
       return;
     }
 

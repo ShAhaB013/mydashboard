@@ -288,14 +288,14 @@ const NotifDetail = {
     // تاریخ
     const dateEl = document.getElementById('ndDate');
     dateEl.textContent = n.created_at
-      ? new Date(n.created_at).toLocaleString('fa-IR')
+      ? new Date(n.created_at).toLocaleString('en-GB')
       : '';
 
     // انقضا
     const expiryEl = document.getElementById('ndExpiry');
     if (n.expires_at) {
       const d = new Date(n.expires_at * 1000);
-      expiryEl.textContent = `انقضا: ${d.toLocaleString('fa-IR')}`;
+      expiryEl.textContent = `انقضا: ${d.toLocaleString('en-GB')}`;
       expiryEl.style.display = 'block';
     } else {
       expiryEl.style.display = 'none';
@@ -305,9 +305,10 @@ const NotifDetail = {
     const allLink = document.getElementById('ndViewAllLink');
     if (allLink) allLink.style.display = Auth.loggedIn ? 'inline-flex' : 'none';
 
+    const body = modal.querySelector('.notif-detail-body');
+    if (body) body.scrollTop = 0;
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
-    // توقف انیمیشن‌های پس‌زمینه تا backdrop-blur هر فریم بازمحاسبه نشود
     document.body.classList.add('notif-modal-open');
   },
 
@@ -659,7 +660,7 @@ const NotifPanel = {
     if (diff <  3600) return `${Math.floor(diff / 60)} دقیقه پیش`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} ساعت پیش`;
     if (diff < 2592000) return `${Math.floor(diff / 86400)} روز پیش`;
-    return new Date(dateStr).toLocaleDateString('fa-IR');
+    return new Date(dateStr).toLocaleDateString('en-GB');
   },
 };
 
