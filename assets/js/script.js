@@ -1016,7 +1016,7 @@ clearButton.addEventListener('click', clearSearch);
 const appHeader    = document.querySelector('.app-header');
 const searchToggle = document.getElementById('searchToggle');
 const searchClose  = document.getElementById('searchClose');
-function openSearch()  { if (appHeader) appHeader.classList.add('searching'); searchInput.focus(); }
+function openSearch()  { if (appHeader) appHeader.classList.add('searching'); setTimeout(() => searchInput.focus(), 50); }
 function closeSearch() {
   if (appHeader) appHeader.classList.remove('searching');
   if (searchInput.value) { searchInput.value = ''; handleSearch(''); }

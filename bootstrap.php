@@ -64,7 +64,7 @@ spl_autoload_register(function (string $class): void {
 });
 
 // ── پیکربندی (یک سطح بالاتر از webroot) ──────────────────
-$config = require dirname(__DIR__) . '/dash_config.php';
+$config = require dirname(__DIR__) . '/config.php';
 
 // ── اتصال DB (پاسخ خطا بسته به نوع نقطه ورود) ─────────
 try {

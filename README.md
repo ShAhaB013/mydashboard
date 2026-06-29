@@ -1,102 +1,71 @@
-# das — داشبورد ابزارهای کمکی
+# das — Dashboard Tools
 
-داشبورد فارسی (RTL) برای دسترسی به مجموعه‌ای از ابزارهای کمکی، با پنل مدیریت،
-احراز هویت (ثبت‌نام + تایید ایمیل + فراموشی رمز)، و سیستم اعلان‌ها.
-نوشته‌شده با PHP خام (بدون فریم‌ورک) روی معماری MVC سبک.
+A Persian (RTL) dashboard for accessing a collection of helper tools, with admin panel,
+authentication (registration + email verification + password reset), session management,
+and notification system. Built with plain PHP (no framework) on a lightweight MVC architecture.
 
-## نیازمندی‌ها
+## Requirements
 
-- **PHP 8.0+** (کد از `match` و union type استفاده می‌کند؛ PHP 7.4 کار نمی‌کند)
-- **MySQL 8** (یا MariaDB سازگار)
-- وب‌سرور با پشتیبانی از `.htaccess` (Apache/LiteSpeed) برای URLهای تمیز و هاردنینگ
+- **PHP 8.0+** (uses `match` and union types; PHP 7.4 will not work)
+- **MySQL 8** (or compatible MariaDB)
+- Web server with `.htaccess` support (Apache/LiteSpeed) for clean URLs
 
-## ساختار پروژه
+## Project Structure
 
 ```
-das/                         ← همین پوشه = webroot (روی هاست: public_html)
-│
-│   ── نقاط ورود (entry points؛ تنها فایل‌های PHP که مستقیم سرو می‌شوند) ──
-├── index.php                داشبورد عمومی
-├── login.php                ورود / ثبت‌نام / فراموشی رمز
-├── profile.php              تنظیمات حساب کاربر
-├── notifications.php        تاریخچه و جستجوی اعلان‌ها
-├── admin.php                پنل مدیریت (?page= صفحه، ?api= JSON)
-├── api.php                  API عمومی (?action=…)
-│
-│   ── فایل‌های مشترک (include؛ مستقیم سرو نمی‌شوند، با .htaccess deny شده‌اند) ──
-├── bootstrap.php            راه‌اندازی مشترک: autoload + config + DB + session
-├── version.php              تنها منبع نسخه + نسخه‌گذاری asset
-├── dev-router.php           روتر مخصوص سرور توسعه (php -S) — شبیه‌ساز .htaccess
-│
-│   ── بک‌اند MVC (پوشه‌ی app/ کاملا deny؛ فقط از طریق include بارگذاری می‌شود) ──
-├── app/
-│   ├── Core/                زیرساخت: DB, Router, PublicRouter, Request, Response,
-│   │                        UserSession, Mailer, Validator, PasswordPolicy, …
-│   ├── Models/              لایه دیتابیس (User, Tool, Notification, Settings, …)
-│   ├── Controllers/         ادمین (Tool/User/Access/…) + عمومی (App/Auth/Feed)
-│   └── Views/               قالب‌های پنل مدیریت (dashboard, users, settings, …)
-│
-│   ── دارایی‌های ثابت (یک ریشه‌ی واحد) ──
-├── assets/
-│   ├── css/                 استایل صفحات عمومی (style, profile, notifications, datepicker)
-│   ├── js/                  اسکریپت صفحات عمومی (script, theme, login, field, …)
-│   └── admin/               CSS/JS پنل مدیریت (admin.*, notifications-admin.*)
-│
-├── data/                    ذخیره JSON آیکون‌ها/دکوراتورها (فقط فایل‌سیستم)
-└── fonts/                   فونت‌های Vazir / IRANSans
+das/                         webroot (on host: public_html)
+
+    Entry points (directly served PHP files)
+    index.php                Main dashboard
+    login.php                Login / Register / Forgot password
+    profile.php              User account settings
+    notifications.php        Notification history & search
+    admin.php                Admin panel (?page= views, ?api= JSON)
+    api.php                  Public API (?action=...)
+
+    Shared includes (not directly served, denied via .htaccess)
+    bootstrap.php            Shared setup: autoload + config + DB + session
+    version.php              Single source of version + asset versioning
+
+    Backend MVC (app/ fully denied, loaded via include only)
+    app/
+        Core/                DB, Router, PublicRouter, Request, Response,
+                             UserSession, DbSessionHandler, Mailer, Validator, ...
+        Models/              Database layer (User, Tool, Notification, Session, Settings, ...)
+        Controllers/         Admin (Tool/User/Access/Session/...) + Public (App/Auth/Feed)
+        Views/               Admin panel templates (dashboard, users, settings, notifications)
+
+    Static assets
+    assets/
+        css/                 Public page styles (style, profile, notifications, datepicker)
+        js/                  Public page scripts (script, theme, login, tooltip, field, ...)
+        admin/               Admin panel CSS/JS (admin.*, notifications-admin.*)
+
+    data/                    JSON storage for icons/decorators (filesystem only)
+    fonts/                   Vazir / IRANSans fonts
 ```
 
-### معماری مسیریابی (دو جریان جدا)
+## Setup
 
-- **api.php** → `PublicRouter` → کنترلرهای عمومی (`AppController` / `AuthController`
-  / `FeedController`). بدون CSRF؛ با `?action=…`.
-- **admin.php** → `Router` → کنترلرهای ادمین. ابتدا گیت احراز هویت + نقش admin
-  (مرجع: DB، نه سشن)، سپس CSRF، سپس `?api=…` برای JSON یا `?page=…` برای قالب‌ها.
+1. **Configuration:** Copy `config.example.php` to `config.php` **one level above the webroot**
+   and fill in the database credentials. On the host, `config.php` must be at
+   `/home/username/config.php` (bootstrap.php loads it via `dirname(__DIR__)`).
 
-هر دو نقطه‌ی ورود از `bootstrap.php` مشترک استفاده می‌کنند (یک نقشه‌ی autoload یگانه،
-بارگذاری config، اتصال DB، شروع نشست).
+2. **Database:** Create a MySQL database and import the schema
+   (`users`, `tools`, `sessions`, `notifications`, `app_settings`, etc.).
 
-### رابط کاربری (طراحی یکپارچه، سبک تلگرام)
+3. **Production:** Place this folder as `public_html`; `.htaccess` handles
+   clean URLs, security denies, and caching.
 
-طراحی فرانت‌اند روی **دو فایل CSS موازی** بنا شده که توکن‌هایشان هم‌ارز است و باید
-هم‌زمان ویرایش شوند: `assets/css/style.css` (صفحات عمومی) و
-`assets/admin/admin.css` (پنل مدیریت).
-
-- **هدر واحد `.app-header`** در همه‌ی صفحات: نوار چسبان شیشه‌ای ۵۶px با دکمه‌های
-  آیکونی دایره‌ای `.hdr-btn`؛ دکمه‌ی بازگشت سمت چپ، عنوان + نقطه‌ی وضعیت سمت راست.
-- **توکن‌های مشترک**: یک پالت رنگ یکسان (روشن/تاریک) + مقیاس radius چهارتایی
-  (`--radius-xs` ۸ / `--radius-sm` ۱۲ / `--radius-lg` ۲۲ / `--radius-pill` ۹۹۹).
-- **افکت ripple** روی همه‌ی آیتم‌های تعاملی (به‌جز کارت‌های ابزار).
-- **تغییر تم روشن/تاریک** با `theme.js` و View Transitions API (بدون FOUC).
-- **جستجوی سبک تلگرام**: آیکون → نوار جستجوی تمام‌عرض که کارت‌ها را زنده فیلتر می‌کند.
-
-## راه‌اندازی
-
-1. **پیکربندی:** فایل `dash_config.example.php` را به `dash_config.php` کپی کنید و
-   مقادیر دیتابیس را پر کنید. روی هاست واقعی، `dash_config.php` باید **یک سطح
-   بالاتر از webroot** قرار گیرد (`bootstrap.php` آن را با `dirname(__DIR__)` می‌خواند).
-
-2. **دیتابیس:** یک دیتابیس MySQL بسازید و اسکیمای جداول را وارد کنید
-   (`users`, `tools`, `tool_access`, `category_access`, `notifications`,
-   `notification_badges`, `notification_reads`, `login_rate_limit`).
-
-3. **اجرا (تولید):** پوشه را در `public_html` قرار دهید؛ `.htaccess` بقیه را
-   مدیریت می‌کند (URLهای تمیز، deny فایل‌های حساس، کش).
-
-   **اجرا (توسعه‌ی محلی):** چون `php -S` فایل `.htaccess` را نادیده می‌گیرد،
-   با روتر اجرا کنید:
+   **Local development:**
    ```
    php -S 127.0.0.1:8080 dev-router.php
    ```
 
-## نکات امنیتی
+## Security Notes
 
-- `dash_config.php` (کریدنشال DB) و دامپ‌های `*.sql` و آرشیوها در `.gitignore`
-  هستند و **نباید** کامیت شوند. دامپ دیتابیس (که شامل هش پسورد کاربرهاست)
-  عمدا در این ریپو نیست و باید جداگانه و بیرون از webroot نگهداری شود.
-- فایل‌های حساس (config، دامپ، بکاپ) باید **بیرون از webroot** قرار گیرند:
-  `dash_config.php` یک سطح بالاتر از webroot (همان‌جا که `bootstrap.php` با
-  `dirname(__DIR__)` می‌خواند)، و دامپ/بکاپ کلا خارج از پوشه‌ی منتشرشده.
-  `.htaccess` به‌عنوان لایه‌ی دوم دسترسی مستقیم به آن‌ها را هم می‌بندد.
-- این پوشه (webroot) عمدا **هیچ فایل حساسی ندارد** — فقط
-  `dash_config.example.php` به‌عنوان قالب موجود است.
+- `config.php` (DB credentials), `*.sql` dumps, and archives are in `.gitignore`
+  and must never be committed.
+- Sensitive files must be **outside the webroot**: `config.php` one level above,
+  database dumps outside the published directory entirely.
+- `.htaccess` serves as a second layer, denying direct access to config/app files.

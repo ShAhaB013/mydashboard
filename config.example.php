@@ -1,9 +1,9 @@
 <?php
 
 // ═══════════════════════════════════════════════════════════
-// dash_config.example.php — template for dash_config.php
-// Copy this file to dash_config.php (one level ABOVE the webroot
-// on the host) and fill in the real values. dash_config.php is
+// config.example.php — template for config.php
+// Copy this file to config.php one level ABOVE the webroot
+// on the host and fill in the real values. config.php is
 // gitignored and must never be committed.
 // ═══════════════════════════════════════════════════════════
 

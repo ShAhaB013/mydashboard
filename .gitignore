@@ -1,5 +1,5 @@
 # ─── Secrets & environment config (NEVER commit) ───────────────
-# Real DB credentials live here; copy dash_config.example.php → dash_config.php
+config.php
 dash_config.php
 *.env
 .env
@@ -7,8 +7,6 @@ secret*
 
 # ─── Database dumps & backups ──────────────────────────────────
 *.sql
-# استثنا: طرحِ جدولِ نشست‌ها (provisioning) — بخشی از پروژه است، نه dump
-!sql/sessions.sql
 *.sqlite
 *.db
 *.bak
@@ -30,6 +28,9 @@ sessions/
 # ─── Local tooling artifacts ───────────────────────────────────
 /.claude/settings.local.json
 /.claude/skills/run-das/_shots/
+
+# ─── Static assets (managed on host) ──────────────────────────
+favicon.ico
 
 # ─── OS / editor cruft ─────────────────────────────────────────
 .DS_Store

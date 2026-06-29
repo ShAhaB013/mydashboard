@@ -19,4 +19,4 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/USERNAME/public_html
-    - /usr/bin/rsync -a --exclude='.git' --exclude='.cpanel.yml' --exclude='data/' ./ "$DEPLOYPATH/"
+    - /usr/bin/rsync -a --exclude='.git' --exclude='.claude' --exclude='.cpanel.yml' --exclude='data/' --exclude='CLAUDE.md' --exclude='README.md' --exclude='config.example.php' ./ "$DEPLOYPATH/"
