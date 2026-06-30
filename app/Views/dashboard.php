@@ -32,11 +32,6 @@
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
       </a>
-      <a href="/admin?page=settings" class="hdr-btn" title="تنظیمات ایمیل" aria-label="تنظیمات ایمیل">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
-        </svg>
-      </a>
       <a href="/" class="hdr-btn" title="بازگشت به داشبورد" aria-label="بازگشت به داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M19 12H5M12 5l-7 7 7 7"/>
@@ -256,101 +251,6 @@
   </div>
 
 </div><!-- /admin-wrap -->
-
-<!-- ── مودال ویرایش کاربر ── -->
-<div class="modal-overlay" id="userModal" role="dialog" aria-modal="true">
-  <div class="modal" style="max-width:480px;">
-    <div class="modal-head">
-      <h3>ویرایش کاربر</h3>
-      <button class="modal-close" onclick="closeModal('userModal')" aria-label="بستن">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body" style="display:block;padding:20px;">
-      <input type="hidden" id="editUserId">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div class="field">
-          <label>نام و نام خانوادگی <span class="req">*</span></label>
-          <input type="text" id="editFullName" maxlength="60">
-        </div>
-        <div class="field">
-          <label>ایمیل <span class="req">*</span></label>
-          <input type="email" id="editEmail" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
-        </div>
-        <div class="field">
-          <label>رمز عبور جدید <span style="color:var(--text-3);font-weight:400;">(خالی = بدون تغییر)</span></label>
-          <input type="password" id="editUserPassword" placeholder="حداقل ۶ کاراکتر" autocomplete="new-password">
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('userModal')">انصراف</button>
-      <button class="btn btn-primary btn-sm" onclick="saveUserEdit()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        ذخیره
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ── مودال دسترسی دو سطحی ── -->
-<div class="modal-overlay" id="accessModal" role="dialog" aria-modal="true">
-  <div class="modal" style="max-width:580px;">
-    <div class="modal-head">
-      <h3 id="accessModalTitle">تنظیم دسترسی</h3>
-      <button class="modal-close" onclick="closeModal('accessModal')" aria-label="بستن">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body" style="display:block;padding:20px;overflow-y:auto;max-height:65vh;">
-      <input type="hidden" id="accessUserId">
-
-      <!-- بخش badge ها -->
-      <div class="access-section">
-        <div class="access-section-title">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
-            <line x1="7" y1="7" x2="7.01" y2="7"/>
-          </svg>
-          دسته‌بندی‌ها
-          <span style="font-size:11px;color:var(--text-3);font-weight:400;">(دسترسی گروهی به همه ابزارهای یک دسته)</span>
-        </div>
-        <div class="access-badges-grid" id="accessBadgesGrid">
-          <div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>
-        </div>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:18px 0;"></div>
-
-      <!-- بخش ابزارها -->
-      <div class="access-section">
-        <div class="access-section-title">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2"/>
-            <line x1="8" y1="21" x2="16" y2="21"/>
-            <line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
-          ابزارهای خاص
-          <span style="font-size:11px;color:var(--text-3);font-weight:400;">(دسترسی مستقیم به ابزار مشخص)</span>
-        </div>
-        <div class="access-tools-list" id="accessToolsList">
-          <div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('accessModal')">انصراف</button>
-      <button class="btn btn-primary btn-sm" id="saveAccessBtn" onclick="saveAccess()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        ذخیره دسترسی‌ها
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- ── مودال تایید حذف ── -->
 <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">

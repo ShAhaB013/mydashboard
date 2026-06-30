@@ -87,7 +87,6 @@ if ($isApi) {
     $userCtrl   = new UserController($userModel, $request);
     $accessCtrl = new AccessController($accessModel, $request);
     $notifCtrl  = new NotificationController($notificationModel, $request);
-    $settingsCtrl = new SettingsController($request);
     $sessionCtrl  = new SessionController($request);
 
     $router = new Router(
@@ -98,7 +97,6 @@ if ($isApi) {
         $userCtrl,
         $accessCtrl,
         $notifCtrl,
-        $settingsCtrl,
         $sessionCtrl
     );
     $router->dispatch();
@@ -132,13 +130,6 @@ if ($page === 'users') {
     $toolsLite  = json_encode(ToolModel::toLite($toolModel->all()), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
     $csrfToken  = $_SESSION['csrf_token'] ?? '';
     require __DIR__ . '/app/Views/users_view.php';
-    exit;
-}
-
-if ($page === 'settings') {
-    $settings  = SettingsModel::all();
-    $csrfToken = $_SESSION['csrf_token'] ?? '';
-    require __DIR__ . '/app/Views/settings_view.php';
     exit;
 }
 

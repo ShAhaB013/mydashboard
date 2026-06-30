@@ -72,68 +72,13 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
         <div class="profile-card-head-info">
           <h2 id="profileDisplayName">در حال بارگذاری...</h2>
           <div class="profile-meta-row">
-            <span class="profile-meta-val profile-email" id="profileEmail" dir="ltr"></span>
+            <span class="profile-meta-val profile-email" id="profilePhone" dir="ltr"></span>
           </div>
         </div>
       </div>
 
       <!-- بدنه کارت -->
       <div class="profile-card-body">
-
-        <!-- ── تغییر ایمیل ── -->
-        <section class="profile-section">
-          <div class="profile-section-aside">
-            <div class="profile-section-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-              تغییر ایمیل
-            </div>
-            <p class="profile-section-desc">آدرس ایمیل حساب را تغییر دهید؛ یک کد تایید به ایمیل جدید ارسال می‌شود.</p>
-          </div>
-          <div class="profile-section-body">
-
-        <div class="field" data-state="idle">
-          <label class="field-label" for="newEmail">ایمیل جدید</label>
-          <div class="field-box">
-            <input type="email" id="newEmail" class="field-input" placeholder="you@example.com"
-                   dir="ltr" autocomplete="email" maxlength="190">
-            <span class="field-status" aria-hidden="true"></span>
-          </div>
-          <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
-        </div>
-
-        <!-- مرحله کد تایید (پنهان تا ارسال کد) -->
-        <div class="field" id="emailCodeField" data-state="idle" style="display:none;">
-          <label class="field-label" for="emailCode">کد تایید</label>
-          <div class="field-box">
-            <input type="text" id="emailCode" class="field-input profile-code-input" placeholder="------"
-                   dir="ltr" inputmode="numeric" maxlength="6" autocomplete="one-time-password">
-          </div>
-          <div class="field-hint">
-            کد به <span id="emailCodeTarget" dir="ltr"></span> ارسال شد.
-            <button type="button" id="emailResendBtn" class="profile-link-btn" onclick="resendEmailCode()" disabled><span class="profile-resend-spin" aria-hidden="true"></span><span class="profile-resend-label">ارسال مجدد</span></button>
-            <span class="profile-hint-sep">·</span>
-            <button type="button" class="profile-link-btn profile-cancel-btn" onclick="cancelEmailChange()">لغو</button>
-          </div>
-        </div>
-
-        <!-- یادداشت کد آزمایشی (فقط محیط محلی) -->
-        <p class="reg-dev-note" id="emailDevNote" style="display:none;"></p>
-
-        <!-- پیام خطا / موفقیت ایمیل -->
-        <div class="profile-msg" id="emailMsg" role="alert" aria-live="polite">
-          <svg id="emailMsgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg>
-          <span id="emailMsgText"></span>
-        </div>
-
-        <button class="profile-submit-btn" id="emailSubmitBtn" onclick="submitEmailChange()">
-          <span class="btn-spinner" aria-hidden="true"></span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/>
-          </svg>
-          <span id="emailSubmitLabel">ارسال کد تایید</span>
-        </button>
-          </div>
-        </section>
 
         <!-- ── تغییر رمز عبور ── -->
         <section class="profile-section">

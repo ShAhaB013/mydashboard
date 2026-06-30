@@ -97,7 +97,7 @@
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
     <input type="text" name="q" value="<?= htmlspecialchars($userSearch ?? '', ENT_QUOTES) ?>"
-           placeholder="جستجو در نام، ایمیل و نام کاربری... (Enter)" autocomplete="off" autofocus>
+           placeholder="جستجو در نام، شماره موبایل و نام کاربری... (Enter)" autocomplete="off" autofocus>
     <?php if (($userSearch ?? '') !== ''): ?>
       <a class="user-search-clear" href="/admin?page=users" title="پاک کردن" style="display:flex;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -118,13 +118,13 @@
         <p><?= ($userSearch ?? '') !== '' ? 'کاربری با این مشخصات یافت نشد' : 'هنوز هیچ کاربری ثبت نشده' ?></p>
       </div>
     <?php else: foreach ($users as $u):
-      $searchKey = trim(($u['display_name'] ?? '') . ' ' . ($u['email'] ?? '') . ' ' . ($u['username'] ?? ''));
+      $searchKey = trim(($u['display_name'] ?? '') . ' ' . ($u['phone'] ?? '') . ' ' . ($u['username'] ?? ''));
     ?>
       <div class="user-row" data-uid="<?= (int)$u['id'] ?>" data-search="<?= htmlspecialchars($searchKey, ENT_QUOTES) ?>">
         <div class="user-row-avatar"><?= htmlspecialchars(mb_substr($u['display_name'] ?: $u['username'], 0, 1)) ?></div>
         <div class="user-row-info">
           <h3><?= htmlspecialchars($u['display_name'] ?: $u['username']) ?></h3>
-          <p style="direction:ltr;text-align:right;"><?= htmlspecialchars($u['email'] ?: '—') ?></p>
+          <p style="direction:ltr;text-align:right;"><?= htmlspecialchars($u['phone'] ?: '—') ?></p>
         </div>
         <div class="user-row-meta">
           <?php if (($u['role'] ?? 'user') === 'admin'): ?>
@@ -155,7 +155,7 @@
             <?php if (!empty($sessionCounts[$u['id']])): ?><span class="sess-count-dot"><?= (int) $sessionCounts[$u['id']] ?></span><?php endif; ?>
           </button>
           <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش"
-            onclick="openEditUserModal(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: trim(($u['first_name'] ?? '').' '.($u['last_name'] ?? ''))), ENT_QUOTES) ?>','<?= htmlspecialchars(addslashes($u['email'] ?? ''), ENT_QUOTES) ?>','<?= htmlspecialchars($u['role'] ?? 'user', ENT_QUOTES) ?>')">
+            onclick="openEditUserModal(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: trim(($u['first_name'] ?? '').' '.($u['last_name'] ?? ''))), ENT_QUOTES) ?>','<?= htmlspecialchars(addslashes($u['username'] ?? ''), ENT_QUOTES) ?>','<?= htmlspecialchars(addslashes($u['phone'] ?? ''), ENT_QUOTES) ?>','<?= htmlspecialchars($u['role'] ?? 'user', ENT_QUOTES) ?>')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -236,8 +236,12 @@
           <input type="text" id="editFullName" placeholder="مثال: علی محمدی" maxlength="60">
         </div>
         <div class="field">
-          <label>ایمیل <span class="req">*</span></label>
-          <input type="email" id="editEmail" placeholder="example@mail.com" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
+          <label>نام‌کاربری <span class="req">*</span></label>
+          <input type="text" id="editUsername" placeholder="مثال: ali_mohammadi" maxlength="60" dir="ltr" style="direction:ltr;text-align:left">
+        </div>
+        <div class="field">
+          <label>شماره موبایل <span class="req">*</span></label>
+          <input type="tel" id="editPhone" placeholder="09123456789" maxlength="11" dir="ltr" style="direction:ltr;text-align:left">
         </div>
         <div class="field">
           <label>سطح دسترسی</label>

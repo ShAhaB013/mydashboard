@@ -37,7 +37,7 @@ class AppController
                 'logged_in'    => true,
                 'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
                 'username'     => $_SESSION['username'] ?? '',
-                'email'        => $_SESSION['email'] ?? '',
+                'phone'        => $_SESSION['phone'] ?? '',
                 'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
             ];
         } else {
@@ -165,18 +165,9 @@ class AppController
                 'logged_in'    => true,
                 'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
                 'username'     => $_SESSION['username'] ?? '',
-                'email'        => $_SESSION['email'] ?? '',
+                'phone'        => $_SESSION['phone'] ?? '',
                 'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
             ];
-            // تغییر ایمیل در انتظار تأیید — تا پروفایل پس از ریلود همان مرحله/کول‌داون را بازگرداند
-            $pending = $_SESSION['email_change'] ?? null;
-            if (is_array($pending) && !empty($pending['email']) && time() <= (int) ($pending['expires'] ?? 0)) {
-                $base = SettingsModel::getInt('resend_cooldown', 10, 600, 30);
-                $resp['email_change'] = [
-                    'email'       => $pending['email'],
-                    'retry_after' => ResendThrottle::retryAfter('email_change', $pending['email'], $base),
-                ];
-            }
             echo json_encode($resp, JSON_UNESCAPED_UNICODE);
         } else {
             echo json_encode(['ok' => true, 'logged_in' => false], JSON_UNESCAPED_UNICODE);

@@ -62,4 +62,29 @@ class Validator
         }
         return '';
     }
+
+    /**
+     * اعتبارسنجی نام‌کاربری: ۳ تا ۶۰ کاراکتر، شروع با حرف انگلیسی،
+     * فقط حروف/اعداد/underscore.
+     * @return string پیام خطا، یا '' در صورت معتبر بودن.
+     */
+    public static function username(string $username): string
+    {
+        if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/', $username)) {
+            return 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد (۳ تا ۶۰ کاراکتر)';
+        }
+        return '';
+    }
+
+    /**
+     * اعتبارسنجی شماره موبایل ایران: ۱۱ رقم، شروع با ۰۹.
+     * @return string پیام خطا، یا '' در صورت معتبر بودن.
+     */
+    public static function phone(string $phone): string
+    {
+        if (!preg_match('/^09\d{9}$/', $phone)) {
+            return 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود';
+        }
+        return '';
+    }
 }

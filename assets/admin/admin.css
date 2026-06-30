@@ -81,7 +81,8 @@ body {
 
 input[type="text"],
 input[type="password"],
-input[type="email"] {
+input[type="email"],
+input[type="tel"] {
   font-family:'DashboardFont',sans-serif; font-size:14px;
   background:var(--bg-input); color:var(--text);
   border:1px solid var(--border); border-radius:var(--radius);

@@ -14,7 +14,6 @@ class Router
     private UserController         $userCtrl;
     private AccessController       $accessCtrl;
     private NotificationController $notifCtrl;
-    private SettingsController     $settingsCtrl;
     private SessionController      $sessionCtrl;
 
     private const ROUTES = [
@@ -57,10 +56,6 @@ class Router
         'delete_notification_image'   => [NotificationController::class, 'deleteImage'],
         'upload_notification_image'   => [NotificationController::class, 'uploadImage'],
 
-        // ── تنظیمات ایمیل/SMTP ──────────────────────────────
-        'save_settings' => [SettingsController::class, 'save'],
-        'test_email'    => [SettingsController::class, 'sendTest'],
-
         // ── نشست‌های فعال کاربران ────────────────────────────
         'list_sessions'           => [SessionController::class, 'list'],
         'terminate_session'       => [SessionController::class, 'terminate'],
@@ -77,7 +72,6 @@ class Router
         UserController         $userCtrl,
         AccessController       $accessCtrl,
         NotificationController $notifCtrl,
-        SettingsController     $settingsCtrl,
         SessionController      $sessionCtrl
     ) {
         $this->request      = $request;
@@ -87,7 +81,6 @@ class Router
         $this->userCtrl     = $userCtrl;
         $this->accessCtrl   = $accessCtrl;
         $this->notifCtrl    = $notifCtrl;
-        $this->settingsCtrl = $settingsCtrl;
         $this->sessionCtrl  = $sessionCtrl;
     }
 
@@ -114,7 +107,6 @@ class Router
             UserController::class         => $this->userCtrl,
             AccessController::class       => $this->accessCtrl,
             NotificationController::class => $this->notifCtrl,
-            SettingsController::class     => $this->settingsCtrl,
             SessionController::class      => $this->sessionCtrl,
             default => (function () {
                 Response::error('کنترلر یافت نشد');

@@ -3,9 +3,7 @@
 // api.php — endpoint عمومی (نقطه ورود نازک)
 // مسیریابی به کنترلرهای عمومی از طریق PublicRouter (?action=…):
 //   AppController : bootstrap / assets / tools / me / logout
-//   AuthController: login / register / check_email / verify_email /
-//                   resend_code / forgot_password / verify_reset_code /
-//                   reset_password / change_password
+//   AuthController: login / change_password
 //   FeedController: notifications / unread_count / mark_read / mark_all_read
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);

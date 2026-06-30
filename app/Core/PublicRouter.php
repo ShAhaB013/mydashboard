@@ -22,17 +22,7 @@ class PublicRouter
 
         // ── احراز هویت / حساب ─────────────────────────────────
         'login'             => [AuthController::class, 'login'],
-        'register'          => [AuthController::class, 'register'],
-        'check_email'       => [AuthController::class, 'checkEmail'],
-        'verify_email'      => [AuthController::class, 'verifyEmail'],
-        'resend_code'       => [AuthController::class, 'resendCode'],
-        'forgot_password'   => [AuthController::class, 'forgotPassword'],
-        'verify_reset_code' => [AuthController::class, 'verifyResetCode'],
-        'reset_password'    => [AuthController::class, 'resetPassword'],
         'change_password'   => [AuthController::class, 'changePassword'],
-        'request_email_change' => [AuthController::class, 'requestEmailChange'],
-        'verify_email_change'  => [AuthController::class, 'verifyEmailChange'],
-        'cancel_email_change'  => [AuthController::class, 'cancelEmailChange'],
 
         // ── اعلان‌های عمومی ───────────────────────────────────
         'notifications'     => [FeedController::class, 'notifications'],

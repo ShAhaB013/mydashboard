@@ -270,7 +270,8 @@ const UserManager = {
     document.getElementById('editPassLabel').innerHTML = 'رمز عبور <span class="req">*</span>';
     document.getElementById('editUserId').value = '';
     document.getElementById('editFullName').value = '';
-    document.getElementById('editEmail').value = '';
+    document.getElementById('editUsername').value = '';
+    document.getElementById('editPhone').value = '';
     const editPass = document.getElementById('editUserPassword');
     editPass.value = ''; editPass.type = 'password';
     checkStrength('', 'editPassStrength', 'editPassStrengthLabel');
@@ -280,7 +281,7 @@ const UserManager = {
     this._dirty = false;
     setTimeout(() => document.getElementById('editFullName').focus(), 100);
   },
-  openEdit(id, fullName, email, role) {
+  openEdit(id, fullName, username, phone, role) {
     this._wireDirty();
     this._isAdd = false;
     document.getElementById('userModalTitle').textContent = 'ویرایش کاربر';
@@ -288,7 +289,8 @@ const UserManager = {
     document.getElementById('editPassLabel').innerHTML = 'رمز عبور جدید <span style="color:var(--text-3);font-weight:400;">(خالی = بدون تغییر)</span>';
     document.getElementById('editUserId').value   = id;
     document.getElementById('editFullName').value = fullName;
-    document.getElementById('editEmail').value    = email;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editPhone').value    = phone;
     const editPass = document.getElementById('editUserPassword');
     editPass.value = ''; editPass.type = 'password';
     checkStrength('', 'editPassStrength', 'editPassStrengthLabel');
@@ -303,19 +305,24 @@ const UserManager = {
     const idVal    = document.getElementById('editUserId').value.trim();
     const isAdd    = !idVal;
     const fullName = document.getElementById('editFullName').value.trim();
-    const email    = document.getElementById('editEmail').value.trim();
+    const username = document.getElementById('editUsername').value.trim();
+    const phone    = document.getElementById('editPhone').value.trim();
     const password = document.getElementById('editUserPassword').value;
     const role     = document.getElementById('editUserRole')?.value || 'user';
     if (!fullName) return FieldErr.set('editFullName', 'نام و نام خانوادگی الزامی است');
-    if (!email)    return FieldErr.set('editEmail', 'ایمیل الزامی است');
-    if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(email)) return FieldErr.set('editEmail', 'قالب ایمیل نامعتبر است');
+    if (isAdd) {
+      if (!username) return FieldErr.set('editUsername', 'نام‌کاربری الزامی است');
+      if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
+    }
+    if (!phone) return FieldErr.set('editPhone', 'شماره موبایل الزامی است');
+    if (!/^09\d{9}$/.test(phone)) return FieldErr.set('editPhone', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود');
     if (isAdd && !password) return FieldErr.set('editUserPassword', 'رمز عبور الزامی است');
     if (password && !pwMeetsPolicy(password)) return FieldErr.set('editUserPassword', PW_POLICY_MSG);
 
     const action = isAdd ? 'add_user' : 'edit_user';
     const body   = isAdd
-      ? { full_name: fullName, email, password, role }
-      : { id: parseInt(idVal), full_name: fullName, email, password, role };
+      ? { full_name: fullName, username, phone, password, role }
+      : { id: parseInt(idVal), full_name: fullName, phone, password, role };
     const res = await Api.call(action, body);
     if (res.ok) {
       this.close(true);
@@ -846,7 +853,7 @@ function saveDecoEdit()             { DecoEditor.save(); }
 function deleteDeco()               { DecoEditor.delete(); }
 function addNewDeco()               { DecoEditor.add(); }
 function refreshDecoPreview()       { DecoEditor.refreshPreview(); }
-function openEditUserModal(id,n,e,r){ UserManager.openEdit(id, n, e, r); }
+function openEditUserModal(id,n,u,p,r){ UserManager.openEdit(id, n, u, p, r); }
 function toggleUser(id, btn)        { UserManager.toggle(id, btn); }
 function openDeleteUserModal(id, n) { UserManager.openDelete(id, n); }
 function openAccessModal(id, name)  { AccessManager.open(id, name); }
@@ -1118,48 +1125,6 @@ const SessionsManager = {
         this.loadUser();
       },
     });
-  },
-};
-
-// ═══════════════════════════════════════════════════════════
-// Bootstrap
-// ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
-// SettingsManager — ذخیره تنظیمات ایمیل/SMTP + ارسال آزمایشی
-// ═══════════════════════════════════════════════════════════
-const SettingsManager = {
-  _v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; },
-
-  async save() {
-    const payload = {
-      smtp_enabled:    document.getElementById('setSmtpEnabled').checked ? 1 : 0,
-      smtp_host:       this._v('setSmtpHost'),
-      smtp_port:       this._v('setSmtpPort'),
-      smtp_secure:     document.getElementById('setSmtpSecure').value,
-      smtp_user:       this._v('setSmtpUser'),
-      smtp_pass:       document.getElementById('setSmtpPass').value, // بدون trim تا رمز دست‌نخورده بماند
-      smtp_from_email: this._v('setSmtpFromEmail'),
-      smtp_from_name:  this._v('setSmtpFromName'),
-      resend_cooldown: this._v('setResendCooldown'),
-      code_ttl:        this._v('setCodeTtl'),
-    };
-    const res = await Api.call('save_settings', payload);
-    if (res.ok) {
-      Toast.show('تنظیمات ذخیره شد');
-      document.getElementById('setSmtpPass').value = ''; // پاک‌سازی فیلد رمز پس از ذخیره
-    } else {
-      Toast.show(res.msg || 'خطا در ذخیره تنظیمات', 'error');
-    }
-  },
-
-  async test() {
-    const to = this._v('setTestEmail');
-    if (!to) return FieldErr.set('setTestEmail', 'ایمیل مقصد را وارد کنید');
-    if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(to)) return FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
-    Toast.show('در حال ارسال…');
-    const res = await Api.call('test_email', { test_email: to });
-    if (res.ok) Toast.show(res.msg || 'ایمیل آزمایشی ارسال شد');
-    else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
   },
 };
 

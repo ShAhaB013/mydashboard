@@ -7,7 +7,7 @@ $config = require __DIR__ . '/bootstrap.php';
 $isLoggedIn  = UserSession::check();
 $displayName = $isLoggedIn ? UserSession::displayName() : '';
 $username    = $isLoggedIn ? (string) ($_SESSION['username'] ?? '') : '';
-$email       = $isLoggedIn ? (string) ($_SESSION['email'] ?? '') : '';
+$phone       = $isLoggedIn ? (string) ($_SESSION['phone'] ?? '') : '';
 $isAdmin     = $isLoggedIn && UserSession::isAdmin();
 $menuName    = $displayName !== '' ? $displayName : $username;
 $avatarChar  = $menuName !== '' ? mb_substr($menuName, 0, 1, 'UTF-8') : '؟';
@@ -214,7 +214,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
               <div class="user-menu-header">
                 <span class="user-menu-header-name"  id="dropdownDisplayName"><?= htmlspecialchars($menuName, ENT_QUOTES) ?></span>
-                <span class="user-menu-header-uname" id="dropdownUsername" dir="ltr"><?= htmlspecialchars($email, ENT_QUOTES) ?></span>
+                <span class="user-menu-header-uname" id="dropdownUsername" dir="ltr"><?= htmlspecialchars($phone, ENT_QUOTES) ?></span>
               </div>
 
               <div class="user-menu-divider"></div>
