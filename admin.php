@@ -13,6 +13,11 @@ $config = require __DIR__ . '/bootstrap.php';
 // ── نسخه پروژه (Single Source of Truth) ─────────────────
 require_once __DIR__ . '/version.php';
 
+// مرز مدیریت خطای سراسری برای کل پنل ادمین (API + صفحات):
+// هر Throwable ناگرفته در لاگ سرور ثبت و پاسخ تمیز (JSON برای API، متن برای صفحه)
+// برمی‌گردد — به‌جای لو دادن stack trace به کاربر.
+try {
+
 $request = new Request();
 
 $isApi = (bool) $request->query('api');
@@ -152,3 +157,14 @@ $decosJson  = json_encode($decosData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $csrfToken  = $_SESSION['csrf_token'] ?? '';
 
 require __DIR__ . '/app/Views/dashboard.php';
+
+} catch (Throwable $e) {
+    error_log('[admin] ' . $e);
+    if (!headers_sent()) http_response_code(500);
+    if (!empty($_GET['api'])) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'msg' => 'خطای داخلی سرور رخ داد'], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo 'خطای داخلی سرور رخ داد';
+    }
+}
