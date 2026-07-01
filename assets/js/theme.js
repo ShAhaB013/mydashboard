@@ -161,18 +161,26 @@
     r.style.left = (e.clientX - rect.left - size / 2) + 'px';
     r.style.top  = (e.clientY - rect.top  - size / 2) + 'px';
     btn.appendChild(r);
-    r.addEventListener('animationend', () => r.remove());
+    const kill = () => r.remove();
+    r.addEventListener('animationend', kill);
+    // ایمنی: اگر animationend به هر دلیلی نیامد، ریپل بیش از عمر انیمیشن نماند
+    setTimeout(kill, 700);
   });
-  /* رفع باگ bfcache: اگر حین پخش ریپل به صفحه دیگری برویم، span موج در صفحهٔ
-     منجمدشده باقی می‌ماند و هنگام بازگشت (back/forward) دوباره پخش می‌شود.
-     پیش از منجمدشدن صفحه و نیز هنگام بازیابی از کش، همهٔ ریپل‌ها را پاک می‌کنیم. */
+  /* رفع باگ bfcache: اگر حین پخش ریپل به صفحه‌ای دیگر برویم، span موج در صفحهٔ
+     منجمدشده باقی می‌ماند و هنگام بازگشت (back/forward) یک فریم پخش‌شدنش دیده
+     می‌شود. راهکار قطعی: صفحه هرگز با ریپلِ زنده منجمد نشود — پیش از هر ناوبری،
+     پیش از مخفی‌شدن صفحه، و نیز هنگام بازیابی از کش، همهٔ ریپل‌ها پاک می‌شوند. */
   function purgeRipples() {
     document.querySelectorAll('span.ripple').forEach(function (n) { n.remove(); });
   }
   window.addEventListener('pagehide', purgeRipples);
-  window.addEventListener('pageshow', function (e) { if (e.persisted) purgeRipples(); });
+  window.addEventListener('pageshow', purgeRipples);          // بدون شرط persisted
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') purgeRipples();
+  });
   /* لینک‌های هدر/منو با prerender فوری باز می‌شوند و ریپل دیده نمی‌شود؛
-     ناوبری را ~160ms نگه می‌داریم تا موج کلیک پخش شود. */
+     ناوبری را ~160ms نگه می‌داریم تا موج کلیک پخش شود؛ اما دقیقا پیش از
+     ناوبری ریپل‌ها را پاک می‌کنیم تا صفحه بدون موجِ نیمه‌کاره منجمد شود. */
   document.addEventListener('click', function (e) {
     const a = e.target.closest(SEL);
     if (!a || a.tagName !== 'A') return;
@@ -180,7 +188,7 @@
     if (!href || href.charAt(0) === '#' || a.target === '_blank') return;
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
     e.preventDefault();
-    setTimeout(function () { window.location.href = href; }, 160);
+    setTimeout(function () { purgeRipples(); window.location.href = href; }, 160);
   });
 })();
 

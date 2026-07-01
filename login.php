@@ -99,7 +99,6 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
             </span>
             <input type="text" id="loginUsername" name="username" class="field-input" placeholder="نام کاربری"
                    autocomplete="username" dir="ltr" maxlength="190" autofocus>
-            <span class="field-status" aria-hidden="true"></span>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
