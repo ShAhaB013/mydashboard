@@ -291,7 +291,7 @@ header, main { position: relative; z-index: 1; }
 /* ── افکت ripple (موج کلیک، سبک تلگرام) — روی همه آیتم‌های تعاملی به‌جز کارت‌ها ──
    استثناها: دکمه زنگ (بج اعلان بیرون از کادر است → overflow آن را می‌برد) و
    کارت‌های ابزار (.card) که عمدا ریپل ندارند. مشترک با admin.css. */
-.hdr-btn, .theme-toggle, .user-menu-btn, .chip, .auth-btn, .user-menu-item,
+.hdr-btn, .user-menu-btn, .chip, .auth-btn, .user-menu-item,
 .notif-drop-item, .login-submit-btn, .profile-submit-btn, .login-tab,
 .npag-btn, .notif-view-btn, .notif-row, .notif-search-btn,
 .notif-adv-toggle, .notif-adv-apply,

@@ -78,6 +78,7 @@ body {
 .field { display:flex; flex-direction:column; gap:6px; }
 .field label { font-size:12px; font-weight:600; color:var(--text-2); letter-spacing:.4px; text-transform:uppercase; }
 .field .req { color:var(--danger); }
+.field .opt { color:var(--text-3, var(--text-2)); font-weight:500; text-transform:none; opacity:.75; }
 
 input[type="text"],
 input[type="password"],

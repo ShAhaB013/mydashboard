@@ -240,7 +240,7 @@
           <input type="text" id="editUsername" placeholder="مثال: ali_mohammadi" maxlength="60" dir="ltr" style="direction:ltr;text-align:left">
         </div>
         <div class="field">
-          <label>شماره موبایل <span class="req">*</span></label>
+          <label>شماره موبایل <span class="opt">(اختیاری)</span></label>
           <input type="tel" id="editPhone" placeholder="09123456789" maxlength="11" dir="ltr" style="direction:ltr;text-align:left">
         </div>
         <div class="field">

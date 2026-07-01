@@ -40,7 +40,8 @@ class UserController
             Response::error($err);
             return;
         }
-        if (($err = Validator::phone($phone)) !== '') {
+        // شماره موبایل اختیاری است؛ فقط در صورت واردشدن اعتبارسنجی می‌شود
+        if ($phone !== '' && ($err = Validator::phone($phone)) !== '') {
             Response::error($err);
             return;
         }
@@ -54,7 +55,7 @@ class UserController
             Response::error('این نام‌کاربری قبلا ثبت شده است');
             return;
         }
-        if ($this->model->phoneExists($phone)) {
+        if ($phone !== '' && $this->model->phoneExists($phone)) {
             Response::error('این شماره موبایل قبلا ثبت شده است');
             return;
         }
@@ -87,7 +88,8 @@ class UserController
         }
         [$firstName, $lastName] = UserModel::splitName($fullName);
 
-        if (($err = Validator::phone($phone)) !== '') {
+        // شماره موبایل اختیاری است؛ فقط در صورت واردشدن اعتبارسنجی می‌شود
+        if ($phone !== '' && ($err = Validator::phone($phone)) !== '') {
             Response::error($err);
             return;
         }
@@ -98,7 +100,7 @@ class UserController
             return;
         }
 
-        if ($this->model->phoneExists($phone, $id)) {
+        if ($phone !== '' && $this->model->phoneExists($phone, $id)) {
             Response::error('این شماره موبایل قبلا ثبت شده است');
             return;
         }

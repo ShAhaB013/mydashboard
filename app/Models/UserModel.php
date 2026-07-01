@@ -148,7 +148,7 @@ class UserModel
                 ':f' => $firstName,
                 ':l' => $lastName,
                 ':d' => $displayName,
-                ':p' => $phone,
+                ':p' => ($phone === '' ? null : $phone),   // خالی → NULL (سازگار با UNIQUE index)
                 ':r' => self::normalizeRole($role),
             ]
         );
@@ -164,7 +164,7 @@ class UserModel
                 ':f'  => $firstName,
                 ':l'  => $lastName,
                 ':d'  => trim($firstName . ' ' . $lastName),
-                ':p'  => $phone,
+                ':p'  => ($phone === '' ? null : $phone),   // خالی → NULL (سازگار با UNIQUE index)
                 ':r'  => self::normalizeRole($role),
                 ':id' => $id,
             ]

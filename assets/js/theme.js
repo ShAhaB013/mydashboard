@@ -138,7 +138,9 @@
    روی دکمه زنگ اعمال نمی‌شود (بج اعلان بیرون کادر است).
    ═══════════════════════════════════════════════════════════ */
 (function () {
-  const SEL = '.hdr-btn, .theme-toggle, .user-menu-btn, .btn, .btn-icon, .chip,'
+  // نکته: .theme-toggle عمداً ریپل ندارد — چرخش دکمه + مورفِ آیکون + محوِ تم
+  // هم‌زمان اجرا می‌شوند و افزودن ریپل روی آن باعث تداخل و لگ می‌شد.
+  const SEL = '.hdr-btn, .user-menu-btn, .btn, .btn-icon, .chip,'
     + ' .auth-btn, .user-menu-item, .notif-drop-item, .login-submit-btn,'
     + ' .profile-submit-btn, .login-tab, .npag-btn, .notif-view-btn, .notif-row,'
     + ' .notif-search-btn, .notif-adv-toggle, .notif-adv-apply, .cselect-option,'

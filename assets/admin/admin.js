@@ -314,8 +314,7 @@ const UserManager = {
       if (!username) return FieldErr.set('editUsername', 'نام‌کاربری الزامی است');
       if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
     }
-    if (!phone) return FieldErr.set('editPhone', 'شماره موبایل الزامی است');
-    if (!/^09\d{9}$/.test(phone)) return FieldErr.set('editPhone', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود');
+    if (phone && !/^09\d{9}$/.test(phone)) return FieldErr.set('editPhone', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود');
     if (isAdd && !password) return FieldErr.set('editUserPassword', 'رمز عبور الزامی است');
     if (password && !pwMeetsPolicy(password)) return FieldErr.set('editUserPassword', PW_POLICY_MSG);
 
