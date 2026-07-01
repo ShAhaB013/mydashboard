@@ -278,9 +278,10 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   display:flex; align-items:center; gap:9px; min-width:0; margin:0 6px;
 }
-.app-header__title::before {
+/* نقطهٔ تزئینی روی __inner (نه __title که overflow:hidden دارد و لبهٔ نقطه را می‌بُرد) */
+.app-header__inner::before {
   content:''; width:8px; height:8px; border-radius:50%;
-  background:var(--accent); flex-shrink:0;
+  background:var(--accent); flex-shrink:0; align-self:center;
 }
 .app-header__actions { display:flex; align-items:center; gap:2px; margin-inline-start:auto; flex-shrink:0; }
 /* خوشه‌ی عنوان (عنوان + چیپ شمارنده) — در گوشه‌ی شروع (راست در RTL) می‌ماند */
