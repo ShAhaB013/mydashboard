@@ -151,7 +151,7 @@
     + ' .login-forgot-link, .login-back-link, .forgot-back-top, .reg-back-btn,'
     + ' .reg-resend, .login-pass-toggle, .login-pass-gen, .profile-pass-toggle,'
     + ' .profile-link-btn, .tm-icon-opt, .tm-deco-opt, .tm-close,'
-    + ' .reorder-toggle, .cab-btn, .card-add-tile';
+    + ' .reorder-toggle, .cab-btn, .card-add-tile, .acct-sess-kill, .acct-killall-btn';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;

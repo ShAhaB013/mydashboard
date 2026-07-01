@@ -371,6 +371,7 @@
       color: #ef4444; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25);
       padding: 6px 14px; border-radius: var(--radius-sm, 12px);
       transition: background var(--transition), color var(--transition);
+      position: relative; overflow: hidden;   /* میزبان افکت ripple */
     }
     .acct-sess-kill:hover { background: #ef4444; color: #fff; }
     .acct-killall-btn { margin-top: 14px; background: rgba(239,68,68,.1); color: #ef4444; box-shadow: none; }
