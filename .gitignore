@@ -30,9 +30,6 @@ sessions/
 # (SKILL.md شامل مشخصات اتصال محلی DB است)
 /.claude/
 
-# ─── Static assets (managed on host) ──────────────────────────
-favicon.ico
-
 # ─── OS / editor cruft ─────────────────────────────────────────
 .DS_Store
 Thumbs.db
