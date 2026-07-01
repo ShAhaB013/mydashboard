@@ -26,8 +26,9 @@ uploads/
 sessions/
 
 # ─── Local tooling artifacts ───────────────────────────────────
-/.claude/settings.local.json
-/.claude/skills/run-das/_shots/
+# کل پوشه‌ی .claude ابزار محلی agent است و نباید در ریپو باشد
+# (SKILL.md شامل مشخصات اتصال محلی DB است)
+/.claude/
 
 # ─── Static assets (managed on host) ──────────────────────────
 favicon.ico
