@@ -473,7 +473,14 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .section-count { font-size: 12px; font-weight: 600; background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); border-radius: var(--radius-sm); padding: 2px 9px; }
 
 /* Grid — کارت‌ها تمام‌عرض ناحیه محتوا را پر می‌کنند تا با هدر بخش (و دکمه مرتب‌سازی) هم‌تراز شوند */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 18px; }
+/* auto-fit (نه auto-fill): ستون‌های خالی جمع می‌شوند تا وقتی کارت‌ها کم‌اند و یک
+   ردیف پر نمی‌شود، به‌جای جاماندنِ فضای خالیِ یک‌طرفه، متقارن وسط بیایند.
+   max ستون = 1fr (نه طول ثابت) تا تعداد ستون‌ها از min=264 حساب شود و تراکم
+   گرید پر تغییری نکند (کروم برای طولِ ثابت تعداد را از max حساب می‌کند). */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(264px, 1fr)); gap: 18px; }
+/* سقف عرض کارت + وسط‌چینی داخل ستون: در گریدِ پر، کارت ستون را پر می‌کند؛ وقتی
+   کارت‌ها کم‌اند و ستون‌ها پهن می‌شوند، کارت از حدی پهن‌تر نشده و وسط ستون می‌نشیند. */
+.grid > .card, .grid > .card-add-tile { width: 100%; max-width: 420px; margin-inline: auto; }
 
 /* =============================================================================
    Card
