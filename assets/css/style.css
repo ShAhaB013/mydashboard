@@ -159,10 +159,17 @@ html.theme-instant * { transition: none !important; }
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-/* scrollbar-gutter: stable → گاتر اسکرول‌بار همیشه رزرو می‌شود؛ وقتی فیلتر
-   محتوا را کوتاه می‌کند و اسکرول‌بار عمودی محو می‌شود، عرض viewport تغییر نمی‌کند
-   و هدر/محتوای وسط‌چین دیگر افقی نمی‌پرند (رفع بهم‌ریختگی هدر). */
-html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; scrollbar-gutter: stable; }
+html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+/* اسکرول‌بار صفحه: باریک و ملایمِ هماهنگ با تم. وقتی محتوا کوتاه است و اسکرول
+   لازم نیست هیچ نوار/فضای رزروی سمت راست دیده نمی‌شود (بدون scrollbar-gutter). */
+html { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+html::-webkit-scrollbar { width: 9px; }
+html::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-thumb {
+  background: var(--color-border); border-radius: 999px;
+  border: 2px solid transparent; background-clip: content-box;
+}
+html::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); background-clip: content-box; }
 body { user-select: none; -webkit-user-select: none; }
 input, textarea, [contenteditable],
 .nd-text, .nd-text *, .nd-head-title, .nd-meta-row, .nd-meta-row *,
