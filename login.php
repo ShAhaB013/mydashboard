@@ -54,15 +54,39 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
 
       <div class="login-card-head">
         <div class="login-logo" aria-hidden="true">
-          <svg class="login-logo-ring" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <circle class="lr-track" cx="24" cy="24" r="22"/>
-            <circle class="lr-fill" cx="24" cy="24" r="22" pathLength="100"/>
-          </svg>
-          <svg class="login-logo-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          <svg class="login-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="ll-ring" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%"   stop-color="var(--color-accent-light)"/>
+                <stop offset="100%" stop-color="var(--color-accent-dark)"/>
+              </linearGradient>
+            </defs>
+            <!-- حلقه بیرونی هم‌رنگ اکسنت -->
+            <circle cx="50" cy="50" r="46" fill="none" stroke="url(#ll-ring)" stroke-width="3" opacity="0.85"/>
+            <!-- نقاط مدار ساده هم‌رنگ اکسنت -->
+            <g fill="currentColor" opacity="0.55">
+              <circle cx="50" cy="8"  r="2.4"/>
+              <circle cx="82" cy="24" r="2.4"/>
+              <circle cx="82" cy="76" r="2.4"/>
+              <circle cx="18" cy="24" r="2.4"/>
+              <circle cx="18" cy="76" r="2.4"/>
+            </g>
+            <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.35">
+              <line x1="50" y1="10" x2="50" y2="20"/>
+              <line x1="80" y1="26" x2="72" y2="33"/>
+              <line x1="80" y1="74" x2="72" y2="67"/>
+              <line x1="20" y1="26" x2="28" y2="33"/>
+              <line x1="20" y1="74" x2="28" y2="67"/>
+            </g>
+            <!-- دنده ۸-دندانه هم‌رنگ اکسنت (outer r=14, inner r=10) -->
+            <path id="ll-gear"
+                  d="M50,36 L53.8,40.8 L59.9,40.1 L59.2,46.2 L64,50 L59.2,53.8 L59.9,59.9 L53.8,59.2 L50,64 L46.2,59.2 L40.1,59.9 L40.8,53.8 L36,50 L40.8,46.2 L40.1,40.1 L46.2,40.8 Z"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <!-- هاب مرکزی دنده -->
+            <circle cx="50" cy="50" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>
           </svg>
         </div>
+        <h1 class="login-title">ورود به حساب کاربری</h1>
       </div>
 
       <!-- ═══ فرم ورود ═══ -->
@@ -70,6 +94,9 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
         <div class="field" data-state="idle">
           <label class="field-label" for="loginUsername">نام کاربری</label>
           <div class="field-box">
+            <span class="field-type-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
             <input type="text" id="loginUsername" name="username" class="field-input" placeholder="نام کاربری"
                    autocomplete="username" dir="ltr" maxlength="190" autofocus>
             <span class="field-status" aria-hidden="true"></span>
@@ -80,6 +107,9 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
         <div class="field" data-state="idle">
           <label class="field-label" for="loginPassword">رمز عبور</label>
           <div class="field-box">
+            <span class="field-type-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
             <input type="password" id="loginPassword" name="password" class="field-input" placeholder="رمز عبور"
                    autocomplete="current-password" dir="ltr" maxlength="128">
             <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('loginPassword', this)">

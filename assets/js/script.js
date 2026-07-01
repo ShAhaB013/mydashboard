@@ -742,6 +742,27 @@ function setFilter(f) {
 /* ═══════════════════════════════════════════════════════════
    Card visibility observer — pause انیمیشن کارت‌های off-screen
    ═══════════════════════════════════════════════════════════ */
+/* ── توقف انیمیشن deco حین اسکرول ──
+   هنگام اسکرول، repaintهای انیمیشن SVG با خود اسکرول رقابت می‌کنند و لگ می‌دهند.
+   با گذاشتن کلاس is-scrolling روی <html> همه انیمیشن‌های deco موقتا متوقف می‌شوند
+   و ~150ms پس از توقف اسکرول دوباره روشن می‌شوند. (بی‌ضرر اگر کارتی نباشد.) */
+(function () {
+  const root = document.documentElement;
+  let scrolling = false, raf = 0, off = 0;
+  function onScroll() {
+    if (!scrolling && !raf) {
+      raf = requestAnimationFrame(() => {
+        raf = 0; scrolling = true; root.classList.add('is-scrolling');
+      });
+    }
+    clearTimeout(off);
+    off = setTimeout(() => {
+      scrolling = false; root.classList.remove('is-scrolling');
+    }, 150);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+})();
+
 let cardVisibilityObserver = null;
 function getCardVisibilityObserver() {
   if (cardVisibilityObserver) return cardVisibilityObserver;
@@ -761,6 +782,9 @@ function getCardVisibilityObserver() {
       دسته بعدی فقط وقتی کاربر به انتهای لیست نزدیک شد رندر می‌شود.
       این کار از ساخت یکجای صدها کارت + انیمیشن deco جلوگیری می‌کند. */
 const BATCH_SIZE = 12;
+/* حد آستانه حالت «آرام»: بالای این تعداد کارت، انیمیشن deco فقط روی کارت زیر
+   ماوس اجرا می‌شود (بقیه ساکن) تا با ۵۰-۱۰۰+ کارت لگ نزند. قابل تنظیم. */
+const MOTION_THRESHOLD = 30;
 let loadMoreObserver = null;
 let renderQueue = { list: [], rendered: 0, sentinel: null };
 
@@ -836,6 +860,10 @@ function renderTools(filterText = '') {
   }
 
   if (toolCount) toolCount.textContent = String(list.length);
+
+  // حالت آرام تطبیقی: با تعداد زیاد کارت، انیمیشن deco فقط روی hover
+  grid.classList.toggle('grid--calm', list.length > MOTION_THRESHOLD);
+
   if (!list.length) { showEmptyState(q); return; }
 
   renderQueue = { list, rendered: 0, sentinel: null };

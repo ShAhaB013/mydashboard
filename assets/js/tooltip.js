@@ -90,12 +90,16 @@
     if (el === curEl) leave();
   }, true);
 
-  /* دسترس‌پذیری: نمایش هنگام فوکوس صفحه‌کلید، پنهان هنگام بلور/کلیک/اسکرول */
+  /* دسترس‌پذیری: نمایش فقط هنگام فوکوس با صفحه‌کلید (focus-visible)، نه با کلیک ماوس */
   document.addEventListener('focusin', function (e) {
     var el = e.target.closest && e.target.closest('[title],[data-tip]');
-    if (el && text(el)) { curEl = el; clearTimeout(hideT); show(el); }
+    if (!el || !text(el)) return;
+    /* فوکوس ناشی از کلیک ماوس نباید tooltip را فوری باز کند؛ فقط فوکوس کیبوردی */
+    try { if (!el.matches(':focus-visible')) return; } catch (_) { return; }
+    curEl = el; clearTimeout(hideT); clearTimeout(showT);
+    showT = setTimeout(function () { show(el); }, SHOW_DELAY);
   }, true);
-  document.addEventListener('focusout', hide, true);
+  document.addEventListener('focusout', function () { clearTimeout(showT); hide(); }, true);
   document.addEventListener('mousedown', hide, true);
   document.addEventListener('pointerdown', function () { clearTimeout(showT); hide(); }, true);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); }, true);

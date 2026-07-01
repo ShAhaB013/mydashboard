@@ -163,6 +163,14 @@
     btn.appendChild(r);
     r.addEventListener('animationend', () => r.remove());
   });
+  /* رفع باگ bfcache: اگر حین پخش ریپل به صفحه دیگری برویم، span موج در صفحهٔ
+     منجمدشده باقی می‌ماند و هنگام بازگشت (back/forward) دوباره پخش می‌شود.
+     پیش از منجمدشدن صفحه و نیز هنگام بازیابی از کش، همهٔ ریپل‌ها را پاک می‌کنیم. */
+  function purgeRipples() {
+    document.querySelectorAll('span.ripple').forEach(function (n) { n.remove(); });
+  }
+  window.addEventListener('pagehide', purgeRipples);
+  window.addEventListener('pageshow', function (e) { if (e.persisted) purgeRipples(); });
   /* لینک‌های هدر/منو با prerender فوری باز می‌شوند و ریپل دیده نمی‌شود؛
      ناوبری را ~160ms نگه می‌داریم تا موج کلیک پخش شود. */
   document.addEventListener('click', function (e) {

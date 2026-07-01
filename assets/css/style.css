@@ -159,7 +159,10 @@ html.theme-instant * { transition: none !important; }
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+/* scrollbar-gutter: stable → گاتر اسکرول‌بار همیشه رزرو می‌شود؛ وقتی فیلتر
+   محتوا را کوتاه می‌کند و اسکرول‌بار عمودی محو می‌شود، عرض viewport تغییر نمی‌کند
+   و هدر/محتوای وسط‌چین دیگر افقی نمی‌پرند (رفع بهم‌ریختگی هدر). */
+html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; scrollbar-gutter: stable; }
 body { user-select: none; -webkit-user-select: none; }
 input, textarea, [contenteditable],
 .nd-text, .nd-text *, .nd-head-title, .nd-meta-row, .nd-meta-row *,
@@ -498,13 +501,38 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 
 /* will-change فقط هنگام تعامل — جلوگیری از مصرف بی‌مورد حافظه GPU */
 .card:hover,
-.card:focus-visible {
+.card:focus-visible,
+.card:hover::before,
+.card:focus-visible::before {
   will-change: transform;
 }
 
 /* متوقف کردن انیمیشن‌های SVG برای کارت‌های خارج viewport — صرفه‌جویی CPU */
 .card.card--offscreen .card-deco-wrap *,
 .card.card--offscreen .card-corner-deco * {
+  animation-play-state: paused !important;
+}
+
+/* حین اسکرول همه انیمیشن‌های deco موقتا متوقف می‌شوند تا repaintها با اسکرول
+   رقابت نکنند و صفحه روان بماند (js کلاس is-scrolling را روی <html> می‌گذارد). */
+html.is-scrolling .card-deco-wrap *,
+html.is-scrolling .card-corner-deco * {
+  animation-play-state: paused !important;
+}
+
+/* حالت «آرام» (تطبیقی): وقتی تعداد کارت‌ها از حد آستانه بیشتر شد، انیمیشن deco
+   به‌صورت پیش‌فرض ساکن است و فقط کارت زیر ماوس/فوکوس انیمیشن دارد — برای روانی
+   با ۵۰ تا ۱۰۰+ کارت. js کلاس grid--calm را روی گرید toggle می‌کند. */
+.grid--calm .card-deco-wrap * {
+  animation-play-state: paused !important;
+}
+.grid--calm .card:hover .card-deco-wrap *,
+.grid--calm .card:focus-within .card-deco-wrap * {
+  animation-play-state: running !important;
+}
+/* در حالت آرام هم حین اسکرول کارت hover‌شده متوقف می‌ماند */
+html.is-scrolling .grid--calm .card:hover .card-deco-wrap *,
+html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   animation-play-state: paused !important;
 }
 .card[data-badge="تصویر"] {
@@ -527,7 +555,6 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   background: linear-gradient(90deg, var(--card-color) 0%, var(--card-color-l) 100%);
   transform: scaleX(0); transform-origin: right;
   transition: transform .4s cubic-bezier(.25,.8,.25,1);
-  will-change: transform;
   backface-visibility: hidden;
 }
 .card::after {
@@ -1229,29 +1256,30 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 }
 .login-card-head { text-align: center; margin-bottom: 22px; }
 .login-logo {
-  position: relative;
-  width: 48px; height: 48px; margin: 0 auto;
+  width: 56px; height: 56px; margin: 0 auto;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  background: var(--color-accent-bg);
+  background: none; border: none;
+}
+.login-logo-img {
+  width: 100%; height: 100%; display: block;
   color: var(--color-accent);
-  border: 1.5px solid var(--color-accent);
-  /* رنگ‌بندی متحرک متناسب با قدرت رمز */
-  transition: color .45s ease, border-color .45s ease,
-              background .45s ease, box-shadow .45s ease;
+  filter: drop-shadow(0 4px 14px var(--color-accent-bg-hover));
+  animation: loginCardIn .45s cubic-bezier(0.22,1,0.36,1);
 }
-.login-logo-lock {
-  position: relative;            /* روی رینگ */
-  width: 23px; height: 23px;
-  transition: transform .5s cubic-bezier(.34, 1.56, .64, 1);
+.login-logo-img #ll-ring stop:first-child { stop-color: var(--color-accent-light); }
+.login-logo-img #ll-ring stop:last-child  { stop-color: var(--color-accent-dark); }
+.login-title {
+  font-family: 'HeadingFont', 'DashboardFont', sans-serif;
+  font-size: 17px; font-weight: 700; color: var(--color-text-primary);
+  letter-spacing: -.3px; margin-top: 12px;
 }
-/* رینگ پیشرفت برداری (SVG) روی لبه لوگو — لبه‌ها کاملا تیز */
-.login-logo-ring {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  transform: rotate(-90deg);     /* شروع پرشدن از بالا */
-  opacity: 0; transition: opacity .3s ease;
-  pointer-events: none;
+/* دوران آروم دنده مرکزی لوگو */
+.login-logo-img #ll-gear {
+  transform-box: fill-box; transform-origin: center;
+  animation: ll-gear-spin 14s linear infinite;
 }
+@keyframes ll-gear-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .login-logo-img #ll-gear { animation: none; } }
 .login-logo[class*="pw-"] .login-logo-ring { opacity: 1; }
 /* هنگام فعال‌بودن نشانگر، border ثابت پنهان می‌شود تا رینگ تنها مرجع باشد */
 .login-logo[class*="pw-"] { border-color: transparent; }
@@ -1304,6 +1332,20 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   transition: color var(--transition);
 }
 .login-back-link:hover { color: var(--color-accent); }
+
+/* آیکون نوع فیلد (قفل / کاربر) — سمت چپ (انتهای RTL) */
+.login-form .field-type-icon {
+  flex: 0 0 auto; order: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  margin-inline-start: 4px; margin-inline-end: 6px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+  transition: color var(--transition);
+}
+.login-form .field-type-icon svg { width: 16px; height: 16px; display: block; }
+.login-form .field[data-state="error"]   .field-type-icon { color: var(--field-error); }
+.login-form .field-box:focus-within      .field-type-icon { color: var(--color-accent); }
 
 /* ── ثبت‌نام چندمرحله‌ای ── */
 .reg-step { display: flex; flex-direction: column; gap: 20px; animation: loginFormIn .3s cubic-bezier(.22, 1, .36, 1); }
