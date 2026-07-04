@@ -888,13 +888,13 @@ function checkStrength(val, barId, labelId) {
   if (/[^A-Za-z0-9]/.test(val))  score++;
   const levels = ['', 'ضعیف', 'متوسط', 'خوب', 'قوی'];
   bar.className = 'pass-strength strength-' + (score || 1);
-  if (label) label.textContent = val.length < 6 ? 'خیلی کوتاه' : (levels[score] || 'ضعیف');
+  if (label) label.textContent = val.length < 10 ? 'خیلی کوتاه' : (levels[score] || 'ضعیف');
 }
 
 /* ── سیاست رمز: حداقل «متوسط» (هم‌راستا با PasswordPolicy سمت سرور) ── */
-const PW_POLICY_MSG = 'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۶ کاراکتر همراه با ترکیبی از حروف بزرگ، عدد یا نماد.';
+const PW_POLICY_MSG = 'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۱۰ کاراکتر همراه با ترکیبی از حروف بزرگ، عدد یا نماد.';
 function pwMeetsPolicy(val) {
-  if (!val || val.length < 6) return false;
+  if (!val || val.length < 10) return false;
   let score = 0;
   if (val.length >= 8)          score++;
   if (/[A-Z]/.test(val))        score++;

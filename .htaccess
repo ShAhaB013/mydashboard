@@ -11,6 +11,13 @@ Options -Indexes
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # ─── اجبارِ HTTPS ─────────────────────────────────────────────
+  # هر درخواستِ HTTP به نسخه‌ی HTTPS ریدایرکت می‌شود (۳۰۱). شرطِ
+  # X-Forwarded-Proto برای سازگاری با پایانه‌دهنده‌ی TLS (LiteSpeed/پراکسی).
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
   # /admin و /admin/ → admin.php (نقطه ورود پنل مدیریت)
   # پوشه‌ی بک‌اند حالا app/ نام دارد (نه admin/) و کاملا deny است. این قانونِ
   # صریح URLِ /admin را به فایلِ admin.php می‌برد و کوئری مثل ?page=users را با
@@ -79,6 +86,19 @@ Options -Indexes
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # HSTS: پس از اجبارِ HTTPS، مرورگر را وادار به استفاده‌ی همیشگی از HTTPS می‌کند.
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+  # محدودسازی APIهای حساس مرورگر که این اپ استفاده نمی‌کند.
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+
+  # CSP فعلاً گزارش‌محور (Report-Only) است: چیزی را مسدود نمی‌کند، فقط تخلف‌ها
+  # را در کنسول مرورگر گزارش می‌دهد. script-src عمداً 'unsafe-inline' ندارد تا
+  # هر <script> یا onclick inline به‌عنوان تخلف گزارش شود و بدانیم کجا nonce لازم
+  # است؛ style-src فعلاً 'unsafe-inline' دارد چون ویژگی style inline در سراسر
+  # قالب‌ها پرشمار است (مهاجرت جداگانه). پس از پایش، به enforcing ارتقا می‌یابد.
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'"
 </IfModule>
 
 # فایل‌های حساس: dotfileها، دامپِ دیتابیس، آرشیو/بکاپ، پیکربندی، لاگ ...

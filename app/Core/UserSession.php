@@ -30,16 +30,45 @@ class UserSession
         session_set_cookie_params([
             'lifetime' => $ttl,
             'path'     => '/',
-            'secure'   => isset($_SERVER['HTTPS']),
+            'secure'   => self::isHttps(),
             'httponly' => true,
             'samesite' => 'Strict',
         ]);
         session_start();
     }
 
+    /**
+     * تشخیص مقاومِ HTTPS. `isset($_SERVER['HTTPS'])` نادرست بود: برخی سرورها
+     * روی HTTP مقدار 'off' می‌گذارند (→ کوکی اشتباهاً Secure) و پشت TLS-terminating
+     * proxy اصلاً ست نمی‌شود (→ کوکی Secure نمی‌شود). این متد هر سه سیگنالِ
+     * معتبر را بررسی می‌کند.
+     */
+    private static function isHttps(): bool
+    {
+        if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+            return true;
+        }
+        if (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') {
+            return true;
+        }
+        return ((string) ($_SERVER['SERVER_PORT'] ?? '')) === '443';
+    }
+
     public static function check(): bool
     {
         return !empty($_SESSION['user_id']);
+    }
+
+    /**
+     * توکن CSRFِ نشست را تضمین می‌کند (اگر نبود می‌سازد) و برمی‌گرداند.
+     * منبع یگانه — به‌جای تکرارِ همین بلوک در نقاط ورود مختلف.
+     */
+    public static function ensureCsrfToken(): string
+    {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
     }
 
     public static function id(): int

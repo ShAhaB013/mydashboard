@@ -12,14 +12,9 @@ $isAdmin     = $isLoggedIn && UserSession::isAdmin();
 $menuName    = $displayName !== '' ? $displayName : $username;
 $avatarChar  = $menuName !== '' ? mb_substr($menuName, 0, 1, 'UTF-8') : '؟';
 
-// توکن CSRF فقط برای ادمین — مدیریت اینلاین کارت‌ها روی همین داشبورد (اعتبارسنجی در admin.php)
-$csrfToken = '';
-if ($isAdmin) {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    $csrfToken = $_SESSION['csrf_token'];
-}
+// توکن CSRF برای هر کاربرِ لاگین‌شده — لازم برای درخواست‌های حالت‌تغییردهنده‌ی
+// api.php (logout / mark_read / mark_all_read) و نیز مدیریت اینلاینِ ادمین.
+$csrfToken = UserSession::check() ? UserSession::ensureCsrfToken() : '';
 
 $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
 $v_js    = asset_v(__DIR__ . '/assets/js/script.js');

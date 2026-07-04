@@ -567,7 +567,7 @@ const NotifPanel = {
     try {
       await fetch(`${API_URL}?action=mark_read`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
         body:    JSON.stringify({ notification_id: id }),
       });
     } catch { /* silent */ }
@@ -644,7 +644,10 @@ const NotifPanel = {
     this._updateBadge();
     this._renderDropdown();
     try {
-      await fetch(`${API_URL}?action=mark_all_read`, { method: 'POST' });
+      await fetch(`${API_URL}?action=mark_all_read`, {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': window.CSRF_TOKEN || '' },
+      });
     } catch { /* silent */ }
   },
 
@@ -1146,7 +1149,20 @@ document.addEventListener('keydown', e => {
    Logout
    ═══════════════════════════════════════════════════════════ */
 async function handleLogout() {
-  await fetch(`${API_URL}?action=logout`, { method: 'POST' });
+  let ok = false;
+  try {
+    const res = await fetch(`${API_URL}?action=logout`, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': window.CSRF_TOKEN || '' },
+    });
+    ok = res.ok;
+  } catch { /* شبکه قطع — پایین رفرش می‌کنیم */ }
+
+  // اگر سرور خروج را تایید نکرد (مثلا توکن CSRF کهنه → 403)، سشن هنوز روی سرور
+  // زنده است. نباید UI را «خارج‌شده» نشان دهیم؛ صفحه را رفرش می‌کنیم تا وضعیت
+  // واقعی از سرور همگام شود (توکن تازه + کاربر همچنان وارد).
+  if (!ok) { window.location.reload(); return; }
+
   Auth.setLoggedOut();
   NotifPanel.reset();
   await loadData();
@@ -1584,7 +1600,15 @@ const AdminTools = {
   askDelete(id, title) {
     this._ensureWired(); if (!this._confirm) return;
     this._delId = id;
-    document.getElementById('tmConfirmDesc').innerHTML = 'ابزار <span class="item-name">' + (title || '') + '</span> به‌طور دائم حذف خواهد شد.';
+    // ساختِ امنِ DOM به‌جای رشته‌ی innerHTML: عنوانِ ابزار (داده‌ی کاربر) با
+    // textContent درج می‌شود تا حتی اگر شامل HTML بود، اجرا/رندر نشود (ضدِ XSS).
+    const el = document.getElementById('tmConfirmDesc');
+    const name = document.createElement('span');
+    name.className = 'item-name';
+    name.textContent = title || '';
+    el.textContent = 'ابزار ';
+    el.appendChild(name);
+    el.appendChild(document.createTextNode(' به‌طور دائم حذف خواهد شد.'));
     this._confirm.classList.add('open'); this._confirm.setAttribute('aria-hidden', 'false');
   },
   _hideConfirm() { if (this._confirm) { this._confirm.classList.remove('open'); this._confirm.setAttribute('aria-hidden', 'true'); } this._delId = null; },

@@ -14,6 +14,10 @@ class RateLimiter
     /**
      * @param string $scope جداسازی شمارنده‌ها: 'user' برای api.php و 'admin' برای admin.php
      *                      تا قفل‌شدن یکی روی دیگری اثر نگذارد.
+     *
+     * توجه: محدودیت عمداً فقط بر پایه IP است (نه per-account). قفلِ حساب‌محور امکانِ
+     * «lockout عمدیِ» یک کاربر توسط مهاجم را می‌داد؛ چون این نصب پشت پراکسی نیست و
+     * REMOTE_ADDR همان IP واقعی است، limiterِ اتمیکِ IP-محور کافی و بدونِ آن ریسک است.
      */
     public function __construct(string $scope = 'user')
     {
@@ -39,49 +43,37 @@ class RateLimiter
     }
 
     /**
-     * ثبت یک تلاش ناموفق
+     * ثبت یک تلاش ناموفق — به‌صورت اتمیک در یک دستور.
+     *
+     * الگوی قبلی (SELECT سپس UPDATE) شرطِ رقابتی داشت: چند درخواستِ هم‌زمان
+     * یک مقدار قدیمی می‌خواندند و شمارنده را کم‌شمار می‌کردند، پس مهاجم می‌توانست
+     * از سقف عبور کند. اینجا شمارش و تصمیمِ بلاک هر دو داخلِ موتور دیتابیس و در
+     * یک `INSERT ... ON DUPLICATE KEY UPDATE` انجام می‌شود (بدونِ پنجره‌ی رقابت).
+     *
+     * ترتیب SET مهم است: هر سه عبارت به مقادیرِ «قدیمِ» attempts/last_attempt
+     * ارجاع می‌دهند (last_attempt در انتها مقداردهی می‌شود).
      */
     public function recordFailure(): void
     {
         $now = time();
-        $row = $this->fetchRow();
-
-        if (!$row) {
-            // اولین تلاش
-            DB::run(
-                'INSERT INTO login_rate_limit (ip, scope, attempts, last_attempt, blocked_until)
-                 VALUES (:ip, :scope, 1, :now, 0)',
-                [':ip' => $this->ip, ':scope' => $this->scope, ':now' => $now]
-            );
-            return;
-        }
-
-        // اگه پنجره زمانی منقضی شده، از نو شروع کن
-        if ($now - $row['last_attempt'] > self::WINDOW_SECONDS) {
-            DB::run(
-                'UPDATE login_rate_limit
-                 SET attempts = 1, last_attempt = :now, blocked_until = 0
-                 WHERE ip = :ip AND scope = :scope',
-                [':now' => $now, ':ip' => $this->ip, ':scope' => $this->scope]
-            );
-            return;
-        }
-
-        $newAttempts = $row['attempts'] + 1;
-        $blockedUntil = $newAttempts >= self::MAX_ATTEMPTS
-            ? $now + self::BLOCK_SECONDS
-            : 0;
-
+        // placeholderهای یکتا: با EMULATE_PREPARES=false نمی‌توان یک نام را
+        // چند بار در کوئری تکرار کرد، پس هر تکرار نامِ جدا و مقدارِ یکسان دارد.
         DB::run(
-            'UPDATE login_rate_limit
-             SET attempts = :att, last_attempt = :now, blocked_until = :blocked
-             WHERE ip = :ip AND scope = :scope',
+            'INSERT INTO login_rate_limit (ip, scope, attempts, last_attempt, blocked_until)
+             VALUES (:ip, :scope, 1, :now0, 0)
+             ON DUPLICATE KEY UPDATE
+               blocked_until = IF(
+                   IF(:now1 - last_attempt > :win1, 1, attempts + 1) >= :max,
+                   :now2 + :block, 0),
+               attempts      = IF(:now3 - last_attempt > :win2, 1, attempts + 1),
+               last_attempt  = :now4',
             [
-                ':att'     => $newAttempts,
-                ':now'     => $now,
-                ':blocked' => $blockedUntil,
-                ':ip'      => $this->ip,
-                ':scope'   => $this->scope,
+                ':ip'    => $this->ip,
+                ':scope' => $this->scope,
+                ':now0'  => $now, ':now1' => $now, ':now2' => $now, ':now3' => $now, ':now4' => $now,
+                ':win1'  => self::WINDOW_SECONDS, ':win2' => self::WINDOW_SECONDS,
+                ':max'   => self::MAX_ATTEMPTS,
+                ':block' => self::BLOCK_SECONDS,
             ]
         );
 

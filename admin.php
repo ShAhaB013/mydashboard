@@ -23,8 +23,14 @@ $request = new Request();
 $isApi = (bool) $request->query('api');
 
 // ── خروج ─────────────────────────────────────────────────
+// فقط با POST + توکن CSRF معتبر (جلوگیری از CSRF-logout با GET مثل <img src=?logout>).
+// خروجِ عادیِ کاربر از منوی داشبورد با api.php?action=logout انجام می‌شود.
 if (isset($_GET['logout'])) {
-    UserSession::destroy();
+    $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? '');
+    $real = $_SESSION['csrf_token'] ?? '';
+    if ($request->isPost() && $real !== '' && is_string($sent) && hash_equals($real, $sent)) {
+        UserSession::destroy();
+    }
     header('Location: /');
     exit;
 }
@@ -55,9 +61,7 @@ if (!$isAdmin) {
 }
 
 // توکن CSRF را تضمین کن (سشن‌های قدیمی ممکن است نداشته باشند)
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+UserSession::ensureCsrfToken();
 
 // ── ساخت وابستگی‌ها ──────────────────────────────────────
 $iconDb    = new JsonStore($config['files']['icons']);
