@@ -135,6 +135,7 @@ if ($page === 'users') {
 
     $users      = $userModel->allPaginated($userPage, $perPage, $userSearch);
     $sessionCounts = SessionModel::countsByUser();   // [user_id => تعداد نشست فعال]
+    $sessionTtlHours = SettingsModel::getInt('session_ttl_hours', 1, 720, 24);
     // مودال دسترسی به «همه ابزارها» نیاز دارد — نسخه سبک تزریق می‌شود
     $toolsLite  = json_encode(ToolModel::toLite($toolModel->all()), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
     $csrfToken  = $_SESSION['csrf_token'] ?? '';
@@ -155,7 +156,6 @@ $decosData = $decoModel->all();
 $toolsLite  = json_encode(ToolModel::toLite($tools), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $toolsTotal = count($tools);
 $usersTotal = $userModel->countAll();    // فقط شمارش (بدون واکشی کل کاربران)
-$sessionTtlHours = SettingsModel::getInt('session_ttl_hours', 1, 720, 24);
 $iconsJson  = json_encode($icons,     JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $decosJson  = json_encode($decosData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $csrfToken  = $_SESSION['csrf_token'] ?? '';

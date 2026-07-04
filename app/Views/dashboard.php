@@ -43,85 +43,59 @@
 
 <div class="admin-wrap">
 
-  <!-- ── مدیریت کاربران (صفحه مستقل) ── -->
-  <div class="section-box" id="usersBox">
-    <div class="section-box-head" style="cursor:default;">
-      <h2>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+  <!-- ── شبکه بخش‌های مدیریت ── -->
+  <div class="admin-tiles">
+
+    <!-- مدیریت کاربران (صفحه مستقل) -->
+    <a href="/admin?page=users" class="admin-tile">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
         </svg>
-        مدیریت کاربران
-        <span class="count-badge"><?= (int) ($usersTotal ?? 0) ?></span>
-      </h2>
-      <a href="/admin?page=users" class="btn btn-primary btn-sm" style="text-decoration:none;">
-        مدیریت و جستجوی کاربران
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-      </a>
-    </div>
-  </div>
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">مدیریت کاربران</span>
+        <span class="admin-tile-count"><b><?= (int) ($usersTotal ?? 0) ?></b> کاربر</span>
+      </span>
+      <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
 
-  <!-- ── نشست‌های فعال کاربران ── -->
-  <div class="section-box" id="sessionsBox">
-    <div class="section-box-head" onclick="SessionsManager.toggleBox()">
-      <h2>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-        </svg>
-        نشست‌های فعال
-        <span class="count-badge" id="sessionsCountBadge">…</span>
-      </h2>
-      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
-    </div>
-    <div class="section-box-body">
-      <div class="sess-toolbar">
-        <p class="sess-hint">نشست‌های فعال همه کاربران روی دستگاه‌های مختلف. می‌توانید موارد غیرضروری را پایان دهید.</p>
-        <div class="sess-toolbar-actions">
-          <button class="btn btn-secondary btn-sm" onclick="SessionsManager.loadPanel()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-            بروزرسانی
-          </button>
-          <button class="btn btn-danger btn-sm" onclick="SessionsManager.terminateOthers()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
-            پایان همه نشست‌های دیگر
-          </button>
-        </div>
-      </div>
-      <div class="sess-ttl-row">
-        <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود:</label>
-        <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
-        <span>ساعت</span>
-        <button class="btn btn-secondary btn-sm" onclick="SessionsManager.saveTtl()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          ذخیره
-        </button>
-        <span class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</span>
-      </div>
-      <div id="sessionsPanel" class="sess-list">
-        <div class="blocks-loading">برای مشاهده، این بخش را باز کنید…</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── مدیریت آیکون‌ها ── -->
-  <div class="section-box" id="iconsBox">
-    <div class="section-box-head" onclick="toggleBox('iconsBox')">
-      <h2>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- مدیریت آیکون‌ها -->
+    <button type="button" class="admin-tile" onclick="togglePanel('iconsBox', this)">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
           <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
         </svg>
-        مدیریت آیکون‌ها
-        <span class="count-badge" id="iconCountBadge"><?= count($icons) ?></span>
-      </h2>
-      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
-    </div>
-    <div class="section-box-body">
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">مدیریت آیکون‌ها</span>
+        <span class="admin-tile-count"><b id="iconCountBadge"><?= count($icons) ?></b> آیکون</span>
+      </span>
+      <svg class="admin-tile-arrow admin-tile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+
+    <!-- مدیریت انیمیشن‌های کارت -->
+    <button type="button" class="admin-tile" onclick="togglePanel('decosBox', this)">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">مدیریت انیمیشن‌های کارت</span>
+        <span class="admin-tile-count"><b id="decoCountBadge"><?= count($decosData) ?></b> انیمیشن</span>
+      </span>
+      <svg class="admin-tile-arrow admin-tile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+
+  </div>
+
+  <!-- ── پنل مدیریت آیکون‌ها ── -->
+  <div class="section-panel" id="iconsBox">
+    <div class="section-panel-body">
       <div class="asset-grid" id="iconAssetGrid"></div>
       <div class="asset-editor" id="iconEditor" style="display:none;">
         <div class="asset-editor-head">
@@ -173,21 +147,9 @@
     </div>
   </div>
 
-  <!-- ── مدیریت انیمیشن‌های کارت ── -->
-  <div class="section-box" id="decosBox">
-    <div class="section-box-head" onclick="toggleBox('decosBox')">
-      <h2>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-        </svg>
-        مدیریت انیمیشن‌های کارت
-        <span class="count-badge" id="decoCountBadge"><?= count($decosData) ?></span>
-      </h2>
-      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
-    </div>
-    <div class="section-box-body">
+  <!-- ── پنل مدیریت انیمیشن‌های کارت ── -->
+  <div class="section-panel" id="decosBox">
+    <div class="section-panel-body">
       <div class="asset-grid" id="decoAssetGrid" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));"></div>
       <div class="asset-editor" id="decoEditor" style="display:none;">
         <div class="asset-editor-head">

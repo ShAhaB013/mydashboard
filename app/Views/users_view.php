@@ -90,6 +90,18 @@
     </div>
   </div>
 
+  <!-- ── تنظیم مدت اعتبار نشست ── -->
+  <div class="sess-ttl-row">
+    <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود:</label>
+    <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
+    <span>ساعت</span>
+    <button class="btn btn-secondary btn-sm" onclick="SessionsManager.saveTtl()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      ذخیره
+    </button>
+    <span class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</span>
+  </div>
+
   <!-- ── جستجو (سمت سرور) ── -->
   <form class="user-search" method="GET" action="/admin" role="search">
     <input type="hidden" name="page" value="users">

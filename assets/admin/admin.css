@@ -333,6 +333,57 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .section-box-body { padding:0 20px 20px; display:none; }
 .section-box.open .section-box-body { display:block; }
 
+/* ── شبکه کاشی‌های مدیریت (کارت‌های کلیک‌پذیر) ── */
+.admin-tiles {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));
+  gap:16px; margin-bottom:24px;
+}
+.admin-tile {
+  display:flex; align-items:center; gap:14px;
+  padding:18px; text-align:right; text-decoration:none;
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); cursor:pointer;
+  color:var(--text); font-family:'DashboardFont',sans-serif;
+  transition:transform var(--t), border-color var(--t), box-shadow var(--t);
+}
+.admin-tile:hover {
+  transform:translateY(-5px); border-color:var(--accent);
+  box-shadow:0 12px 30px rgba(0,0,0,.12);
+}
+.admin-tile.active {
+  border-color:var(--accent);
+  box-shadow:0 8px 22px rgba(var(--accent-rgb),.16);
+}
+.admin-tile-ic {
+  flex-shrink:0; width:46px; height:46px; border-radius:var(--radius);
+  display:flex; align-items:center; justify-content:center;
+  background:var(--accent-bg); color:var(--accent);
+  transition:background var(--t), color var(--t);
+}
+.admin-tile-ic svg { width:24px; height:24px; }
+.admin-tile:hover .admin-tile-ic,
+.admin-tile.active .admin-tile-ic { background:var(--accent); color:#fff; }
+.admin-tile-info { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
+.admin-tile-title { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.admin-tile-count { font-size:12.5px; color:var(--text-2); }
+.admin-tile-count b { color:var(--accent); font-weight:700; }
+.admin-tile-arrow { flex-shrink:0; width:18px; height:18px; color:var(--text-3); transition:transform var(--t), color var(--t); }
+.admin-tile:hover .admin-tile-arrow { color:var(--accent); }
+.admin-tile:hover .admin-tile-arrow:not(.admin-tile-chevron) { transform:translateX(-3px); }
+.admin-tile.active .admin-tile-chevron { transform:rotate(180deg); color:var(--accent); }
+
+/* ── پنل بخش (زیر شبکه باز می‌شود؛ فقط یکی هم‌زمان) ── */
+.section-panel {
+  display:none;
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); margin-bottom:24px;
+  animation:panelIn var(--t);
+}
+.section-panel.open { display:block; }
+.section-panel-body { padding:22px 20px; }
+@keyframes panelIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+
 /* ── Tools List ── */
 .tools-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
 .tools-header h2 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:600; color:var(--text-2); display:flex; align-items:center; gap:8px; }

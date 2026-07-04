@@ -851,7 +851,19 @@ const Theme = {
 // ═══════════════════════════════════════════════════════════
 // توابع عمومی — صدا زده شده از HTML
 // ═══════════════════════════════════════════════════════════
-function toggleBox(id)              { document.getElementById(id).classList.toggle('open'); }
+// شبکه بخش‌های ادمین: کلیک روی کاشی، پنل مربوطه را باز می‌کند (آکاردئونی — فقط یکی هم‌زمان).
+function togglePanel(id, tile) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  const willOpen = !panel.classList.contains('open');
+  document.querySelectorAll('.section-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.admin-tile.active').forEach(t => t.classList.remove('active'));
+  if (willOpen) {
+    panel.classList.add('open');
+    if (tile) tile.classList.add('active');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
 function toggleTheme()              { Theme.toggle(); }
 function closeConfirm()             { Confirm.close(); }
 function runConfirm()               { Confirm.run(); }
@@ -978,36 +990,12 @@ const SecurityManager = {
 function openBlocksModal() { SecurityManager.open(); }
 
 // ═══════════════════════════════════════════════════════════
-// SessionsManager — مدیریت نشست‌های فعال کاربران
-// روی داشبورد (پنل کلی همه نشست‌ها) و صفحه کاربران (مودال هر کاربر).
+// SessionsManager — مدیریت نشست‌های فعال یک کاربر
+// در صفحه کاربران از طریق مودال هر کاربر (sessionsUserModal) استفاده می‌شود.
 // ═══════════════════════════════════════════════════════════
 const SessionsManager = {
-  _loaded: false,
   _curUser: 0,
   _curUserName: '',
-
-  // ── پنل داشبورد (همه نشست‌ها) ──
-  toggleBox() {
-    const box = document.getElementById('sessionsBox');
-    if (!box) return;
-    box.classList.toggle('open');
-    if (box.classList.contains('open') && !this._loaded) this.loadPanel();
-  },
-
-  async loadPanel() {
-    const box = document.getElementById('sessionsPanel');
-    if (!box) return;
-    box.innerHTML = '<div class="blocks-loading">در حال بارگذاری…</div>';
-    const res = await Api.call('list_sessions', {});
-    if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت نشست‌ها</div>'; return; }
-    this._loaded = true;
-    const list = res.sessions || [];
-    const badge = document.getElementById('sessionsCountBadge');
-    if (badge) badge.textContent = list.length;
-    box.innerHTML = list.length
-      ? list.map(s => this._row(s, true)).join('')
-      : '<div class="blocks-empty">هیچ نشست فعالی وجود ندارد.</div>';
-  },
 
   // ── مودال یک کاربر ──
   openUser(uid, name) {
@@ -1066,7 +1054,7 @@ const SessionsManager = {
       </div>`;
   },
 
-  // ── تنظیم مدت فعال‌بودن نشست (ساعت) ──
+  // ── تنظیم مدت فعال‌بودن نشست (ساعت) — صفحه کاربران ──
   async saveTtl() {
     const el = document.getElementById('sessTtlInput');
     const v  = parseInt(String(el ? el.value : '').replace(/[^\d]/g, ''), 10);
@@ -1093,26 +1081,7 @@ const SessionsManager = {
         if (!res.ok) { Toast.show(res.msg || 'خطا', 'error'); return; }
         Toast.show('نشست پایان یافت');
         if (isCurrent) { location.href = '/'; return; }
-        const um = document.getElementById('sessionsUserModal');
-        if (um && um.classList.contains('open')) this.loadUser(); else this.loadPanel();
-      },
-    });
-  },
-
-  terminateOthers() {
-    Confirm.show({
-      title:    'پایان نشست‌های دیگر',
-      heading:  'همه نشست‌های دیگر پایان یابد؟',
-      body:     'همه نشست‌های فعال به‌جز نشست همین مرورگر بسته می‌شوند (همه کاربران از همه دستگاه‌ها خارج می‌شوند).',
-      type:     'warning',
-      btnLabel: 'پایان بقیه',
-      icon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
-      onConfirm: async () => {
-        Confirm.close();
-        const res = await Api.call('terminate_other_sessions', {});
-        if (!res.ok) { Toast.show(res.msg || 'خطا', 'error'); return; }
-        Toast.show(res.msg || 'انجام شد');
-        this.loadPanel();
+        this.loadUser();
       },
     });
   },
