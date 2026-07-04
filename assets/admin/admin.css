@@ -211,13 +211,20 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .pass-toggle:hover { color:var(--accent); }
 .pass-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .pass-toggle svg { width:16px; height:16px; pointer-events:none; }
-.pass-strength { display:flex; gap:4px; margin-top:7px; }
-.pass-strength-bar { height:3px; flex:1; border-radius:2px; background:var(--border); transition:background .25s ease; }
-.pass-strength-label { font-size:11px; color:var(--text-3); margin-top:4px; }
-.strength-1 .pass-strength-bar:nth-child(1)    { background:#ef4444; }
-.strength-2 .pass-strength-bar:nth-child(-n+2) { background:#f59e0b; }
-.strength-3 .pass-strength-bar:nth-child(-n+3) { background:#3e7de7; }
-.strength-4 .pass-strength-bar                 { background:#0ea472; }
+/* ── چک‌لیست زنده‌ی قوانین رمز عبور ── */
+.pass-rules { margin-top:8px; padding:11px 13px; background:var(--bg-input);
+  border:1px solid var(--border); border-radius:var(--radius); animation:passRulesIn .18s ease; }
+@keyframes passRulesIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+.pass-rules-title { font-size:12px; font-weight:700; color:var(--text-2); margin-bottom:8px; }
+.pass-rules-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.pass-rule { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-3);
+  transition:color .2s ease; }
+.pass-rule-ic { flex:none; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:var(--radius-pill); color:#ef4444; background:rgba(239,68,68,.12);
+  transition:color .2s ease, background .2s ease; }
+.pass-rule-ic svg { width:12px; height:12px; }
+.pass-rule.is-ok { color:var(--text-2); }
+.pass-rule.is-ok .pass-rule-ic { color:#0ea472; background:rgba(14,164,114,.14); }
 
 /* ── انسداد ورود (Rate limit) ── */
 .blocks-hint { font-size:12.5px; line-height:1.7; color:var(--text-2); background:var(--bg-hover);

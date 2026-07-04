@@ -228,7 +228,7 @@
         </svg>
       </button>
     </div>
-    <div class="modal-body" style="display:block;padding:20px;">
+    <div class="modal-body" style="display:block;padding:20px;overflow-y:auto;">
       <input type="hidden" id="editUserId">
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="field">
@@ -253,16 +253,22 @@
         <div class="field">
           <label id="editPassLabel">رمز عبور <span class="req">*</span></label>
           <div class="pass-wrap">
-            <input type="password" id="editUserPassword" placeholder="حداقل ۶ کاراکتر" autocomplete="new-password"
-                   oninput="checkStrength(this.value,'editPassStrength','editPassStrengthLabel')">
+            <input type="password" id="editUserPassword" placeholder="رمز عبور" autocomplete="new-password" maxlength="64">
             <button type="button" class="pass-toggle" aria-label="نمایش/مخفی رمز" onclick="togglePass('editUserPassword', this)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
-          <div class="pass-strength" id="editPassStrength" style="display:none;">
-            <div class="pass-strength-bar"></div><div class="pass-strength-bar"></div><div class="pass-strength-bar"></div><div class="pass-strength-bar"></div>
+          <!-- چک‌لیست زنده‌ی قوانین رمز عبور (هنگام focus/تایپ به‌روز می‌شود) -->
+          <div class="pass-rules" id="editPassRules" aria-live="polite" hidden>
+            <div class="pass-rules-title">قوانین رمز عبور</div>
+            <ul class="pass-rules-list">
+              <li class="pass-rule" data-rule="len"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">بین ۱۰ تا ۶۴ کاراکتر</span></li>
+              <li class="pass-rule" data-rule="lower"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک حرف کوچک انگلیسی (a-z)</span></li>
+              <li class="pass-rule" data-rule="upper"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک حرف بزرگ انگلیسی (A-Z)</span></li>
+              <li class="pass-rule" data-rule="digit"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک عدد</span></li>
+              <li class="pass-rule" data-rule="special"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک نماد (مانند ‎!@#$‎)</span></li>
+            </ul>
           </div>
-          <div class="pass-strength-label" id="editPassStrengthLabel"></div>
         </div>
       </div>
     </div>

@@ -269,30 +269,60 @@
       border: 1px solid rgba(239,68,68,.2);
     }
 
-    /* ── strength indicator ── */
-    .pass-strength {
+    /* ── چک‌لیست زنده‌ی قوانین رمز عبور ── */
+    .pass-rules {
+      margin-top: 8px;
+      padding: 12px 14px;
+      background: var(--color-bg-primary);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      animation: passRulesIn .18s ease;
+    }
+    @keyframes passRulesIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .pass-rules-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-text-secondary);
+      margin-bottom: 8px;
+    }
+    .pass-rules-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
       display: flex;
-      gap: 4px;
-      margin-top: 6px;
+      flex-direction: column;
+      gap: 6px;
     }
-    .pass-strength-bar {
-      height: 3px;
-      flex: 1;
-      border-radius: 2px;
-      background: var(--color-border);
-      transition: background .25s ease;
-    }
-    .pass-strength-label {
-      font-size: 11px;
+    .pass-rule {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
       color: var(--color-text-muted);
-      margin-top: 4px;
+      transition: color var(--transition);
     }
-
-    /* strength رنگ‌ها */
-    .strength-1 .pass-strength-bar:nth-child(1)                             { background: #ef4444; }
-    .strength-2 .pass-strength-bar:nth-child(-n+2)                          { background: #f59e0b; }
-    .strength-3 .pass-strength-bar:nth-child(-n+3)                          { background: #3e7de7; }
-    .strength-4 .pass-strength-bar                                          { background: #0ea472; }
+    .pass-rule-ic {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-pill);
+      color: #ef4444;                 /* حالت رعایت‌نشده: قرمز */
+      background: rgba(239, 68, 68, .12);
+      transition: color var(--transition), background var(--transition);
+    }
+    .pass-rule-ic svg { width: 12px; height: 12px; }
+    /* حالت رعایت‌شده: سبز + متنِ روشن‌تر */
+    .pass-rule.is-ok            { color: var(--color-text-secondary); }
+    .pass-rule.is-ok .pass-rule-ic {
+      color: #0ea472;
+      background: rgba(14, 164, 114, .14);
+    }
 
     /* ── دکمه متنی «ارسال مجدد» داخل hint ── */
     .profile-link-btn {

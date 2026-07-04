@@ -2,41 +2,38 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// PasswordPolicy — منبع واحد حقیقت برای قدرت رمز عبور
-// امتیاز ۰..۴ دقیقا با checkStrength سمت کلاینت یکسان است:
-//   score = (len>=8) + (hasUpper) + (hasDigit) + (hasSpecial)
-//   برچسب‌ها: ['', ضعیف, متوسط, خوب, قوی]
-// سیاست: «حداقل متوسط» → score >= 2 و حداقل ۶ کاراکتر.
+// PasswordPolicy — منبع واحد حقیقت برای قوانین رمز عبور
+// قوانین صریح (همگی الزامی) — دقیقا با چک‌لیست زنده‌ی سمت کلاینت یکسان:
+//   • طول بین MIN_LENGTH و MAX_LENGTH
+//   • حداقل یک حرف کوچک انگلیسی
+//   • حداقل یک حرف بزرگ انگلیسی
+//   • حداقل یک عدد
+//   • حداقل یک نماد (غیر از حرف/عدد انگلیسی)
 // ═══════════════════════════════════════════════════════════
 
 class PasswordPolicy
 {
-    /** حداقل طول مجاز (کف امنیتی) — از ۶ به ۱۰ افزایش یافت (مقاومت brute-force آفلاین) */
+    /** حداقل طول مجاز (کف امنیتی) */
     public const MIN_LENGTH = 10;
 
-    /** حداقل امتیاز قابل قبول: ۲ = «متوسط» */
-    public const MIN_SCORE = 2;
+    /** حداکثر طول مجاز (bcrypt هم عملا تا ~۷۲ بایت را لحاظ می‌کند) */
+    public const MAX_LENGTH = 64;
 
-    /** امتیاز قدرت رمز (۰ تا ۴) — باید با نسخه JS یکسان بماند */
-    public static function score(string $pw): int
-    {
-        $s = 0;
-        if (mb_strlen($pw) >= 8)                $s++;
-        if (preg_match('/[A-Z]/', $pw))         $s++;
-        if (preg_match('/[0-9]/', $pw))         $s++;
-        if (preg_match('/[^A-Za-z0-9]/', $pw))  $s++;
-        return $s;
-    }
-
-    /** آیا رمز حداقل در سطح «متوسط» است؟ */
+    /** آیا رمز همه‌ی قوانین را برآورده می‌کند؟ (باید با نسخه JS یکسان بماند) */
     public static function isAcceptable(string $pw): bool
     {
-        return mb_strlen($pw) >= self::MIN_LENGTH && self::score($pw) >= self::MIN_SCORE;
+        $len = mb_strlen($pw);
+        return $len >= self::MIN_LENGTH
+            && $len <= self::MAX_LENGTH
+            && preg_match('/[a-z]/', $pw)
+            && preg_match('/[A-Z]/', $pw)
+            && preg_match('/[0-9]/', $pw)
+            && preg_match('/[^A-Za-z0-9]/', $pw);
     }
 
-    /** پیام خطای استاندارد برای رمز ضعیف */
+    /** پیام خطای استاندارد برای رمز نامعتبر */
     public static function errorMessage(): string
     {
-        return 'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۱۰ کاراکتر همراه با ترکیبی از حروف بزرگ، عدد یا نماد.';
+        return 'رمز عبور باید بین ۱۰ تا ۶۴ کاراکتر و شامل حروف کوچک و بزرگ انگلیسی، عدد و نماد باشد.';
     }
 }

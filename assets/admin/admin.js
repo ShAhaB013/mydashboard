@@ -262,6 +262,17 @@ const UserManager = {
     this._dirty = false;
     Modal.close('userModal');
   },
+  /* پنهان‌کردن چک‌لیست هنگام بازشدن مودال + اتصال یک‌باره‌ی focus/input */
+  _resetPassRules() {
+    const panel = document.getElementById('editPassRules');
+    if (panel) panel.hidden = true;
+    const el = document.getElementById('editUserPassword');
+    if (el && !el.__pwWired) {
+      el.__pwWired = true;
+      el.addEventListener('focus', () => updatePassRules(el.value));
+      el.addEventListener('input', () => updatePassRules(el.value));
+    }
+  },
   openAdd() {
     this._wireDirty();
     this._isAdd = true;
@@ -274,7 +285,7 @@ const UserManager = {
     document.getElementById('editPhone').value = '';
     const editPass = document.getElementById('editUserPassword');
     editPass.value = ''; editPass.type = 'password';
-    checkStrength('', 'editPassStrength', 'editPassStrengthLabel');
+    this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = 'user'; CustomSelect.refresh(roleSel); }
     Modal.open('userModal');
@@ -293,7 +304,7 @@ const UserManager = {
     document.getElementById('editPhone').value    = phone;
     const editPass = document.getElementById('editUserPassword');
     editPass.value = ''; editPass.type = 'password';
-    checkStrength('', 'editPassStrength', 'editPassStrengthLabel');
+    this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = (role === 'admin') ? 'admin' : 'user'; CustomSelect.refresh(roleSel); }
     Modal.open('userModal');
@@ -869,38 +880,37 @@ function togglePass(inputId, btn) {
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 }
 
-/* ── سنجش قدرت رمز (نوار + برچسب) ── */
-function checkStrength(val, barId, labelId) {
-  const bar   = document.getElementById(barId);
-  const label = document.getElementById(labelId);
-  if (!bar) return;
-  if (!val) {
-    bar.style.display = 'none';
-    if (label) label.textContent = '';
-    bar.className = 'pass-strength';
-    return;
-  }
-  bar.style.display = 'flex';
-  let score = 0;
-  if (val.length >= 8)           score++;
-  if (/[A-Z]/.test(val))         score++;
-  if (/[0-9]/.test(val))         score++;
-  if (/[^A-Za-z0-9]/.test(val))  score++;
-  const levels = ['', 'ضعیف', 'متوسط', 'خوب', 'قوی'];
-  bar.className = 'pass-strength strength-' + (score || 1);
-  if (label) label.textContent = val.length < 10 ? 'خیلی کوتاه' : (levels[score] || 'ضعیف');
+/* ── قوانین رمز عبور (منبع یگانه — هم‌راستا با PasswordPolicy سمت سرور) ── */
+const PW_RULES = [
+  { key: 'len',     test: v => v.length >= 10 && v.length <= 64 },
+  { key: 'lower',   test: v => /[a-z]/.test(v) },
+  { key: 'upper',   test: v => /[A-Z]/.test(v) },
+  { key: 'digit',   test: v => /[0-9]/.test(v) },
+  { key: 'special', test: v => /[^A-Za-z0-9]/.test(v) },
+];
+const PW_POLICY_MSG = 'رمز عبور باید بین ۱۰ تا ۶۴ کاراکتر و شامل حروف کوچک و بزرگ انگلیسی، عدد و نماد باشد.';
+const RULE_OK_IC =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+const RULE_PENDING_IC =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>';
+
+function pwMeetsPolicy(val) {
+  return !!val && PW_RULES.every(r => r.test(val));
 }
 
-/* ── سیاست رمز: حداقل «متوسط» (هم‌راستا با PasswordPolicy سمت سرور) ── */
-const PW_POLICY_MSG = 'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۱۰ کاراکتر همراه با ترکیبی از حروف بزرگ، عدد یا نماد.';
-function pwMeetsPolicy(val) {
-  if (!val || val.length < 10) return false;
-  let score = 0;
-  if (val.length >= 8)          score++;
-  if (/[A-Z]/.test(val))        score++;
-  if (/[0-9]/.test(val))        score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
-  return score >= 2;
+/* به‌روزرسانی زنده‌ی چک‌لیستِ قوانینِ فیلد رمزِ مودالِ کاربر */
+function updatePassRules(val) {
+  const panel = document.getElementById('editPassRules');
+  if (!panel) return;
+  panel.hidden = false;
+  PW_RULES.forEach(r => {
+    const row = panel.querySelector('.pass-rule[data-rule="' + r.key + '"]');
+    if (!row) return;
+    const ok = r.test(val);
+    row.classList.toggle('is-ok', ok);
+    const ic = row.querySelector('.pass-rule-ic');
+    if (ic) ic.innerHTML = ok ? RULE_OK_IC : RULE_PENDING_IC;
+  });
 }
 
 // ═══════════════════════════════════════════════════════════

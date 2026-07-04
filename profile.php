@@ -114,8 +114,8 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
         <div class="field" data-state="idle">
           <label class="field-label" for="newPassword">رمز عبور جدید</label>
           <div class="field-box" dir="ltr">
-            <input type="password" id="newPassword" class="field-input" placeholder="حداقل ۶ کاراکتر"
-                   autocomplete="new-password" maxlength="128" oninput="checkStrength(this.value)">
+            <input type="password" id="newPassword" class="field-input" placeholder="رمز عبور جدید"
+                   autocomplete="new-password" maxlength="64">
             <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('newPassword', this)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -124,14 +124,17 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
             </button>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
-          <!-- نوار قدرت رمز -->
-          <div class="pass-strength" id="passStrength" style="display:none;">
-            <div class="pass-strength-bar"></div>
-            <div class="pass-strength-bar"></div>
-            <div class="pass-strength-bar"></div>
-            <div class="pass-strength-bar"></div>
+          <!-- چک‌لیست زنده‌ی قوانین رمز عبور (هنگام focus/تایپ به‌روز می‌شود) -->
+          <div class="pass-rules" id="passRules" aria-live="polite" hidden>
+            <div class="pass-rules-title">قوانین رمز عبور</div>
+            <ul class="pass-rules-list">
+              <li class="pass-rule" data-rule="len"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">بین ۱۰ تا ۶۴ کاراکتر</span></li>
+              <li class="pass-rule" data-rule="lower"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک حرف کوچک انگلیسی (a-z)</span></li>
+              <li class="pass-rule" data-rule="upper"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک حرف بزرگ انگلیسی (A-Z)</span></li>
+              <li class="pass-rule" data-rule="digit"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک عدد</span></li>
+              <li class="pass-rule" data-rule="special"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک نماد (مانند ‎!@#$‎)</span></li>
+            </ul>
           </div>
-          <div class="pass-strength-label" id="passStrengthLabel"></div>
         </div>
 
         <!-- تکرار رمز جدید -->

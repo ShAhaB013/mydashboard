@@ -53,40 +53,37 @@
            </svg>`;
     }
 
-    /* ── قدرت رمز ── */
-    function checkStrength(val) {
-      const bar   = document.getElementById('passStrength');
-      const label = document.getElementById('passStrengthLabel');
+    /* ── قوانین رمز عبور (منبع یگانه سمت کلاینت — هم‌راستا با PasswordPolicy سرور) ── */
+    const PW_RULES = [
+      { key: 'len',     test: v => v.length >= 10 && v.length <= 64 },
+      { key: 'lower',   test: v => /[a-z]/.test(v) },
+      { key: 'upper',   test: v => /[A-Z]/.test(v) },
+      { key: 'digit',   test: v => /[0-9]/.test(v) },
+      { key: 'special', test: v => /[^A-Za-z0-9]/.test(v) },
+    ];
+    const RULE_OK_IC =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+    const RULE_PENDING_IC =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>';
 
-      if (!val) {
-        bar.style.display   = 'none';
-        label.textContent   = '';
-        bar.className       = 'pass-strength';
-        return;
-      }
-
-      bar.style.display = 'flex';
-
-      let score = 0;
-      if (val.length >= 8)              score++;
-      if (/[A-Z]/.test(val))            score++;
-      if (/[0-9]/.test(val))            score++;
-      if (/[^A-Za-z0-9]/.test(val))    score++;
-
-      const levels = ['', 'ضعیف', 'متوسط', 'خوب', 'قوی'];
-      bar.className   = `pass-strength strength-${score || 1}`;
-      label.textContent = val.length < 10 ? 'خیلی کوتاه' : levels[score] || 'ضعیف';
+    /* آیا رمز همه‌ی قوانین را برآورده می‌کند؟ */
+    function pwMeetsPolicy(val) {
+      return !!val && PW_RULES.every(r => r.test(val));
     }
 
-    /* ── سیاست رمز: حداقل «متوسط» (هم‌راستا با PasswordPolicy سمت سرور) ── */
-    function pwMeetsPolicy(val) {
-      if (!val || val.length < 10) return false;
-      let score = 0;
-      if (val.length >= 8)          score++;
-      if (/[A-Z]/.test(val))        score++;
-      if (/[0-9]/.test(val))        score++;
-      if (/[^A-Za-z0-9]/.test(val)) score++;
-      return score >= 2;
+    /* به‌روزرسانی زنده‌ی چک‌لیست هنگام تایپ */
+    function updatePassRules(val) {
+      const panel = document.getElementById('passRules');
+      if (!panel) return;
+      panel.hidden = false;
+      PW_RULES.forEach(r => {
+        const row = panel.querySelector(`.pass-rule[data-rule="${r.key}"]`);
+        if (!row) return;
+        const ok = r.test(val);
+        row.classList.toggle('is-ok', ok);
+        const ic = row.querySelector('.pass-rule-ic');
+        if (ic) ic.innerHTML = ok ? RULE_OK_IC : RULE_PENDING_IC;
+      });
     }
 
     /* ── نمایش پیام ── */
@@ -125,7 +122,7 @@
       if (!currentPassword) { fieldErr('currentPassword', 'رمز عبور فعلی الزامی است'); return; }
       if (!newPassword)     { fieldErr('newPassword', 'رمز عبور جدید الزامی است'); return; }
       if (!confirmPassword) { fieldErr('confirmPassword', 'تکرار رمز عبور الزامی است'); return; }
-      if (!pwMeetsPolicy(newPassword)) { fieldErr('newPassword', 'رمز ضعیف است؛ حداقل ۱۰ کاراکتر همراه حروف بزرگ، عدد یا نماد'); return; }
+      if (!pwMeetsPolicy(newPassword)) { updatePassRules(newPassword); fieldErr('newPassword', 'رمز عبور همه‌ی قوانین زیر را رعایت نمی‌کند'); return; }
       if (newPassword !== confirmPassword) { fieldErr('confirmPassword', 'با رمز عبور یکسان نیست'); return; }
 
       btn.disabled    = true;
@@ -145,7 +142,9 @@
           document.getElementById('currentPassword').value = '';
           document.getElementById('newPassword').value     = '';
           document.getElementById('confirmPassword').value = '';
-          checkStrength('');
+          const rulesPanel = document.getElementById('passRules');
+          if (rulesPanel) rulesPanel.hidden = true;
+          if (window.Field) { Field.clear('currentPassword'); Field.clear('newPassword'); Field.clear('confirmPassword'); }
         } else {
           showMsg(data.msg || 'خطا در تغییر رمز');
         }
@@ -172,11 +171,15 @@
     /* ── اعتبارسنجی زنده فیلدها ── */
     if (window.Field) {
       const $ = (id) => document.getElementById(id);
-      const setFocusIdle = (el) => {
-        const f = el.closest('.field');
-        if (f) f.setAttribute('data-state', document.activeElement === el ? 'focus' : 'idle');
-      };
-      const newPass = $('newPassword'), confPass = $('confirmPassword');
+      // با Field.set به حالت focus/idle می‌رویم — این کار پیامِ خطای قبلی را هم پاک
+      // می‌کند (رفعِ باگ: خطا پس از شروعِ تایپ باقی می‌ماند).
+      const setFocusIdle = (el) => Field.set(el, document.activeElement === el ? 'focus' : 'idle');
+
+      const curPass = $('currentPassword'), newPass = $('newPassword'), confPass = $('confirmPassword');
+
+      // هر تایپ در «رمز فعلی» خطای قبلی‌اش را پاک می‌کند (این فیلد اعتبارسنجی زنده ندارد).
+      if (curPass) curPass.addEventListener('input', () => setFocusIdle(curPass));
+
       const syncConfirm = (onBlur) => {
         if (!confPass) return;
         const v = confPass.value;
@@ -186,16 +189,20 @@
         else setFocusIdle(confPass);
       };
       if (newPass) {
+        // نمایش چک‌لیست به‌محضِ focus (حتی خالی) تا کاربر قوانین را ببیند.
+        newPass.addEventListener('focus', () => updatePassRules(newPass.value));
         newPass.addEventListener('input', () => {
           const v = newPass.value;
+          updatePassRules(v);
           if (!v) setFocusIdle(newPass);
           else if (pwMeetsPolicy(v)) Field.set(newPass, 'success', 'رمز مناسب است');
-          else setFocusIdle(newPass);
+          else setFocusIdle(newPass);   // حین تایپِ ناقص، خطای قبلی پاک می‌شود
           syncConfirm(false);
         });
         newPass.addEventListener('blur', () => {
           const v = newPass.value;
-          if (v && !pwMeetsPolicy(v)) Field.set(newPass, 'error', 'رمز ضعیف است؛ حداقل ۱۰ کاراکتر همراه حروف بزرگ، عدد یا نماد');
+          if (v && !pwMeetsPolicy(v)) Field.set(newPass, 'error', 'رمز عبور همه‌ی قوانین را رعایت نمی‌کند');
+          else if (!v && document.getElementById('passRules')) document.getElementById('passRules').hidden = true;
         });
       }
       if (confPass) {
