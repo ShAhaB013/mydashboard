@@ -603,6 +603,10 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   z-index:500; opacity:0;
   transition:opacity .2s,transform .2s;
   display:flex; align-items:center; gap:8px; white-space:nowrap;
+  /* toast محتوای تعاملی ندارد و با opacity:0 مخفی می‌شود (نه display:none)، پس
+     جعبه‌اش همچنان کلیک می‌گیرد و روی دکمه‌های مودال می‌افتد. این خط کلیک را
+     همیشه به عناصر زیرین می‌سپارد. */
+  pointer-events:none;
 }
 .toast.show    { opacity:1; transform:translateX(-50%) translateY(0); }
 .toast.success { border-color:rgba(63,185,80,.3); color:var(--success); }
