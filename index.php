@@ -14,13 +14,7 @@ $avatarChar  = $menuName !== '' ? mb_substr($menuName, 0, 1, 'UTF-8') : '؟';
 
 // توکن CSRF برای هر کاربرِ لاگین‌شده — لازم برای درخواست‌های حالت‌تغییردهنده‌ی
 // api.php (logout / mark_read / mark_all_read) و نیز مدیریت اینلاینِ ادمین.
-$csrfToken = '';
-if (UserSession::check()) {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    $csrfToken = $_SESSION['csrf_token'];
-}
+$csrfToken = UserSession::check() ? UserSession::ensureCsrfToken() : '';
 
 $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
 $v_js    = asset_v(__DIR__ . '/assets/js/script.js');

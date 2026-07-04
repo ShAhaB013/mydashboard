@@ -3,40 +3,26 @@ declare(strict_types=1);
 
 class RateLimiter
 {
+    private const MAX_ATTEMPTS    = 10;   // حداکثر تلاش مجاز
     private const WINDOW_SECONDS  = 900;  // پنجره زمانی: ۱۵ دقیقه
     private const BLOCK_SECONDS   = 900;  // مدت بلاک: ۱۵ دقیقه
     private const CLEANUP_CHANCE  = 50;   // هر ۱ در X درخواست، cleanup اجرا می‌شه
 
-    /** اسکوپ‌های مبتنی بر حساب (per-account) — از لیست IPِ پنل مخفی می‌مانند */
-    public const ACCT_USER  = 'acct:user';
-    public const ACCT_ADMIN = 'acct:admin';
-
     private string $ip;
     private string $scope;
-    private int    $maxAttempts;
 
     /**
-     * @param string      $scope جداسازی شمارنده‌ها. مقادیر IP-محور: 'user' (api.php)
-     *                    و 'admin' (admin.php). مقادیر حساب‌محور: ACCT_USER / ACCT_ADMIN.
-     * @param string|null $key   کلیدِ شمارنده که در ستون `ip` ذخیره می‌شود. اگر null
-     *                    باشد، IPِ واقعیِ کلاینت استفاده می‌شود (اسکوپ‌های IP-محور).
-     *                    برای اسکوپ‌های حساب‌محور، هشِ نام‌کاربری پاس داده می‌شود.
-     * @param int         $maxAttempts سقف تلاش تا بلاک (پیش‌فرض ۱۰). برای اسکوپ حساب
-     *                    عمداً بالاتر (مثلاً ۲۰) داده می‌شود تا کاربر عادی قفل نشود و
-     *                    فقط حمله‌ی متمرکز روی یک حساب را بگیرد (کاهش ریسکِ lockout-DoS).
+     * @param string $scope جداسازی شمارنده‌ها: 'user' برای api.php و 'admin' برای admin.php
+     *                      تا قفل‌شدن یکی روی دیگری اثر نگذارد.
+     *
+     * توجه: محدودیت عمداً فقط بر پایه IP است (نه per-account). قفلِ حساب‌محور امکانِ
+     * «lockout عمدیِ» یک کاربر توسط مهاجم را می‌داد؛ چون این نصب پشت پراکسی نیست و
+     * REMOTE_ADDR همان IP واقعی است، limiterِ اتمیکِ IP-محور کافی و بدونِ آن ریسک است.
      */
-    public function __construct(string $scope = 'user', ?string $key = null, int $maxAttempts = 10)
+    public function __construct(string $scope = 'user')
     {
-        $allowed     = ['user', 'admin', self::ACCT_USER, self::ACCT_ADMIN];
-        $this->scope = in_array($scope, $allowed, true) ? $scope : 'user';
-        $this->ip    = $key !== null ? mb_substr($key, 0, 45) : $this->resolveIp();
-        $this->maxAttempts = max(1, $maxAttempts);
-    }
-
-    /** کلیدِ حساب‌محور از نام‌کاربری (هش‌شده تا در ستون ۴۵ کاراکتری جا شود) */
-    public static function accountKey(string $username): string
-    {
-        return substr(hash('sha256', mb_strtolower(trim($username))), 0, 45);
+        $this->ip    = $this->resolveIp();
+        $this->scope = ($scope === 'admin') ? 'admin' : 'user';
     }
 
     public function isBanned(): bool
@@ -86,7 +72,7 @@ class RateLimiter
                 ':scope' => $this->scope,
                 ':now0'  => $now, ':now1' => $now, ':now2' => $now, ':now3' => $now, ':now4' => $now,
                 ':win1'  => self::WINDOW_SECONDS, ':win2' => self::WINDOW_SECONDS,
-                ':max'   => $this->maxAttempts,
+                ':max'   => self::MAX_ATTEMPTS,
                 ':block' => self::BLOCK_SECONDS,
             ]
         );

@@ -450,30 +450,10 @@ class NotificationController
         if (!is_dir($this->uploadDir)) {
             if (!mkdir($this->uploadDir, 0755, true)) return false;
         }
-        $htaccess = $this->uploadDir . '/.htaccess';
-        // همیشه بازنویسی کن تا نسخه‌های قدیمی/ناقص هم به سیاست امنِ فعلی ارتقا یابند.
-        file_put_contents($htaccess, self::uploadsHtaccess());
+        // نوشتنِ idempotentِ .htaccess امن (منبع یگانه در ImageProcessor؛ فقط اگر
+        // نبود یا کهنه بود بازنویسی می‌شود تا نسخه‌های قدیمی هم ارتقا یابند).
+        ImageProcessor::writeUploadHtaccess($this->uploadDir);
         return true;
-    }
-
-    /**
-     * محتوای .htaccess پوشه‌ی آپلود — دفاع در عمق:
-     *  • منع اجرای هر فرمتِ PHP.
-     *  • هر فایلی که ممکن است اجراپذیر/رندرشونده باشد (svg/xml/html/…)،
-     *    به‌جای نمایش inline، با Content-Disposition: attachment و CSPِ قفل‌شده
-     *    سرو می‌شود تا حتی اگر فایلی از فیلترها عبور کرد، در مرورگر اجرا نشود.
-     */
-    private static function uploadsHtaccess(): string
-    {
-        return "Options -Indexes\n"
-             . "<FilesMatch \"\\.ph(p[0-9]?|ar|tml)$\">\n    Require all denied\n</FilesMatch>\n"
-             . "<IfModule mod_headers.c>\n"
-             . "  <FilesMatch \"\\.(svg|svgz|xml|html?|xhtml|js|css)$\">\n"
-             . "    Header set Content-Disposition \"attachment\"\n"
-             . "    Header set Content-Security-Policy \"default-src 'none'; sandbox\"\n"
-             . "    Header set X-Content-Type-Options \"nosniff\"\n"
-             . "  </FilesMatch>\n"
-             . "</IfModule>\n";
     }
 
     private function deleteImageFile(string $imagePath): void

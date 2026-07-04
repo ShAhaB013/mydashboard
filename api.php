@@ -19,16 +19,16 @@ define('APP_API', true);
 try {
     $config = require __DIR__ . '/bootstrap.php';
 
-    // ── تایید CSRF برای actionهای حالت‌تغییردهنده ─────────────
-    // این endpointها وضعیت سرور را تغییر می‌دهند و همگی نیازمند نشستِ فعال‌اند.
-    // برای دفاعِ لایه‌ای (فراتر از SameSite=Strict)، هدرِ X-CSRF-Token الزامی است.
-    // login عمداً مستثناست (هنوز نشست/توکنی وجود ندارد؛ با rate-limit محافظت می‌شود).
+    // ── تایید CSRF (متدمحور — مقاوم در برابر drift) ──────────
+    // هر درخواستِ POSTِ یک کاربرِ لاگین‌شده نیازمند هدرِ معتبر X-CSRF-Token است.
+    // این مدلِ «default-deny برای POST» به‌جای allowlistِ دستی، تضمین می‌کند که
+    // هر actionِ حالت‌تغییردهنده‌ی جدید هم خودبه‌خود محافظت شود. استثناها:
+    //   • login: هنوز نشست/توکنی وجود ندارد (با rate-limit محافظت می‌شود).
+    //   • مهمان (بدون نشست): چیزی برای جعل وجود ندارد؛ handlerها خودشان 401 می‌دهند.
+    // endpointهای خواندنی (bootstrap/tools/notifications/…) با GET صدا زده می‌شوند و
+    // اصلا وارد این شرط نمی‌شوند.
     $action = trim($_GET['action'] ?? '');
-    $csrfActions = [
-        'logout', 'change_password', 'mark_read', 'mark_all_read',
-        'terminate_my_session', 'terminate_my_other_sessions',
-    ];
-    if (in_array($action, $csrfActions, true) && UserSession::check()) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action !== 'login' && UserSession::check()) {
         $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         $real = $_SESSION['csrf_token'] ?? '';
         if ($real === '' || !is_string($sent) || !hash_equals($real, $sent)) {

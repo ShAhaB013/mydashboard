@@ -59,6 +59,18 @@ class UserSession
         return !empty($_SESSION['user_id']);
     }
 
+    /**
+     * توکن CSRFِ نشست را تضمین می‌کند (اگر نبود می‌سازد) و برمی‌گرداند.
+     * منبع یگانه — به‌جای تکرارِ همین بلوک در نقاط ورود مختلف.
+     */
+    public static function ensureCsrfToken(): string
+    {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
     public static function id(): int
     {
         return (int) ($_SESSION['user_id'] ?? 0);

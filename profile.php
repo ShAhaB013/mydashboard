@@ -11,10 +11,7 @@ if (!UserSession::check()) {
 }
 
 // توکن CSRF برای درخواست‌های حالت‌تغییردهنده‌ی api.php (change_password / terminate_my_*)
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['csrf_token'];
+$csrfToken = UserSession::ensureCsrfToken();
 
 $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
 $v_js    = asset_v(__DIR__ . '/assets/js/script.js');

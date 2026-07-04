@@ -15,14 +15,10 @@ class RateLimitModel
      */
     public function all(): array
     {
-        // اسکوپ‌های حساب‌محور (acct:%) کلیدشان هشِ نام‌کاربری است نه IP؛ در لیستِ
-        // «انسداد IP»ِ پنل نمایش داده نمی‌شوند (خودشان بعد از ۱۵ دقیقه منقضی و با
-        // ورود موفق پاک می‌شوند و نیازی به مدیریت دستی ندارند).
         $rows = DB::run(
-            "SELECT ip, scope, attempts, last_attempt, blocked_until
+            'SELECT ip, scope, attempts, last_attempt, blocked_until
              FROM login_rate_limit
-             WHERE scope NOT LIKE 'acct:%'
-             ORDER BY (blocked_until > UNIX_TIMESTAMP()) DESC, last_attempt DESC"
+             ORDER BY (blocked_until > UNIX_TIMESTAMP()) DESC, last_attempt DESC'
         )->fetchAll();
 
         $now = time();

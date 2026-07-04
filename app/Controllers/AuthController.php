@@ -45,19 +45,6 @@ class AuthController
             return;
         }
 
-        // لایه‌ی دوم: محدودیت مبتنی بر حساب (حمله‌ی توزیع‌شده روی یک نام‌کاربری از
-        // چند IP). سقفِ بالاترِ ۲۰ تا کاربرِ عادی قفل نشود و ریسکِ lockout-DoS کم شود.
-        $acctLimiter = new RateLimiter(RateLimiter::ACCT_USER, RateLimiter::accountKey($identity), 20);
-        if ($acctLimiter->isBanned()) {
-            $mins = (int) ceil($acctLimiter->secondsUntilUnblock() / 60);
-            http_response_code(429);
-            echo json_encode([
-                'ok'  => false,
-                'msg' => "تعداد تلاش‌های ناموفق روی این حساب زیاد است. لطفا {$mins} دقیقه دیگر امتحان کنید.",
-            ], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-
         // ورود فقط با نام‌کاربری
         $row = DB::run(
             'SELECT * FROM users WHERE username = :username AND is_active = 1',
@@ -70,6 +57,13 @@ class AuthController
         $isValid = password_verify($password, $hash);
 
         if ($row && $isValid) {
+            // ارتقای تدریجی هش‌های قدیمی به cost فعلی (۱۲) هنگام ورود موفق.
+            // بدون این، کاربرانِ قدیمی cost=10 می‌مانند و اختلافِ زمانی با DUMMY_HASH
+            // (cost=12) کانالِ enumeration باز می‌گذارد. اینجا زمانی که رمزِ خام در
+            // دست است، هش با cost جدید بازنویسی می‌شود.
+            if (password_needs_rehash($row['password_hash'], PASSWORD_BCRYPT, ['cost' => UserModel::BCRYPT_COST])) {
+                (new UserModel())->changePassword((int) $row['id'], $password);
+            }
             // پاکسازی سشن‌های قبلی همین کاربر از همین مرورگر/IP (جلوگیری از سشن تکراری)
             $uid = (int) $row['id'];
             $ip  = mb_substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
@@ -88,11 +82,8 @@ class AuthController
             $_SESSION['phone']        = $row['phone'] ?? '';
             $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
             // توکن CSRF در همین سشن واحد ساخته می‌شود (پنل ادمین از همین می‌خواند)
-            if (empty($_SESSION['csrf_token'])) {
-                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-            }
+            UserSession::ensureCsrfToken();
             $limiter->reset();
-            $acctLimiter->reset();
 
             echo json_encode([
                 'ok'           => true,
@@ -101,7 +92,6 @@ class AuthController
             ], JSON_UNESCAPED_UNICODE);
         } else {
             $limiter->recordFailure();
-            $acctLimiter->recordFailure();
             echo json_encode(['ok' => false, 'msg' => 'نام کاربری یا رمز عبور اشتباه است']);
         }
     }

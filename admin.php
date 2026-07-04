@@ -61,9 +61,7 @@ if (!$isAdmin) {
 }
 
 // توکن CSRF را تضمین کن (سشن‌های قدیمی ممکن است نداشته باشند)
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+UserSession::ensureCsrfToken();
 
 // ── ساخت وابستگی‌ها ──────────────────────────────────────
 $iconDb    = new JsonStore($config['files']['icons']);

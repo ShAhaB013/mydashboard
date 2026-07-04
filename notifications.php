@@ -14,10 +14,7 @@ $isLoggedIn = UserSession::check();
 $userId     = $isLoggedIn ? UserSession::id() : 0;
 
 // توکن CSRF برای درخواست حالت‌تغییردهنده‌ی mark_read (فقط کاربر لاگین‌شده)
-if ($isLoggedIn && empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $isLoggedIn ? ($_SESSION['csrf_token'] ?? '') : '';
+$csrfToken = $isLoggedIn ? UserSession::ensureCsrfToken() : '';
 
 // ── پارامترهای صفحه‌بندی و جستجو ─────────────────────────
 $search  = trim($_GET['q']    ?? '');

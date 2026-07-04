@@ -341,21 +341,40 @@ class ImageProcessor
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
         }
-        // دفاع در عمق هم‌تراز با پوشه‌ی والدِ آپلود: منع اجرای PHP + اجبار دانلود
-        // برای فرمت‌های اجراپذیر/رندرشونده (svg/xml/html/…) تا سیاستِ والد را تضعیف نکند.
-        $htaccess = $dir . '/.htaccess';
-        @file_put_contents(
-            $htaccess,
-            "Options -Indexes\n"
-          . "<FilesMatch \"\\.ph(p[0-9]?|ar|tml)$\">\n    Require all denied\n</FilesMatch>\n"
-          . "<IfModule mod_headers.c>\n"
-          . "  <FilesMatch \"\\.(svg|svgz|xml|html?|xhtml|js|css)$\">\n"
-          . "    Header set Content-Disposition \"attachment\"\n"
-          . "    Header set Content-Security-Policy \"default-src 'none'; sandbox\"\n"
-          . "    Header set X-Content-Type-Options \"nosniff\"\n"
-          . "  </FilesMatch>\n"
-          . "</IfModule>\n"
-        );
+        self::writeUploadHtaccess($dir);
+    }
+
+    /**
+     * محتوای مرجعِ .htaccess پوشه‌های آپلود — منبع یگانه (هم پوشه‌ی اصلی، هم thumbs).
+     * دفاع در عمق: منع اجرای هر فرمتِ PHP + اجبار دانلودِ فرمت‌های اجراپذیر/رندرشونده
+     * (svg/xml/html/…) با CSPِ قفل‌شده، تا حتی اگر فایلی از فیلترها گذشت در مرورگر اجرا نشود.
+     */
+    public static function uploadHtaccessBody(): string
+    {
+        return "Options -Indexes\n"
+             . "<FilesMatch \"\\.ph(p[0-9]?|ar|tml)$\">\n    Require all denied\n</FilesMatch>\n"
+             . "<IfModule mod_headers.c>\n"
+             . "  <FilesMatch \"\\.(svg|svgz|xml|html?|xhtml|js|css)$\">\n"
+             . "    Header set Content-Disposition \"attachment\"\n"
+             . "    Header set Content-Security-Policy \"default-src 'none'; sandbox\"\n"
+             . "    Header set X-Content-Type-Options \"nosniff\"\n"
+             . "  </FilesMatch>\n"
+             . "</IfModule>\n";
+    }
+
+    /**
+     * نوشتنِ idempotentِ .htaccess: فقط وقتی که فایل نبود یا محتوایش با نسخه‌ی
+     * مرجع فرق داشت (ارتقای نسخه‌های قدیمی) — تا در مسیرِ داغِ آپلود، هر بار یک
+     * نوشتِ بی‌مورد روی دیسک انجام نشود.
+     */
+    public static function writeUploadHtaccess(string $dir): bool
+    {
+        $path = $dir . '/.htaccess';
+        $want = self::uploadHtaccessBody();
+        if (is_file($path) && @file_get_contents($path) === $want) {
+            return true;
+        }
+        return @file_put_contents($path, $want) !== false;
     }
 
     private static function uuid(): string
