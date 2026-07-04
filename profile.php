@@ -10,6 +10,12 @@ if (!UserSession::check()) {
     exit;
 }
 
+// توکن CSRF برای درخواست‌های حالت‌تغییردهنده‌ی api.php (change_password / terminate_my_*)
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['csrf_token'];
+
 $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
 $v_js    = asset_v(__DIR__ . '/assets/js/script.js');
 $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
@@ -196,6 +202,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
     <span class="app-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
   </footer>
 
+  <script>window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES) ?>;</script>
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>
   <script src="/assets/js/profile.js?v=<?= $v_profilejs ?>"></script>
 

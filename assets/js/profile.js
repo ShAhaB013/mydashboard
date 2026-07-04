@@ -75,12 +75,12 @@
 
       const levels = ['', 'ضعیف', 'متوسط', 'خوب', 'قوی'];
       bar.className   = `pass-strength strength-${score || 1}`;
-      label.textContent = val.length < 6 ? 'خیلی کوتاه' : levels[score] || 'ضعیف';
+      label.textContent = val.length < 10 ? 'خیلی کوتاه' : levels[score] || 'ضعیف';
     }
 
     /* ── سیاست رمز: حداقل «متوسط» (هم‌راستا با PasswordPolicy سمت سرور) ── */
     function pwMeetsPolicy(val) {
-      if (!val || val.length < 6) return false;
+      if (!val || val.length < 10) return false;
       let score = 0;
       if (val.length >= 8)          score++;
       if (/[A-Z]/.test(val))        score++;
@@ -125,7 +125,7 @@
       if (!currentPassword) { fieldErr('currentPassword', 'رمز عبور فعلی الزامی است'); return; }
       if (!newPassword)     { fieldErr('newPassword', 'رمز عبور جدید الزامی است'); return; }
       if (!confirmPassword) { fieldErr('confirmPassword', 'تکرار رمز عبور الزامی است'); return; }
-      if (!pwMeetsPolicy(newPassword)) { fieldErr('newPassword', 'رمز ضعیف است؛ حداقل ۶ کاراکتر همراه حروف بزرگ، عدد یا نماد'); return; }
+      if (!pwMeetsPolicy(newPassword)) { fieldErr('newPassword', 'رمز ضعیف است؛ حداقل ۱۰ کاراکتر همراه حروف بزرگ، عدد یا نماد'); return; }
       if (newPassword !== confirmPassword) { fieldErr('confirmPassword', 'با رمز عبور یکسان نیست'); return; }
 
       btn.disabled    = true;
@@ -134,7 +134,7 @@
       try {
         const res  = await fetch(`${API_URL}?action=change_password`, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
           body:    JSON.stringify({ current_password: currentPassword, new_password: newPassword, confirm_password: confirmPassword }),
         });
         const data = await res.json();
@@ -195,7 +195,7 @@
         });
         newPass.addEventListener('blur', () => {
           const v = newPass.value;
-          if (v && !pwMeetsPolicy(v)) Field.set(newPass, 'error', 'رمز ضعیف است؛ حداقل ۶ کاراکتر همراه حروف بزرگ، عدد یا نماد');
+          if (v && !pwMeetsPolicy(v)) Field.set(newPass, 'error', 'رمز ضعیف است؛ حداقل ۱۰ کاراکتر همراه حروف بزرگ، عدد یا نماد');
         });
       }
       if (confPass) {
@@ -268,7 +268,7 @@
     async function terminateMySession(id) {
       try {
         const res  = await fetch(`${API_URL}?action=terminate_my_session`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
           body: JSON.stringify({ session_id: id }),
         });
         const data = await res.json();
@@ -282,7 +282,10 @@
       const btn = document.getElementById('acctKillOthers');
       if (btn) btn.disabled = true;
       try {
-        await fetch(`${API_URL}?action=terminate_my_other_sessions`, { method: 'POST' });
+        await fetch(`${API_URL}?action=terminate_my_other_sessions`, {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': window.CSRF_TOKEN || '' },
+        });
         loadMySessions();
       } catch {} finally { if (btn) btn.disabled = false; }
     }

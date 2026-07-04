@@ -144,7 +144,7 @@
           if (IS_LOGGED_IN) {
             fetch('api.php?action=mark_read', {
               method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
               body:    JSON.stringify({ notification_id: id }),
             }).catch(() => {});
           } else {

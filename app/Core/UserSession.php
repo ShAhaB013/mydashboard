@@ -30,11 +30,28 @@ class UserSession
         session_set_cookie_params([
             'lifetime' => $ttl,
             'path'     => '/',
-            'secure'   => isset($_SERVER['HTTPS']),
+            'secure'   => self::isHttps(),
             'httponly' => true,
             'samesite' => 'Strict',
         ]);
         session_start();
+    }
+
+    /**
+     * تشخیص مقاومِ HTTPS. `isset($_SERVER['HTTPS'])` نادرست بود: برخی سرورها
+     * روی HTTP مقدار 'off' می‌گذارند (→ کوکی اشتباهاً Secure) و پشت TLS-terminating
+     * proxy اصلاً ست نمی‌شود (→ کوکی Secure نمی‌شود). این متد هر سه سیگنالِ
+     * معتبر را بررسی می‌کند.
+     */
+    private static function isHttps(): bool
+    {
+        if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+            return true;
+        }
+        if (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') {
+            return true;
+        }
+        return ((string) ($_SERVER['SERVER_PORT'] ?? '')) === '443';
     }
 
     public static function check(): bool

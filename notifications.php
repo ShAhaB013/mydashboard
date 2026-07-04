@@ -13,6 +13,12 @@ $config = require __DIR__ . '/bootstrap.php';
 $isLoggedIn = UserSession::check();
 $userId     = $isLoggedIn ? UserSession::id() : 0;
 
+// توکن CSRF برای درخواست حالت‌تغییردهنده‌ی mark_read (فقط کاربر لاگین‌شده)
+if ($isLoggedIn && empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $isLoggedIn ? ($_SESSION['csrf_token'] ?? '') : '';
+
 // ── پارامترهای صفحه‌بندی و جستجو ─────────────────────────
 $search  = trim($_GET['q']    ?? '');
 $page    = max(1, (int) ($_GET['page'] ?? 1));
@@ -420,6 +426,7 @@ foreach ($items as $item) {
   <script>
     const NOTIFS       = <?= json_encode($notifJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
     const IS_LOGGED_IN = <?= $isLoggedIn ? 'true' : 'false' ?>;
+    window.CSRF_TOKEN  = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES) ?>;
   </script>
 
   <script src="/assets/js/notifications.js?v=<?= $vNotifJs ?>"></script>

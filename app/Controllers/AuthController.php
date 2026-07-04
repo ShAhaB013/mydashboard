@@ -10,6 +10,10 @@ declare(strict_types=1);
 
 class AuthController
 {
+    // هشِ ساختگیِ ثابت (bcrypt معتبر) برای یکنواخت‌سازیِ زمانِ password_verify
+    // وقتی نام‌کاربری وجود ندارد. رمزِ واقعیِ متناظری ندارد.
+    private const DUMMY_HASH = '$2y$12$1A99m6tDXImsUdH2uSUnEOaFiQv3EnhFEAlrx1FaqIe9XGMqDNnvK';
+
     // ── login ────────────────────────────────────────────────
     public function login(): void
     {
@@ -19,7 +23,8 @@ class AuthController
             return;
         }
 
-        $limiter = new RateLimiter();
+        // لایه‌ی اول: محدودیت مبتنی بر IP (حمله از یک منبع).
+        $limiter = new RateLimiter('user');
 
         if ($limiter->isBanned()) {
             $mins = (int) ceil($limiter->secondsUntilUnblock() / 60);
@@ -40,13 +45,31 @@ class AuthController
             return;
         }
 
+        // لایه‌ی دوم: محدودیت مبتنی بر حساب (حمله‌ی توزیع‌شده روی یک نام‌کاربری از
+        // چند IP). سقفِ بالاترِ ۲۰ تا کاربرِ عادی قفل نشود و ریسکِ lockout-DoS کم شود.
+        $acctLimiter = new RateLimiter(RateLimiter::ACCT_USER, RateLimiter::accountKey($identity), 20);
+        if ($acctLimiter->isBanned()) {
+            $mins = (int) ceil($acctLimiter->secondsUntilUnblock() / 60);
+            http_response_code(429);
+            echo json_encode([
+                'ok'  => false,
+                'msg' => "تعداد تلاش‌های ناموفق روی این حساب زیاد است. لطفا {$mins} دقیقه دیگر امتحان کنید.",
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         // ورود فقط با نام‌کاربری
         $row = DB::run(
             'SELECT * FROM users WHERE username = :username AND is_active = 1',
             [':username' => $identity]
         )->fetch();
 
-        if ($row && password_verify($password, $row['password_hash'])) {
+        // زمان‌ثابت: اگر کاربر یافت نشد، password_verify روی یک هشِ ساختگی اجرا می‌شود
+        // تا اختلافِ زمانِ پاسخ، وجود/عدم‌وجودِ نام‌کاربری را لو ندهد (ضدِ enumeration).
+        $hash    = ($row && isset($row['password_hash'])) ? $row['password_hash'] : self::DUMMY_HASH;
+        $isValid = password_verify($password, $hash);
+
+        if ($row && $isValid) {
             // پاکسازی سشن‌های قبلی همین کاربر از همین مرورگر/IP (جلوگیری از سشن تکراری)
             $uid = (int) $row['id'];
             $ip  = mb_substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
@@ -69,6 +92,7 @@ class AuthController
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             }
             $limiter->reset();
+            $acctLimiter->reset();
 
             echo json_encode([
                 'ok'           => true,
@@ -77,6 +101,7 @@ class AuthController
             ], JSON_UNESCAPED_UNICODE);
         } else {
             $limiter->recordFailure();
+            $acctLimiter->recordFailure();
             echo json_encode(['ok' => false, 'msg' => 'نام کاربری یا رمز عبور اشتباه است']);
         }
     }

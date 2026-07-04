@@ -10,10 +10,24 @@ class NotificationController
     private const MAX_BYTES       = 52_428_800; // 50 MB
     private const MAX_BODY_CHARS  = 20_000;      // سقف کاراکتر متن اعلان (بدون احتساب تگ‌ها)
     private const UPLOAD_DIR_NAME = 'uploads/notifications';
+    // توجه امنیتی: image/svg+xml عمداً حذف شده است. SVG یک سند اجراپذیر
+    // (XML + <script>/onload) است و توسط GD پردازش نمی‌شود، پس خام ذخیره و
+    // با Content-Type: image/svg+xml سرو می‌شد؛ باز کردن مستقیم URL آن =
+    // Stored XSS در مبدأ سایت. حذف از لیست مجاز، این سطح حمله را می‌بندد.
     private const ALLOWED_MIMES   = [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        'image/avif', 'image/svg+xml', 'image/bmp',
+        'image/avif', 'image/bmp',
         'image/tiff', 'image/x-icon', 'image/heic', 'image/heif',
+    ];
+
+    // نگاشتِ MIME → پسوند: منبع یگانه‌ی حقیقت برای پسوند فایلِ ذخیره‌شده.
+    // نامِ فایلِ کاربر هیچ‌گاه در تعیین پسوند دخالت نمی‌کند (جلوگیری از .phtml/.php).
+    private const MIME_EXT_MAP    = [
+        'image/jpeg'   => 'jpg',  'image/png'  => 'png',
+        'image/gif'    => 'gif',  'image/webp' => 'webp',
+        'image/avif'   => 'avif', 'image/bmp'  => 'bmp',
+        'image/tiff'   => 'tiff', 'image/x-icon' => 'ico',
+        'image/heic'   => 'heic', 'image/heif' => 'heif',
     ];
 
     private NotificationModel $model;
@@ -180,7 +194,7 @@ class NotificationController
             Response::error('خطا در ایجاد پوشه آپلود'); return;
         }
 
-        $ext      = $this->safeExtension($file['name'], $realMime);
+        $ext      = $this->safeExtension($realMime);
         $filename = $this->generateUuid() . '.' . $ext;
         $dest     = $this->uploadDir . '/' . $filename;
 
@@ -413,19 +427,14 @@ class NotificationController
         return (string) mime_content_type($tmpPath);
     }
 
-    private function safeExtension(string $originalName, string $mime): string
+    /**
+     * پسوندِ امنِ فایلِ ذخیره‌شده — همیشه از MIMEِ تشخیص‌داده‌شده (محتوا) مشتق
+     * می‌شود، نه از نام فایلِ کاربر. این کار مانع آپلودِ polyglot با پسوندِ
+     * اجراپذیر (.php/.phtml) می‌شود و امنیت را از اتکا به .htaccess جدا می‌کند.
+     */
+    private function safeExtension(string $mime): string
     {
-        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        $mimeMap = [
-            'image/jpeg'    => 'jpg',  'image/png'     => 'png',
-            'image/gif'     => 'gif',  'image/webp'    => 'webp',
-            'image/avif'    => 'avif', 'image/svg+xml' => 'svg',
-            'image/bmp'     => 'bmp',  'image/tiff'    => 'tiff',
-            'image/x-icon'  => 'ico',  'image/heic'    => 'heic',
-            'image/heif'    => 'heif',
-        ];
-        if (preg_match('/^[a-z0-9]{1,8}$/', $ext) && $ext !== '') return $ext;
-        return $mimeMap[$mime] ?? 'bin';
+        return self::MIME_EXT_MAP[$mime] ?? 'bin';
     }
 
     private function generateUuid(): string
@@ -442,13 +451,29 @@ class NotificationController
             if (!mkdir($this->uploadDir, 0755, true)) return false;
         }
         $htaccess = $this->uploadDir . '/.htaccess';
-        if (!file_exists($htaccess)) {
-            file_put_contents($htaccess,
-                "Options -Indexes\n"
-              . "<FilesMatch \"\\.ph(p|ar|tml)$\">\n    Require all denied\n</FilesMatch>\n"
-            );
-        }
+        // همیشه بازنویسی کن تا نسخه‌های قدیمی/ناقص هم به سیاست امنِ فعلی ارتقا یابند.
+        file_put_contents($htaccess, self::uploadsHtaccess());
         return true;
+    }
+
+    /**
+     * محتوای .htaccess پوشه‌ی آپلود — دفاع در عمق:
+     *  • منع اجرای هر فرمتِ PHP.
+     *  • هر فایلی که ممکن است اجراپذیر/رندرشونده باشد (svg/xml/html/…)،
+     *    به‌جای نمایش inline، با Content-Disposition: attachment و CSPِ قفل‌شده
+     *    سرو می‌شود تا حتی اگر فایلی از فیلترها عبور کرد، در مرورگر اجرا نشود.
+     */
+    private static function uploadsHtaccess(): string
+    {
+        return "Options -Indexes\n"
+             . "<FilesMatch \"\\.ph(p[0-9]?|ar|tml)$\">\n    Require all denied\n</FilesMatch>\n"
+             . "<IfModule mod_headers.c>\n"
+             . "  <FilesMatch \"\\.(svg|svgz|xml|html?|xhtml|js|css)$\">\n"
+             . "    Header set Content-Disposition \"attachment\"\n"
+             . "    Header set Content-Security-Policy \"default-src 'none'; sandbox\"\n"
+             . "    Header set X-Content-Type-Options \"nosniff\"\n"
+             . "  </FilesMatch>\n"
+             . "</IfModule>\n";
     }
 
     private function deleteImageFile(string $imagePath): void

@@ -341,13 +341,21 @@ class ImageProcessor
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
         }
+        // دفاع در عمق هم‌تراز با پوشه‌ی والدِ آپلود: منع اجرای PHP + اجبار دانلود
+        // برای فرمت‌های اجراپذیر/رندرشونده (svg/xml/html/…) تا سیاستِ والد را تضعیف نکند.
         $htaccess = $dir . '/.htaccess';
-        if (!file_exists($htaccess)) {
-            @file_put_contents(
-                $htaccess,
-                "Options -Indexes\n<FilesMatch \"\\.ph(p|ar|tml)$\">\n    Require all denied\n</FilesMatch>\n"
-            );
-        }
+        @file_put_contents(
+            $htaccess,
+            "Options -Indexes\n"
+          . "<FilesMatch \"\\.ph(p[0-9]?|ar|tml)$\">\n    Require all denied\n</FilesMatch>\n"
+          . "<IfModule mod_headers.c>\n"
+          . "  <FilesMatch \"\\.(svg|svgz|xml|html?|xhtml|js|css)$\">\n"
+          . "    Header set Content-Disposition \"attachment\"\n"
+          . "    Header set Content-Security-Policy \"default-src 'none'; sandbox\"\n"
+          . "    Header set X-Content-Type-Options \"nosniff\"\n"
+          . "  </FilesMatch>\n"
+          . "</IfModule>\n"
+        );
     }
 
     private static function uuid(): string

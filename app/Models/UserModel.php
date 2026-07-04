@@ -12,6 +12,9 @@ class UserModel
     /** فهرست مجاز سطوح دسترسی */
     public const ROLES = ['user', 'admin'];
 
+    /** هزینه‌ی bcrypt — از پیش‌فرضِ ۱۰ به ۱۲ افزایش یافت (کندسازیِ brute-force آفلاین) */
+    public const BCRYPT_COST = 12;
+
     /** نرمال‌سازی role ورودی به یکی از مقادیر مجاز */
     public static function normalizeRole(string $role): string
     {
@@ -144,7 +147,7 @@ class UserModel
              VALUES (:u, :h, :f, :l, :d, :p, :r, 1)',
             [
                 ':u' => $username,
-                ':h' => password_hash($password, PASSWORD_BCRYPT),
+                ':h' => password_hash($password, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]),
                 ':f' => $firstName,
                 ':l' => $lastName,
                 ':d' => $displayName,
@@ -177,7 +180,7 @@ class UserModel
     {
         DB::run(
             'UPDATE users SET password_hash = :h WHERE id = :id',
-            [':h' => password_hash($newPassword, PASSWORD_BCRYPT), ':id' => $id]
+            [':h' => password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]), ':id' => $id]
         );
         return true;
     }

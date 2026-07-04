@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 class PasswordPolicy
 {
-    /** حداقل طول مجاز (کف امنیتی) */
-    public const MIN_LENGTH = 6;
+    /** حداقل طول مجاز (کف امنیتی) — از ۶ به ۱۰ افزایش یافت (مقاومت brute-force آفلاین) */
+    public const MIN_LENGTH = 10;
 
     /** حداقل امتیاز قابل قبول: ۲ = «متوسط» */
     public const MIN_SCORE = 2;
@@ -37,6 +37,6 @@ class PasswordPolicy
     /** پیام خطای استاندارد برای رمز ضعیف */
     public static function errorMessage(): string
     {
-        return 'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۶ کاراکتر همراه با ترکیبی از حروف بزرگ، عدد یا نماد.';
+        return 'رمز عبور باید حداقل در سطح «متوسط» باشد: دست‌کم ۱۰ کاراکتر همراه با ترکیبی از حروف بزرگ، عدد یا نماد.';
     }
 }
