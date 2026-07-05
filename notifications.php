@@ -423,7 +423,7 @@ foreach ($items as $item) {
   <script>
     const NOTIFS       = <?= json_encode($notifJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
     const IS_LOGGED_IN = <?= $isLoggedIn ? 'true' : 'false' ?>;
-    window.CSRF_TOKEN  = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES) ?>;
+    window.CSRF_TOKEN  = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
   </script>
 
   <script src="/assets/js/notifications.js?v=<?= $vNotifJs ?>"></script>

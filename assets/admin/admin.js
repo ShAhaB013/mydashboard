@@ -370,7 +370,7 @@ const UserManager = {
     Confirm.show({
       title:    'حذف کاربر',
       heading:  'آیا از حذف این کاربر اطمینان دارید؟',
-      body:     `کاربر <span class="item-name">${name}</span> به‌طور دائم حذف خواهد شد.`,
+      body:     `کاربر <span class="item-name">${esc(name)}</span> به‌طور دائم حذف خواهد شد.`,
       warn:     'تمام دسترسی‌های این کاربر نیز حذف خواهد شد.',
       type:     'danger',
       btnLabel: 'حذف کاربر',
@@ -459,8 +459,8 @@ const AccessManager = {
         const label = document.createElement('label');
         label.className = 'access-badge-label';
         label.innerHTML = `
-          <input type="checkbox" class="access-badge-cb" value="${badge}" ${checked ? 'checked' : ''}>
-          <span>${badge}</span>
+          <input type="checkbox" class="access-badge-cb" value="${esc(badge)}" ${checked ? 'checked' : ''}>
+          <span>${esc(badge)}</span>
         `;
         label.querySelector('input').addEventListener('change', () => {
           this._currentBadges = [...document.querySelectorAll('.access-badge-cb:checked')].map(c => c.value);
@@ -505,8 +505,8 @@ const AccessManager = {
             ${isDisabled  ? 'disabled' : ''}
           >
           <span class="access-tool-info">
-            <span class="access-tool-title">${tool.title || ''}</span>
-            ${tool.badge ? `<span class="access-tool-badge">${tool.badge}</span>` : ''}
+            <span class="access-tool-title">${esc(tool.title || '')}</span>
+            ${tool.badge ? `<span class="access-tool-badge">${esc(tool.badge)}</span>` : ''}
           </span>
           ${statusBadge}
         </label>
@@ -667,8 +667,8 @@ const IconEditor = {
     Confirm.show({
       title:    'حذف آیکون',
       heading:  'آیا از حذف این آیکون اطمینان دارید؟',
-      body:     `آیکون <span class="item-name">${key}</span> به‌طور دائم حذف خواهد شد.`,
-      warn:     usedBy.length ? `این آیکون در ابزار «${usedBy.join('، ')}» استفاده شده است.` : null,
+      body:     `آیکون <span class="item-name">${esc(key)}</span> به‌طور دائم حذف خواهد شد.`,
+      warn:     usedBy.length ? `این آیکون در ابزار «${usedBy.map(esc).join('، ')}» استفاده شده است.` : null,
       type:     usedBy.length ? 'warning' : 'danger',
       btnLabel: 'حذف آیکون',
       onConfirm: async () => {
@@ -763,8 +763,8 @@ const DecoEditor = {
     Confirm.show({
       title:    'حذف انیمیشن',
       heading:  'آیا از حذف این انیمیشن اطمینان دارید؟',
-      body:     `انیمیشن <span class="item-name">${key}</span> به‌طور دائم حذف خواهد شد.`,
-      warn:     usedBy.length ? `ابزار «${usedBy.join('، ')}» از این انیمیشن استفاده می‌کنند.` : null,
+      body:     `انیمیشن <span class="item-name">${esc(key)}</span> به‌طور دائم حذف خواهد شد.`,
+      warn:     usedBy.length ? `ابزار «${usedBy.map(esc).join('، ')}» از این انیمیشن استفاده می‌کنند.` : null,
       type:     usedBy.length ? 'warning' : 'danger',
       btnLabel: 'حذف انیمیشن',
       onConfirm: async () => {
