@@ -63,7 +63,7 @@
     </a>
 
     <!-- مدیریت آیکون‌ها -->
-    <button type="button" class="admin-tile" onclick="togglePanel('iconsBox', this)">
+    <button type="button" class="admin-tile" data-act="togglePanel" data-panel="iconsBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -78,7 +78,7 @@
     </button>
 
     <!-- مدیریت انیمیشن‌های کارت -->
-    <button type="button" class="admin-tile" onclick="togglePanel('decosBox', this)">
+    <button type="button" class="admin-tile" data-act="togglePanel" data-panel="decosBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -107,11 +107,11 @@
           <textarea id="iconEditorPath" rows="4" placeholder='<path d="..." fill="currentColor"/>'></textarea>
         </div>
         <div class="asset-editor-actions">
-          <button class="btn btn-success btn-sm" onclick="saveIconEdit()">
+          <button class="btn btn-success btn-sm" data-act="saveIconEdit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             ذخیره تغییرات
           </button>
-          <button class="btn btn-danger btn-sm" id="iconDeleteBtn" onclick="deleteIcon()">
+          <button class="btn btn-danger btn-sm" id="iconDeleteBtn" data-act="deleteIcon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -138,7 +138,7 @@
           </div>
         </div>
         <div style="margin-top:10px;">
-          <button class="btn btn-primary btn-sm" onclick="addNewIcon()">
+          <button class="btn btn-primary btn-sm" data-act="addNewIcon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             افزودن آیکون
           </button>
@@ -165,18 +165,18 @@
           <div id="decoEditorPreview" style="width:100%;max-width:280px;height:72px;border-radius:8px;background:rgba(88,166,255,.05);border:1px solid var(--border);overflow:hidden;--card-color:#58a6ff;"></div>
         </div>
         <div class="asset-editor-actions">
-          <button class="btn btn-success btn-sm" onclick="saveDecoEdit()">
+          <button class="btn btn-success btn-sm" data-act="saveDecoEdit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             ذخیره تغییرات
           </button>
-          <button class="btn btn-secondary btn-sm" onclick="refreshDecoPreview()">
+          <button class="btn btn-secondary btn-sm" data-act="refreshDecoPreview">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="1 4 1 10 7 10"/>
               <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
             </svg>
             پیش‌نمایش
           </button>
-          <button class="btn btn-danger btn-sm" id="decoDeleteBtn" onclick="deleteDeco()">
+          <button class="btn btn-danger btn-sm" id="decoDeleteBtn" data-act="deleteDeco">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -203,7 +203,7 @@
           </div>
         </div>
         <div style="margin-top:10px;">
-          <button class="btn btn-primary btn-sm" onclick="addNewDeco()">
+          <button class="btn btn-primary btn-sm" data-act="addNewDeco">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             افزودن انیمیشن
           </button>
@@ -219,7 +219,7 @@
   <div class="modal confirm-modal">
     <div class="modal-head">
       <h3 id="confirmTitle">تاییدیه</h3>
-      <button class="modal-close" onclick="closeConfirm()" aria-label="بستن">
+      <button class="modal-close" data-act="closeConfirm" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -238,8 +238,8 @@
       <div class="confirm-warn" id="confirmWarn"></div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeConfirm()">انصراف</button>
-      <button class="btn btn-sm" id="confirmActionBtn" onclick="runConfirm()">تایید</button>
+      <button class="btn btn-secondary btn-sm" data-act="closeConfirm">انصراف</button>
+      <button class="btn btn-sm" id="confirmActionBtn" data-act="runConfirm">تایید</button>
     </div>
   </div>
 </div>

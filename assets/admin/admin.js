@@ -963,7 +963,7 @@ const SecurityManager = {
         </div>
         <div class="blk-side">
           ${status}
-          <button class="btn btn-danger btn-sm" onclick="SecurityManager.unblock('${ip}','${sc}')">رفع انسداد</button>
+          <button class="btn btn-danger btn-sm" data-act="securityUnblock" data-ip="${ip}" data-scope="${sc}">رفع انسداد</button>
         </div>
       </div>`;
   },
@@ -1049,7 +1049,7 @@ const SessionsManager = {
         </div>
         <div class="blk-side">
           ${current}
-          <button class="btn btn-danger btn-sm" onclick="SessionsManager.terminate('${id}', ${s.is_current ? 'true' : 'false'})">پایان</button>
+          <button class="btn btn-danger btn-sm" data-act="sessTerminate" data-id="${id}" data-current="${s.is_current ? 'true' : 'false'}">پایان</button>
         </div>
       </div>`;
   },
@@ -1260,3 +1260,49 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: true });
   update();
 })();
+
+// ═══════════════════════════════════════════════════════════
+// اکشن‌ها (جایگزین on* برای CSP) — دیسپچرِ actions.js این‌ها را
+// از روی data-act/data-change روی عناصر (ثابت یا داینامیک) صدا می‌زند.
+// منطقِ Managerها دست‌نخورده است؛ این فقط لایه‌ی سیم‌کشی است.
+// ═══════════════════════════════════════════════════════════
+if (window.Actions) {
+  Actions.register({
+    // پنل‌های داشبورد
+    togglePanel:        (el) => togglePanel(el.dataset.panel, el),
+    // آیکون‌ها
+    saveIconEdit:       () => saveIconEdit(),
+    deleteIcon:         () => deleteIcon(),
+    addNewIcon:         () => addNewIcon(),
+    // انیمیشن‌ها (دکو)
+    saveDecoEdit:       () => saveDecoEdit(),
+    refreshDecoPreview: () => refreshDecoPreview(),
+    deleteDeco:         () => deleteDeco(),
+    addNewDeco:         () => addNewDeco(),
+    // مودال تاییدیه
+    closeConfirm:       () => closeConfirm(),
+    runConfirm:         () => runConfirm(),
+    // کاربران
+    userAdd:            () => UserManager.openAdd(),
+    userClose:          () => UserManager.close(),
+    userSave:           () => UserManager.save(),
+    userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.role); },
+    userToggle:         (el) => toggleUser(+el.dataset.id, el),
+    userDelete:         (el) => openDeleteUserModal(+el.dataset.id, el.dataset.name),
+    togglePass:         (el) => togglePass(el.dataset.target, el),
+    closeModal:         (el) => closeModal(el.dataset.modal),
+    // دسترسی
+    accessOpen:         (el) => openAccessModal(+el.dataset.id, el.dataset.name),
+    accessClose:        () => AccessManager.close(),
+    saveAccess:         () => saveAccess(),
+    // نشست‌ها
+    saveTtl:            () => SessionsManager.saveTtl(),
+    sessOpenUser:       (el) => SessionsManager.openUser(+el.dataset.id, el.dataset.name),
+    sessTerminateUser:  () => SessionsManager.terminateUser(),
+    sessTerminate:      (el) => SessionsManager.terminate(el.dataset.id, el.dataset.current === 'true'),
+    // امنیت (انسداد ورود)
+    openBlocks:         () => openBlocksModal(),
+    securityRefresh:    () => SecurityManager.refresh(),
+    securityUnblock:    (el) => SecurityManager.unblock(el.dataset.ip, el.dataset.scope),
+  });
+}

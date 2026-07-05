@@ -75,13 +75,13 @@
   <div class="tools-header">
     <h2>کاربران <span class="count-badge" id="userCountBadge"><?= (int) ($totalUsers ?? 0) ?></span></h2>
     <div class="tools-header-actions">
-      <button class="btn btn-primary btn-sm" onclick="UserManager.openAdd()">
+      <button class="btn btn-primary btn-sm" data-act="userAdd">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
         افزودن کاربر
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="openBlocksModal()" title="مدیریت انسداد ورود">
+      <button class="btn btn-secondary btn-sm" data-act="openBlocks" title="مدیریت انسداد ورود">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
@@ -95,7 +95,7 @@
     <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود:</label>
     <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
     <span>ساعت</span>
-    <button class="btn btn-secondary btn-sm" onclick="SessionsManager.saveTtl()">
+    <button class="btn btn-secondary btn-sm" data-act="saveTtl">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       ذخیره
     </button>
@@ -153,21 +153,26 @@
         </div>
         <div class="user-row-actions">
           <button class="btn btn-secondary btn-icon btn-sm" title="تنظیم دسترسی"
-            onclick="openAccessModal(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: $u['username']), ENT_QUOTES) ?>')">
+            data-act="accessOpen" data-id="<?= (int)$u['id'] ?>" data-name="<?= htmlspecialchars($u['display_name'] ?: $u['username'], ENT_QUOTES) ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
             </svg>
           </button>
           <button class="btn btn-secondary btn-icon btn-sm sess-user-btn" title="نشست‌های فعال"
-            onclick="SessionsManager.openUser(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: $u['username']), ENT_QUOTES) ?>')">
+            data-act="sessOpenUser" data-id="<?= (int)$u['id'] ?>" data-name="<?= htmlspecialchars($u['display_name'] ?: $u['username'], ENT_QUOTES) ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
             </svg>
             <?php if (!empty($sessionCounts[$u['id']])): ?><span class="sess-count-dot"><?= (int) $sessionCounts[$u['id']] ?></span><?php endif; ?>
           </button>
           <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش"
-            onclick="openEditUserModal(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: trim(($u['first_name'] ?? '').' '.($u['last_name'] ?? ''))), ENT_QUOTES) ?>','<?= htmlspecialchars(addslashes($u['username'] ?? ''), ENT_QUOTES) ?>','<?= htmlspecialchars(addslashes($u['phone'] ?? ''), ENT_QUOTES) ?>','<?= htmlspecialchars($u['role'] ?? 'user', ENT_QUOTES) ?>')">
+            data-act="userEdit"
+            data-id="<?= (int)$u['id'] ?>"
+            data-name="<?= htmlspecialchars($u['display_name'] ?: trim(($u['first_name'] ?? '').' '.($u['last_name'] ?? '')), ENT_QUOTES) ?>"
+            data-username="<?= htmlspecialchars($u['username'] ?? '', ENT_QUOTES) ?>"
+            data-phone="<?= htmlspecialchars($u['phone'] ?? '', ENT_QUOTES) ?>"
+            data-role="<?= htmlspecialchars($u['role'] ?? 'user', ENT_QUOTES) ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -175,14 +180,14 @@
           </button>
           <button class="btn btn-secondary btn-icon btn-sm toggle-user-btn <?= !$u['is_active'] ? 'is-inactive' : '' ?>"
             title="<?= $u['is_active'] ? 'غیرفعال کردن' : 'فعال کردن' ?>"
-            onclick="toggleUser(<?= (int)$u['id'] ?>, this)">
+            data-act="userToggle" data-id="<?= (int)$u['id'] ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/>
               <line x1="12" y1="2" x2="12" y2="12"/>
             </svg>
           </button>
           <button class="btn btn-danger btn-icon btn-sm" title="حذف"
-            onclick="openDeleteUserModal(<?= (int)$u['id'] ?>,'<?= htmlspecialchars(addslashes($u['display_name'] ?: $u['username']), ENT_QUOTES) ?>')">
+            data-act="userDelete" data-id="<?= (int)$u['id'] ?>" data-name="<?= htmlspecialchars($u['display_name'] ?: $u['username'], ENT_QUOTES) ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -234,7 +239,7 @@
   <div class="modal" style="max-width:480px;">
     <div class="modal-head">
       <h3 id="userModalTitle">افزودن کاربر</h3>
-      <button class="modal-close" onclick="UserManager.close()" aria-label="بستن">
+      <button class="modal-close" data-act="userClose" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -266,7 +271,7 @@
           <label id="editPassLabel">رمز عبور <span class="req">*</span></label>
           <div class="pass-wrap">
             <input type="password" id="editUserPassword" placeholder="رمز عبور" autocomplete="new-password" maxlength="64">
-            <button type="button" class="pass-toggle" aria-label="نمایش/مخفی رمز" onclick="togglePass('editUserPassword', this)">
+            <button type="button" class="pass-toggle" aria-label="نمایش/مخفی رمز" data-act="togglePass" data-target="editUserPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
@@ -285,8 +290,8 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="UserManager.close()">انصراف</button>
-      <button class="btn btn-primary btn-sm" id="userModalSaveBtn" onclick="UserManager.save()">
+      <button class="btn btn-secondary btn-sm" data-act="userClose">انصراف</button>
+      <button class="btn btn-primary btn-sm" id="userModalSaveBtn" data-act="userSave">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         <span id="userModalSaveLabel">افزودن کاربر</span>
       </button>
@@ -299,7 +304,7 @@
   <div class="modal" style="max-width:640px;">
     <div class="modal-head">
       <h3>انسداد ورود</h3>
-      <button class="modal-close" onclick="closeModal('blocksModal')" aria-label="بستن">
+      <button class="modal-close" data-act="closeModal" data-modal="blocksModal" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -315,11 +320,11 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="SecurityManager.refresh()">
+      <button class="btn btn-secondary btn-sm" data-act="securityRefresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
         بروزرسانی
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('blocksModal')">بستن</button>
+      <button class="btn btn-secondary btn-sm" data-act="closeModal" data-modal="blocksModal">بستن</button>
     </div>
   </div>
 </div>
@@ -329,7 +334,7 @@
   <div class="modal" style="max-width:640px;">
     <div class="modal-head">
       <h3 id="sessionsUserTitle">نشست‌های فعال</h3>
-      <button class="modal-close" onclick="closeModal('sessionsUserModal')" aria-label="بستن">
+      <button class="modal-close" data-act="closeModal" data-modal="sessionsUserModal" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -342,11 +347,11 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-danger btn-sm" onclick="SessionsManager.terminateUser()">
+      <button class="btn btn-danger btn-sm" data-act="sessTerminateUser">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
         خروج از همه دستگاه‌ها
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('sessionsUserModal')">بستن</button>
+      <button class="btn btn-secondary btn-sm" data-act="closeModal" data-modal="sessionsUserModal">بستن</button>
     </div>
   </div>
 </div>
@@ -356,7 +361,7 @@
   <div class="modal" style="max-width:580px;">
     <div class="modal-head">
       <h3 id="accessModalTitle">تنظیم دسترسی</h3>
-      <button class="modal-close" onclick="AccessManager.close()" aria-label="بستن">
+      <button class="modal-close" data-act="accessClose" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -397,8 +402,8 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="AccessManager.close()">انصراف</button>
-      <button class="btn btn-primary btn-sm" id="saveAccessBtn" onclick="saveAccess()">
+      <button class="btn btn-secondary btn-sm" data-act="accessClose">انصراف</button>
+      <button class="btn btn-primary btn-sm" id="saveAccessBtn" data-act="saveAccess">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         ذخیره دسترسی‌ها
       </button>
@@ -411,7 +416,7 @@
   <div class="modal confirm-modal">
     <div class="modal-head">
       <h3 id="confirmTitle">تاییدیه</h3>
-      <button class="modal-close" onclick="closeConfirm()" aria-label="بستن">
+      <button class="modal-close" data-act="closeConfirm" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -430,8 +435,8 @@
       <div class="confirm-warn" id="confirmWarn"></div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeConfirm()">انصراف</button>
-      <button class="btn btn-sm" id="confirmActionBtn" onclick="runConfirm()">تایید</button>
+      <button class="btn btn-secondary btn-sm" data-act="closeConfirm">انصراف</button>
+      <button class="btn btn-sm" id="confirmActionBtn" data-act="runConfirm">تایید</button>
     </div>
   </div>
 </div>
