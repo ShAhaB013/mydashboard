@@ -87,11 +87,12 @@ $GLOBALS['csp_nonce'] = base64_encode(random_bytes(16));
 if (!function_exists('csp_nonce')) {
     function csp_nonce(): string { return (string) ($GLOBALS['csp_nonce'] ?? ''); }
 }
-// فاز ۱: هنوز Report-Only (چیزی را مسدود نمی‌کند). پس از مهاجرتِ کاملِ هندلرها،
-// در فاز ۳ به Content-Security-Policy (enforcing) تبدیل می‌شود.
+// CSP اجباری (enforcing): همه‌ی هندلرهای inline به event-delegation منتقل و همه‌ی
+// <script>های inline nonce گرفته‌اند، پس script-src بدون 'unsafe-inline' امن است.
+// style-src فعلاً 'unsafe-inline' دارد (صفاتِ style پرشمار؛ مهاجرتِ جداگانه).
 if (!headers_sent()) {
     header(
-        "Content-Security-Policy-Report-Only: "
+        "Content-Security-Policy: "
         . "default-src 'self'; img-src 'self' data:; font-src 'self'; "
         . "style-src 'self' 'unsafe-inline'; "
         . "script-src 'self' 'nonce-" . csp_nonce() . "'; "
