@@ -427,7 +427,7 @@ const NM = {
     const items = [];
 
     // دکمه قبلی
-    items.push(`<button class="page-btn" ${cur === 1 ? 'disabled' : ''} onclick="NM.goToPage(${cur - 1})" title="قبلی">
+    items.push(`<button class="page-btn" ${cur === 1 ? 'disabled' : ''} data-act="nmGoToPage" data-page="${cur - 1}" title="قبلی">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
     </button>`);
 
@@ -436,12 +436,12 @@ const NM = {
       if (p === '...') {
         items.push(`<span class="page-ellipsis">…</span>`);
       } else {
-        items.push(`<button class="page-btn ${p === cur ? 'active' : ''}" onclick="NM.goToPage(${p})">${p}</button>`);
+        items.push(`<button class="page-btn ${p === cur ? 'active' : ''}" data-act="nmGoToPage" data-page="${p}">${p}</button>`);
       }
     });
 
     // دکمه بعدی
-    items.push(`<button class="page-btn" ${cur === pageCount ? 'disabled' : ''} onclick="NM.goToPage(${cur + 1})" title="بعدی">
+    items.push(`<button class="page-btn" ${cur === pageCount ? 'disabled' : ''} data-act="nmGoToPage" data-page="${cur + 1}" title="بعدی">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
     </button>`);
 
@@ -565,13 +565,13 @@ const NM = {
         </div>
       </div>
       <div class="notif-row-actions">
-        <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش" onclick="NM.openEdit(${n.id})">
+        <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش" data-act="nmOpenEdit" data-id="${n.id}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
-        <button class="btn btn-danger btn-icon btn-sm" title="حذف" onclick="NM.openDelete(${n.id}, '${this._escAttr(n.title)}')">
+        <button class="btn btn-danger btn-icon btn-sm" title="حذف" data-act="nmOpenDelete" data-id="${n.id}" data-title="${this._escAttr(n.title)}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6"/>
             <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -1052,8 +1052,34 @@ const NM = {
     tmp.innerHTML = String(html ?? '');
     return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
   },
-  _escAttr(str) { return String(str ?? '').replace(/'/g,"\\'"); },
+  _escAttr(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); },
 };
+
+// ═══════════════════════════════════════════════════════════
+// اکشن‌ها (جایگزین on* برای CSP) — دیسپچرِ actions.js صدا می‌زند.
+// ═══════════════════════════════════════════════════════════
+if (window.Actions) {
+  Actions.register({
+    nmOpenAdd:        () => NM.openAdd(),
+    nmSearch:         (el) => NM.onSearchInput(el.value),
+    nmClearSearch:    () => NM.clearSearch(),
+    nmSetPerPage:     (el) => NM.setPerPage(el.value),
+    nmToggleAdvanced: () => NM.toggleAdvanced(),
+    nmApplyFilters:   () => NM.applyFilters(),
+    nmResetFilters:   () => NM.resetFilters(),
+    nmCloseForm:      () => NM.closeForm(),
+    nmFileSelect:     (el) => NM.handleFileSelect(el.files[0]),
+    nmRemoveImage:    () => NM.removeImage(),
+    nmPublicChange:   (el) => NM.onPublicChange(el),
+    nmExpiryInput:    () => NM.onExpiryInput(),
+    nmSave:           () => NM.save(),
+    nmCloseConfirm:   () => NM.closeConfirm(),
+    nmRunAsk:         () => NM._runAsk(),
+    nmGoToPage:       (el) => NM.goToPage(parseInt(el.dataset.page, 10)),
+    nmOpenEdit:       (el) => NM.openEdit(parseInt(el.dataset.id, 10)),
+    nmOpenDelete:     (el) => NM.openDelete(parseInt(el.dataset.id, 10), el.dataset.title),
+  });
+}
 
 // Drag & Drop
 (function initDragDrop() {

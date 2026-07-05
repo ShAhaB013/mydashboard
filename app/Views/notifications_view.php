@@ -43,7 +43,7 @@
   <div class="tools-header">
     <h2>اعلان‌ها <span class="count-badge" id="notifCountBadge">0</span></h2>
     <div class="tools-header-actions">
-      <button class="btn btn-primary btn-sm" onclick="NM.openAdd()">
+      <button class="btn btn-primary btn-sm" data-act="nmOpenAdd">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
@@ -58,8 +58,8 @@
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
       <input type="text" id="notifSearchInput" placeholder="جستجو در عنوان و متن اعلان‌ها..."
-             oninput="NM.onSearchInput(this.value)" autocomplete="off">
-      <button type="button" class="notif-search-clear" id="notifSearchClear" onclick="NM.clearSearch()" title="پاک کردن">
+             data-input="nmSearch" autocomplete="off">
+      <button type="button" class="notif-search-clear" id="notifSearchClear" data-act="nmClearSearch" title="پاک کردن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -68,14 +68,14 @@
 
     <label class="nm-perpage" title="تعداد آیتم در هر صفحه">
       <span class="sr-only">تعداد در هر صفحه</span>
-      <select id="notifPerPage" onchange="NM.setPerPage(this.value)" aria-label="تعداد آیتم در هر صفحه">
+      <select id="notifPerPage" data-change="nmSetPerPage" aria-label="تعداد آیتم در هر صفحه">
         <option value="10">۱۰</option>
         <option value="20">۲۰</option>
         <option value="50">۵۰</option>
       </select>
     </label>
 
-    <button type="button" class="nm-adv-toggle" id="nmAdvToggle" onclick="NM.toggleAdvanced()"
+    <button type="button" class="nm-adv-toggle" id="nmAdvToggle" data-act="nmToggleAdvanced"
             aria-expanded="false" aria-controls="nmAdvPanel" title="جستجوی پیشرفته">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
@@ -103,8 +103,8 @@
       </select>
     </div>
     <div class="nm-adv-actions">
-      <button type="button" class="btn btn-primary btn-sm" onclick="NM.applyFilters()">اعمال</button>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="NM.resetFilters()">حذف فیلترها</button>
+      <button type="button" class="btn btn-primary btn-sm" data-act="nmApplyFilters">اعمال</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-act="nmResetFilters">حذف فیلترها</button>
     </div>
   </div>
 
@@ -124,7 +124,7 @@
   <div class="modal" style="max-width:600px;">
     <div class="modal-head">
       <h3 id="notifModalTitle">اعلان جدید</h3>
-      <button class="modal-close" onclick="NM.closeForm()" aria-label="بستن">
+      <button class="modal-close" data-act="nmCloseForm" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -194,7 +194,7 @@
 
         <!-- ناحیه کشیدن‌ورها‌کردن / انتخاب فایل (تک‌فایل) -->
         <div class="file-up-zone" id="imgUploadZone">
-          <input type="file" id="imgFileInput" accept="image/*" onchange="NM.handleFileSelect(this.files[0])">
+          <input type="file" id="imgFileInput" accept="image/*" data-change="nmFileSelect">
           <div class="file-up-illus">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v3"/>
@@ -226,7 +226,7 @@
           <svg class="file-item-done" id="imgFileDone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
-          <button type="button" class="file-item-x" onclick="NM.removeImage()" title="حذف">
+          <button type="button" class="file-item-x" data-act="nmRemoveImage" title="حذف">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -243,7 +243,7 @@
               <span>برای همه بازدیدکنندگان از جمله مهمان‌ها</span>
             </div>
             <label class="toggle-sw">
-              <input type="checkbox" id="nf-public" onchange="NM.onPublicChange(this)">
+              <input type="checkbox" id="nf-public" data-change="nmPublicChange">
               <span class="toggle-sw-track"></span>
             </label>
           </div>
@@ -279,14 +279,14 @@
             id="nf-expires-date"
             class="datetime-ltr"
             style="flex:1;"
-            oninput="NM.onExpiryInput()">
+            data-input="nmExpiryInput">
           <input
             type="time"
             id="nf-expires-time"
             class="datetime-ltr"
             style="width:130px;"
             value="00:00"
-            oninput="NM.onExpiryInput()">
+            data-input="nmExpiryInput">
         </div>
         <div class="expiry-display" id="expiryDisplay">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
@@ -304,8 +304,8 @@
     </div>
 
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="NM.closeForm()">انصراف</button>
-      <button class="btn btn-primary btn-sm" id="notifSaveBtn" onclick="NM.save()">
+      <button class="btn btn-secondary btn-sm" data-act="nmCloseForm">انصراف</button>
+      <button class="btn btn-primary btn-sm" id="notifSaveBtn" data-act="nmSave">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         ذخیره
       </button>
@@ -318,7 +318,7 @@
   <div class="modal confirm-modal">
     <div class="modal-head">
       <h3 id="notifConfirmTitle">حذف اعلان</h3>
-      <button class="modal-close" onclick="NM.closeConfirm()" aria-label="بستن">
+      <button class="modal-close" data-act="nmCloseConfirm" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -336,8 +336,8 @@
       <p class="confirm-desc" id="notifConfirmDesc"></p>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="NM.closeConfirm()">انصراف</button>
-      <button class="btn btn-danger btn-sm" id="notifConfirmBtn" onclick="NM._runAsk()">حذف اعلان</button>
+      <button class="btn btn-secondary btn-sm" data-act="nmCloseConfirm">انصراف</button>
+      <button class="btn btn-danger btn-sm" id="notifConfirmBtn" data-act="nmRunAsk">حذف اعلان</button>
     </div>
   </div>
 </div>
