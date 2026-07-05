@@ -34,7 +34,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
   <script src="/assets/js/theme.js?v=<?= $v_theme ?>" defer></script>
   <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
   <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
-  <script type="speculationrules">
+  <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
       "where": { "and": [
@@ -202,8 +202,9 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
     <span class="app-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
   </footer>
 
-  <script>window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
+  <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>
+  <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>
   <script src="/assets/js/profile.js?v=<?= $v_profilejs ?>"></script>
 
 </body>

@@ -32,7 +32,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   <title>داشبورد ابزارهای کمکی</title>
   <link rel="preload" href="fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
   <link rel="stylesheet" href="/assets/css/style.css?v=<?= $v_css ?>">
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
     (function () {
       const saved = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -44,10 +44,10 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   <script src="/assets/js/theme.js?v=<?= $v_theme ?>" defer></script>
   <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
 <?php if ($isAdmin): ?>
-  <script>window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
+  <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
 <?php endif; ?>
   <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
-  <script type="speculationrules">
+  <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
       "where": { "and": [
@@ -564,6 +564,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 <?php endif; ?>
 
   <script src="/assets/js/lightbox.js?v=<?= $v_lb ?>" defer></script>
+  <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>" defer></script>
   <script src="/assets/js/script.js?v=<?= $v_js ?>" defer></script>
 </body>
 </html>

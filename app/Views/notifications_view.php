@@ -9,7 +9,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>مدیریت اعلان‌ها — پنل مدیریت</title>
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
     (function(){
       const t = localStorage.getItem('theme');
       const d = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -348,11 +348,12 @@
   <span id="toastMsg"></span>
 </div>
 
-<script>
+<script nonce="<?= csp_nonce() ?>">
 const CSRF_TOKEN   = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
 const AVAIL_BADGES = <?= $badgesJson ?>;
 </script>
 <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
+<script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/../../assets/js/actions.js') ?>"></script>
 <script src="/assets/admin/notifications-admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/notifications-admin.js') ?>"></script>
 <script src="/assets/js/datepicker.js?v=<?= asset_v(__DIR__ . '/../../assets/js/datepicker.js') ?>"></script>
 

@@ -93,12 +93,8 @@ Options -Indexes
   # محدودسازی APIهای حساس مرورگر که این اپ استفاده نمی‌کند.
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
 
-  # CSP فعلاً گزارش‌محور (Report-Only) است: چیزی را مسدود نمی‌کند، فقط تخلف‌ها
-  # را در کنسول مرورگر گزارش می‌دهد. script-src عمداً 'unsafe-inline' ندارد تا
-  # هر <script> یا onclick inline به‌عنوان تخلف گزارش شود و بدانیم کجا nonce لازم
-  # است؛ style-src فعلاً 'unsafe-inline' دارد چون ویژگی style inline در سراسر
-  # قالب‌ها پرشمار است (مهاجرت جداگانه). پس از پایش، به enforcing ارتقا می‌یابد.
-  Header always set Content-Security-Policy-Report-Only "default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'"
+  # نکته: هدرِ CSP اینجا ست نمی‌شود؛ چون به nonceِ per-request نیاز دارد از PHP
+  # ارسال می‌شود (bootstrap.php → csp_nonce()). مهاجرت به enforcing در همان‌جا.
 </IfModule>
 
 # فایل‌های حساس: dotfileها، دامپِ دیتابیس، آرشیو/بکاپ، پیکربندی، لاگ ...

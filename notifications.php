@@ -135,7 +135,7 @@ foreach ($items as $item) {
   <script src="/assets/js/lightbox.js?v=<?= $vLightbox ?>" defer></script>
   <script src="/assets/js/datepicker.js?v=<?= $vDpJs ?>" defer></script>
   <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
-  <script type="speculationrules">
+  <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
       "where": { "and": [
@@ -420,12 +420,13 @@ foreach ($items as $item) {
   </div>
 
   <!-- داده اعلان‌ها و وضعیت کاربر -->
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
     const NOTIFS       = <?= json_encode($notifJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
     const IS_LOGGED_IN = <?= $isLoggedIn ? 'true' : 'false' ?>;
     window.CSRF_TOKEN  = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
   </script>
 
+  <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>
   <script src="/assets/js/notifications.js?v=<?= $vNotifJs ?>"></script>
 
   <footer class="app-footer">

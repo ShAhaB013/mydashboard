@@ -9,7 +9,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>مدیریت کاربران — پنل مدیریت</title>
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
     (function(){
       const t = localStorage.getItem('theme');
       const d = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -443,7 +443,7 @@
 </div>
 
 <!-- داده‌های PHP به JS -->
-<script>
+<script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
   window.CSRF_TOKEN = CSRF_TOKEN; // لازم برای ارسال هدر X-CSRF-Token در admin.js
   // مودال دسترسی به «همه ابزارها» نیاز دارد → نسخه سبک (id/title/badge/is_public)
@@ -455,6 +455,7 @@
   const DECOS_DATA = {};
 </script>
 <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
+<script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/../../assets/js/actions.js') ?>"></script>
 <script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
 
 <footer class="admin-footer">

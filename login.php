@@ -25,7 +25,7 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
   <title>ورود — داشبورد ابزارهای کمکی</title>
   <link rel="preload" href="fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
   <link rel="stylesheet" href="/assets/css/style.css?v=<?= $v_css ?>">
-  <script>
+  <script nonce="<?= csp_nonce() ?>">
     (function () {
       const saved = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -139,6 +139,7 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
   <div class="login-toast-wrap" id="loginToastWrap" aria-live="assertive"></div>
 
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>
+  <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>
   <script src="/assets/js/login.js?v=<?= $v_loginjs ?>"></script>
 
 </body>

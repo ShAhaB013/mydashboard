@@ -79,4 +79,24 @@ try {
 // ── نشست (همان realm کاربر) ──────────────────────────────
 UserSession::start();
 
+// ── CSP nonce (یکتا برای هر درخواست) + هدرِ CSP ──────────
+// nonceِ per-request که همه‌ی <script>های inline از csp_nonce() می‌خوانند تا
+// بتوان script-src را بدون 'unsafe-inline' نگه داشت. منبعِ یگانه‌ی هدرِ CSP هم
+// همین‌جاست (به‌جای .htaccess) چون nonce داینامیک است.
+$GLOBALS['csp_nonce'] = base64_encode(random_bytes(16));
+if (!function_exists('csp_nonce')) {
+    function csp_nonce(): string { return (string) ($GLOBALS['csp_nonce'] ?? ''); }
+}
+// فاز ۱: هنوز Report-Only (چیزی را مسدود نمی‌کند). پس از مهاجرتِ کاملِ هندلرها،
+// در فاز ۳ به Content-Security-Policy (enforcing) تبدیل می‌شود.
+if (!headers_sent()) {
+    header(
+        "Content-Security-Policy-Report-Only: "
+        . "default-src 'self'; img-src 'self' data:; font-src 'self'; "
+        . "style-src 'self' 'unsafe-inline'; "
+        . "script-src 'self' 'nonce-" . csp_nonce() . "'; "
+        . "object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'"
+    );
+}
+
 return $config;
