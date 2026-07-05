@@ -64,14 +64,18 @@ class AuthController
             if (password_needs_rehash($row['password_hash'], PASSWORD_BCRYPT, ['cost' => UserModel::BCRYPT_COST])) {
                 (new UserModel())->changePassword((int) $row['id'], $password);
             }
-            // پاکسازی سشن‌های قبلی همین کاربر از همین مرورگر/IP (جلوگیری از سشن تکراری)
+            // پاکسازی سشن‌های قبلی همین کاربر از همین مرورگر (بدون قیدِ IP).
+            // چرا بدون IP؟ روی موبایل/شبکه‌های پویا IP کاربر مکررا عوض می‌شود؛
+            // اگر IP در کلید باشد، ورود مجددِ همان مرورگر با IP جدید، نشستِ قبلی
+            // را پاک نمی‌کند و آن نشست تا پایان TTL به‌صورت «روح» زنده می‌ماند.
+            // کلیدِ user_id + user_agent همان مرورگر را دقیق شناسایی می‌کند و
+            // نشستِ قبلی‌اش را جایگزین می‌کند (به‌جای انباشتِ نشست‌های تکراری).
             $uid = (int) $row['id'];
-            $ip  = mb_substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
             $ua  = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
             try {
                 DB::run(
-                    'DELETE FROM sessions WHERE user_id = :uid AND ip = :ip AND user_agent = :ua',
-                    [':uid' => $uid, ':ip' => $ip, ':ua' => $ua]
+                    'DELETE FROM sessions WHERE user_id = :uid AND user_agent = :ua',
+                    [':uid' => $uid, ':ua' => $ua]
                 );
             } catch (\Throwable $e) {}
 
