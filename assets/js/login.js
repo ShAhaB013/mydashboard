@@ -108,3 +108,10 @@
       submitAuth('login', { username, password },
                  document.getElementById('loginSubmitBtn'), 'ورود', ['loginUsername', 'loginPassword']);
     });
+
+    /* ── اکشن‌ها (جایگزین on* برای CSP) ── */
+    if (window.Actions) {
+      Actions.register({
+        togglePass: (el) => togglePass(el.dataset.target, el),
+      });
+    }

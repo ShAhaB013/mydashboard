@@ -1839,3 +1839,11 @@ if (document.prerendering) {
 } else {
   boot();
 }
+
+/* ── اکشن‌ها (جایگزین on* برای CSP) ── */
+if (window.Actions) {
+  Actions.register({
+    notifDetailClose: () => NotifDetail.close(),
+    tmHideUnsaved:    () => AdminTools._hideUnsaved(),
+  });
+}

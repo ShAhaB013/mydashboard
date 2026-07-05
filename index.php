@@ -400,7 +400,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
       <div class="notif-detail-foot">
         <button
           class="notif-detail-close-btn"
-          onclick="NotifDetail.close()">
+          data-act="notifDetailClose">
           بستن
         </button>
         <!-- لینک تاریخچه — فقط برای کاربران لاگین‌شده نمایش داده می‌شود -->
@@ -539,7 +539,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
     <div class="tm-dialog tm-dialog-sm" role="dialog" aria-modal="true">
       <div class="tm-head">
         <h3>بستن فرم</h3>
-        <button type="button" class="tm-close" onclick="AdminTools._hideUnsaved()" aria-label="بستن">
+        <button type="button" class="tm-close" data-act="tmHideUnsaved" aria-label="بستن">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>

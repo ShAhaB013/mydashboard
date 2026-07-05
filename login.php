@@ -111,7 +111,7 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
             </span>
             <input type="password" id="loginPassword" name="password" class="field-input" placeholder="رمز عبور"
                    autocomplete="current-password" dir="ltr" maxlength="128">
-            <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('loginPassword', this)">
+            <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="loginPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
