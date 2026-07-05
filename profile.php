@@ -100,7 +100,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
           <div class="field-box" dir="ltr">
             <input type="password" id="currentPassword" class="field-input" placeholder="رمز عبور فعلی"
                    autocomplete="current-password" maxlength="128">
-            <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('currentPassword', this)">
+            <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="currentPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
@@ -116,7 +116,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
           <div class="field-box" dir="ltr">
             <input type="password" id="newPassword" class="field-input" placeholder="رمز عبور جدید"
                    autocomplete="new-password" maxlength="64">
-            <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('newPassword', this)">
+            <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="newPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
@@ -143,7 +143,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
           <div class="field-box" dir="ltr">
             <input type="password" id="confirmPassword" class="field-input" placeholder="تکرار رمز عبور جدید"
                    autocomplete="new-password" maxlength="128">
-            <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" onclick="togglePass('confirmPassword', this)">
+            <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="confirmPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
@@ -160,7 +160,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
         </div>
 
         <!-- دکمه ذخیره -->
-        <button class="profile-submit-btn" id="profileSubmitBtn" onclick="submitChangePassword()">
+        <button class="profile-submit-btn" id="profileSubmitBtn" data-act="submitChangePassword">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
@@ -184,7 +184,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
             <div id="acctSessionsList" class="acct-sessions">
               <div class="acct-sessions-empty">در حال بارگذاری…</div>
             </div>
-            <button class="profile-submit-btn acct-killall-btn" id="acctKillOthers" onclick="terminateMyOtherSessions()" style="display:none;">
+            <button class="profile-submit-btn acct-killall-btn" id="acctKillOthers" data-act="terminateMyOtherSessions" style="display:none;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/>
               </svg>

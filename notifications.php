@@ -193,7 +193,7 @@ foreach ($items as $item) {
       <!-- تعداد در هر صفحه -->
       <label class="notif-perpage" title="تعداد آیتم در هر صفحه">
         <span class="sr-only">تعداد در هر صفحه</span>
-        <select name="pp" data-cselect onchange="this.form.submit()" aria-label="تعداد آیتم در هر صفحه">
+        <select name="pp" data-cselect data-change="submitForm" aria-label="تعداد آیتم در هر صفحه">
           <?php foreach ($perPageAllowed as $opt): ?>
             <option value="<?= $opt ?>"<?= $opt === $perPage ? ' selected' : '' ?>><?= $opt ?></option>
           <?php endforeach; ?>
@@ -288,7 +288,7 @@ foreach ($items as $item) {
             role="listitem"
             data-id="<?= (int) $item['id'] ?>"
             aria-label="<?= htmlspecialchars($item['title']) ?>"
-            onclick="NP.open(<?= (int) $item['id'] ?>)"
+            data-act="npOpen"
             style="cursor:pointer;"
           >
             <div class="notif-row-bar" aria-hidden="true"></div>
@@ -313,10 +313,11 @@ foreach ($items as $item) {
               </div>
             </div>
 
-            <div class="notif-row-action" onclick="event.stopPropagation()">
+            <div class="notif-row-action">
               <button
                 class="notif-view-btn"
-                onclick="NP.open(<?= (int) $item['id'] ?>)"
+                data-act="npOpen"
+                data-id="<?= (int) $item['id'] ?>"
                 aria-label="مشاهده اعلان <?= htmlspecialchars($item['title']) ?>"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">

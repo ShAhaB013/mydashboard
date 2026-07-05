@@ -265,7 +265,7 @@
               <div class="acct-sess-meta"><span dir="ltr">${ip}</span> · ${when}</div>
               ${remaining ? `<div class="acct-sess-meta">باقیمانده: ${remaining}</div>` : ''}
             </div>
-            ${cur ? '' : `<button type="button" class="acct-sess-kill" onclick="terminateMySession('${_escHtml(s.id)}')">پایان</button>`}
+            ${cur ? '' : `<button type="button" class="acct-sess-kill" data-act="terminateMySession" data-id="${_escHtml(s.id)}">پایان</button>`}
           </div>`;
       }).join('');
       const others = list.filter(s => !s.is_current).length;
@@ -295,6 +295,16 @@
         });
         loadMySessions();
       } catch {} finally { if (btn) btn.disabled = false; }
+    }
+
+    /* ── اکشن‌ها (جایگزین on* برای CSP) ── */
+    if (window.Actions) {
+      Actions.register({
+        togglePass:               (el) => togglePass(el.dataset.target, el),
+        submitChangePassword:     () => submitChangePassword(),
+        terminateMyOtherSessions: () => terminateMyOtherSessions(),
+        terminateMySession:       (el) => terminateMySession(el.dataset.id),
+      });
     }
 
     /* ── init ── */

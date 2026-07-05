@@ -316,6 +316,14 @@
     // برای مهمان: اعمال وضعیت خوانده‌شده از localStorage روی ردیف‌ها
     if (!IS_LOGGED_IN) NP.initGuestReadState();
 
+    /* ── اکشن‌ها (جایگزین on* برای CSP) ── */
+    if (window.Actions) {
+      Actions.register({
+        npOpen:     (el) => NP.open(parseInt(el.dataset.id, 10)),
+        submitForm: (el) => el.form && el.form.submit(),
+      });
+    }
+
     // ── Hover preload: لود تصویر هنگام hover روی ردیف ──────
     // وقتی mouse روی ردیف می‌رود، لود تصویر شروع می‌شود تا
     // هنگام کلیک "مشاهده" از cache سرو شود
