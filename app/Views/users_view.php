@@ -461,9 +461,5 @@
 <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/../../assets/js/actions.js') ?>"></script>
 <script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
 
-<footer class="admin-footer">
-  <span class="admin-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
-</footer>
-
 </body>
 </html>

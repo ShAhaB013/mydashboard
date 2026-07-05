@@ -357,9 +357,5 @@ const AVAIL_BADGES = <?= $badgesJson ?>;
 <script src="/assets/admin/notifications-admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/notifications-admin.js') ?>"></script>
 <script src="/assets/js/datepicker.js?v=<?= asset_v(__DIR__ . '/../../assets/js/datepicker.js') ?>"></script>
 
-<footer class="admin-footer">
-  <span class="admin-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
-</footer>
-
 </body>
 </html>
