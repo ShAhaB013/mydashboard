@@ -198,10 +198,6 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
 
   </main>
 
-  <footer class="app-footer">
-    <span class="app-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
-  </footer>
-
   <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>

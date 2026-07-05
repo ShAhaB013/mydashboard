@@ -430,9 +430,5 @@ foreach ($items as $item) {
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>
   <script src="/assets/js/notifications.js?v=<?= $vNotifJs ?>"></script>
 
-  <footer class="app-footer">
-    <span class="app-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
-  </footer>
-
 </body>
 </html>
