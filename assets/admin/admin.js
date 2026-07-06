@@ -283,6 +283,7 @@ const UserManager = {
     document.getElementById('editFullName').value = '';
     document.getElementById('editUsername').value = '';
     document.getElementById('editPhone').value = '';
+    document.getElementById('editEmail').value = '';
     const editPass = document.getElementById('editUserPassword');
     editPass.value = ''; editPass.type = 'password';
     this._resetPassRules();
@@ -292,7 +293,7 @@ const UserManager = {
     this._dirty = false;
     setTimeout(() => document.getElementById('editFullName').focus(), 100);
   },
-  openEdit(id, fullName, username, phone, role) {
+  openEdit(id, fullName, username, phone, email, role) {
     this._wireDirty();
     this._isAdd = false;
     document.getElementById('userModalTitle').textContent = 'ویرایش کاربر';
@@ -302,6 +303,7 @@ const UserManager = {
     document.getElementById('editFullName').value = fullName;
     document.getElementById('editUsername').value = username;
     document.getElementById('editPhone').value    = phone;
+    document.getElementById('editEmail').value    = email;
     const editPass = document.getElementById('editUserPassword');
     editPass.value = ''; editPass.type = 'password';
     this._resetPassRules();
@@ -318,6 +320,7 @@ const UserManager = {
     const fullName = document.getElementById('editFullName').value.trim();
     const username = document.getElementById('editUsername').value.trim();
     const phone    = document.getElementById('editPhone').value.trim();
+    const email    = document.getElementById('editEmail').value.trim();
     const password = document.getElementById('editUserPassword').value;
     const role     = document.getElementById('editUserRole')?.value || 'user';
     if (!fullName) return FieldErr.set('editFullName', 'نام و نام خانوادگی الزامی است');
@@ -326,13 +329,15 @@ const UserManager = {
       if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
     }
     if (phone && !/^09\d{9}$/.test(phone)) return FieldErr.set('editPhone', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود');
+    if (!email) return FieldErr.set('editEmail', 'ایمیل الزامی است');
+    if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(email)) return FieldErr.set('editEmail', 'قالب ایمیل نامعتبر است');
     if (isAdd && !password) return FieldErr.set('editUserPassword', 'رمز عبور الزامی است');
     if (password && !pwMeetsPolicy(password)) return FieldErr.set('editUserPassword', PW_POLICY_MSG);
 
     const action = isAdd ? 'add_user' : 'edit_user';
     const body   = isAdd
-      ? { full_name: fullName, username, phone, password, role }
-      : { id: parseInt(idVal), full_name: fullName, phone, password, role };
+      ? { full_name: fullName, username, phone, email, password, role }
+      : { id: parseInt(idVal), full_name: fullName, phone, email, password, role };
     const res = await Api.call(action, body);
     if (res.ok) {
       this.close(true);
@@ -875,7 +880,7 @@ function saveDecoEdit()             { DecoEditor.save(); }
 function deleteDeco()               { DecoEditor.delete(); }
 function addNewDeco()               { DecoEditor.add(); }
 function refreshDecoPreview()       { DecoEditor.refreshPreview(); }
-function openEditUserModal(id,n,u,p,r){ UserManager.openEdit(id, n, u, p, r); }
+function openEditUserModal(id,n,u,p,e,r){ UserManager.openEdit(id, n, u, p, e, r); }
 function toggleUser(id, btn)        { UserManager.toggle(id, btn); }
 function openDeleteUserModal(id, n) { UserManager.openDelete(id, n); }
 function openAccessModal(id, name)  { AccessManager.open(id, name); }
@@ -1107,6 +1112,45 @@ const SessionsManager = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// SettingsManager — ذخیره تنظیمات ایمیل/SMTP + ارسال آزمایشی
+// ═══════════════════════════════════════════════════════════
+const SettingsManager = {
+  _v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; },
+
+  async save() {
+    const payload = {
+      smtp_enabled:    document.getElementById('setSmtpEnabled').checked ? 1 : 0,
+      smtp_host:       this._v('setSmtpHost'),
+      smtp_port:       this._v('setSmtpPort'),
+      smtp_secure:     document.getElementById('setSmtpSecure').value,
+      smtp_user:       this._v('setSmtpUser'),
+      smtp_pass:       document.getElementById('setSmtpPass').value, // بدون trim تا رمز دست‌نخورده بماند
+      smtp_from_email: this._v('setSmtpFromEmail'),
+      smtp_from_name:  this._v('setSmtpFromName'),
+      resend_cooldown: this._v('setResendCooldown'),
+      code_ttl:        this._v('setCodeTtl'),
+    };
+    const res = await Api.call('save_settings', payload);
+    if (res.ok) {
+      Toast.show('تنظیمات ذخیره شد');
+      document.getElementById('setSmtpPass').value = ''; // پاک‌سازی فیلد رمز پس از ذخیره
+    } else {
+      Toast.show(res.msg || 'خطا در ذخیره تنظیمات', 'error');
+    }
+  },
+
+  async test() {
+    const to = this._v('setTestEmail');
+    if (!to) return FieldErr.set('setTestEmail', 'ایمیل مقصد را وارد کنید');
+    if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(to)) return FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
+    Toast.show('در حال ارسال…');
+    const res = await Api.call('test_email', { test_email: to });
+    if (res.ok) Toast.show(res.msg || 'ایمیل آزمایشی ارسال شد');
+    else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
 // CustomSelect — ارتقای <select> بومی به dropdown هماهنگ با تم
 // نکته: <select> اصلی منبع حقیقت مقدار می‌ماند (هیدن می‌شود) تا
 // کد موجود که .value را می‌خواند دست‌نخورده کار کند؛ انتخاب‌ها مقدار
@@ -1286,7 +1330,7 @@ if (window.Actions) {
     userAdd:            () => UserManager.openAdd(),
     userClose:          () => UserManager.close(),
     userSave:           () => UserManager.save(),
-    userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.role); },
+    userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.email, d.role); },
     userToggle:         (el) => toggleUser(+el.dataset.id, el),
     userDelete:         (el) => openDeleteUserModal(+el.dataset.id, el.dataset.name),
     togglePass:         (el) => togglePass(el.dataset.target, el),
@@ -1304,5 +1348,8 @@ if (window.Actions) {
     openBlocks:         () => openBlocksModal(),
     securityRefresh:    () => SecurityManager.refresh(),
     securityUnblock:    (el) => SecurityManager.unblock(el.dataset.ip, el.dataset.scope),
+    // تنظیمات ایمیل/SMTP
+    saveSettings:       () => SettingsManager.save(),
+    testSettings:       () => SettingsManager.test(),
   });
 }

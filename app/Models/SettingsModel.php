@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
 // SettingsModel — تنظیمات برنامه به‌صورت key/value در جدول app_settings
+// (SMTP سرور ایمیل + زمان‌بندی کد OTP)
 // ═══════════════════════════════════════════════════════════
 
 class SettingsModel
@@ -10,6 +11,16 @@ class SettingsModel
     /** کلیدهای مجاز + مقدار پیش‌فرض (تنها همین کلیدها ذخیره می‌شوند) */
     public const DEFAULTS = [
         'session_ttl_hours' => '24',  // ساعت — مدت فعال‌ماندن نشست کاربران (سرخور)
+        'smtp_enabled'    => '0',
+        'smtp_host'       => '',
+        'smtp_port'       => '587',
+        'smtp_secure'     => 'tls',   // tls | ssl | none
+        'smtp_user'       => '',
+        'smtp_pass'       => '',
+        'smtp_from_email' => '',
+        'smtp_from_name'  => 'داشبورد ابزارها',
+        'resend_cooldown' => '30',    // ثانیه — فاصله مجاز برای ارسال مجدد کد
+        'code_ttl'        => '600',   // ثانیه — مدت اعتبار کد OTP
     ];
 
     /** کش درون‌درخواستی تا چند بار به DB نزنیم */

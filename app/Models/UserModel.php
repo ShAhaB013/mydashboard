@@ -41,14 +41,14 @@ class UserModel
     public function all(): array
     {
         return DB::run(
-            'SELECT id, username, first_name, last_name, display_name, phone, role, is_active, created_at
+            'SELECT id, username, first_name, last_name, display_name, phone, email, role, is_active, created_at
              FROM users
              ORDER BY id ASC'
         )->fetchAll();
     }
 
     /**
-     * صفحه‌بندی سمت سرور + جستجوی اختیاری (نام نمایشی/نام/فامیل/موبایل/نام‌کاربری).
+     * صفحه‌بندی سمت سرور + جستجوی اختیاری (نام نمایشی/نام/فامیل/موبایل/نام‌کاربری/ایمیل).
      * فقط ردیف‌های صفحه جاری از DB می‌آیند.
      */
     public function allPaginated(int $page, int $perPage, string $search = ''): array
@@ -60,15 +60,15 @@ class UserModel
         $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
 
         return DB::run(
-            'SELECT id, username, first_name, last_name, display_name, phone, role, is_active, created_at
+            'SELECT id, username, first_name, last_name, display_name, phone, email, role, is_active, created_at
              FROM users
              WHERE (:search = \'\'
                     OR display_name LIKE :like OR first_name LIKE :like2 OR last_name LIKE :like3
-                    OR phone LIKE :like4 OR username LIKE :like5)
+                    OR phone LIKE :like4 OR username LIKE :like5 OR email LIKE :like6)
              ORDER BY id ASC
              ' . $limitSql,
             [':search' => $search, ':like' => $like, ':like2' => $like,
-             ':like3' => $like, ':like4' => $like, ':like5' => $like]
+             ':like3' => $like, ':like4' => $like, ':like5' => $like, ':like6' => $like]
         )->fetchAll();
     }
 
@@ -80,9 +80,9 @@ class UserModel
             'SELECT COUNT(*) FROM users
              WHERE (:search = \'\'
                     OR display_name LIKE :like OR first_name LIKE :like2 OR last_name LIKE :like3
-                    OR phone LIKE :like4 OR username LIKE :like5)',
+                    OR phone LIKE :like4 OR username LIKE :like5 OR email LIKE :like6)',
             [':search' => $search, ':like' => $like, ':like2' => $like,
-             ':like3' => $like, ':like4' => $like, ':like5' => $like]
+             ':like3' => $like, ':like4' => $like, ':like5' => $like, ':like6' => $like]
         )->fetchColumn();
     }
 
@@ -90,7 +90,7 @@ class UserModel
     public function findById(int $id): ?array
     {
         $row = DB::run(
-            'SELECT id, username, first_name, last_name, display_name, phone, role, is_active, created_at
+            'SELECT id, username, first_name, last_name, display_name, phone, email, role, is_active, created_at
              FROM users WHERE id = :id',
             [':id' => $id]
         )->fetch();
@@ -138,13 +138,23 @@ class UserModel
         return (bool) $row;
     }
 
+    /** بررسی وجود ایمیل (برای یکتایی هنگام ایجاد/ویرایش در پنل) */
+    public function emailExists(string $email, int $excludeId = 0): bool
+    {
+        $row = DB::run(
+            'SELECT id FROM users WHERE email = :e AND id != :ex',
+            [':e' => $email, ':ex' => $excludeId]
+        )->fetch();
+        return (bool) $row;
+    }
+
     /** افزودن کاربر جدید (نام‌کاربری و شماره موبایل توسط ادمین تعیین می‌شوند) */
-    public function create(string $firstName, string $lastName, string $username, string $phone, string $password, string $role = 'user'): int
+    public function create(string $firstName, string $lastName, string $username, string $phone, string $email, string $password, string $role = 'user'): int
     {
         $displayName = trim($firstName . ' ' . $lastName);
         DB::run(
-            'INSERT INTO users (username, password_hash, first_name, last_name, display_name, phone, role, is_active)
-             VALUES (:u, :h, :f, :l, :d, :p, :r, 1)',
+            'INSERT INTO users (username, password_hash, first_name, last_name, display_name, phone, email, role, is_active)
+             VALUES (:u, :h, :f, :l, :d, :p, :e, :r, 1)',
             [
                 ':u' => $username,
                 ':h' => password_hash($password, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]),
@@ -152,22 +162,24 @@ class UserModel
                 ':l' => $lastName,
                 ':d' => $displayName,
                 ':p' => ($phone === '' ? null : $phone),   // خالی → NULL (سازگار با UNIQUE index)
+                ':e' => $email,
                 ':r' => self::normalizeRole($role),
             ]
         );
         return (int) DB::get()->lastInsertId();
     }
 
-    /** ویرایش اطلاعات کاربر (نام/نام‌خانوادگی/موبایل/role، بدون تغییر رمز یا username) */
-    public function update(int $id, string $firstName, string $lastName, string $phone, string $role = 'user'): bool
+    /** ویرایش اطلاعات کاربر (نام/نام‌خانوادگی/موبایل/ایمیل/role، بدون تغییر رمز یا username) */
+    public function update(int $id, string $firstName, string $lastName, string $phone, string $email, string $role = 'user'): bool
     {
         DB::run(
-            'UPDATE users SET first_name = :f, last_name = :l, display_name = :d, phone = :p, role = :r WHERE id = :id',
+            'UPDATE users SET first_name = :f, last_name = :l, display_name = :d, phone = :p, email = :e, role = :r WHERE id = :id',
             [
                 ':f'  => $firstName,
                 ':l'  => $lastName,
                 ':d'  => trim($firstName . ' ' . $lastName),
                 ':p'  => ($phone === '' ? null : $phone),   // خالی → NULL (سازگار با UNIQUE index)
+                ':e'  => $email,
                 ':r'  => self::normalizeRole($role),
                 ':id' => $id,
             ]
@@ -200,5 +212,41 @@ class UserModel
     {
         DB::run('DELETE FROM users WHERE id = :id', [':id' => $id]);
         return true;
+    }
+
+    // ── بازیابی رمز عبور با OTP ایمیلی (فراموشی رمز) ────────────
+
+    /** یافتن کاربر فعال با ایمیل (برای فلوی فراموشی رمز) */
+    public function findActiveByEmail(string $email): ?array
+    {
+        $row = DB::run(
+            'SELECT * FROM users WHERE email = :e AND is_active = 1',
+            [':e' => $email]
+        )->fetch();
+        return $row ?: null;
+    }
+
+    /** ثبت کد OTP جدید برای ریست رمز (جایگزین کد قبلی، شمارنده تلاش صفر می‌شود) */
+    public function setResetCode(int $id, string $codeHash, int $expires): void
+    {
+        DB::run(
+            'UPDATE users SET reset_code_hash = :c, reset_expires = :x, reset_attempts = 0 WHERE id = :id',
+            [':c' => $codeHash, ':x' => $expires, ':id' => $id]
+        );
+    }
+
+    /** ثبت یک تلاش ناموفق تایید کد ریست */
+    public function incrementResetAttempts(int $id): void
+    {
+        DB::run('UPDATE users SET reset_attempts = reset_attempts + 1 WHERE id = :id', [':id' => $id]);
+    }
+
+    /** پاک‌سازی کد ریست پس از استفاده موفق */
+    public function clearResetCode(int $id): void
+    {
+        DB::run(
+            'UPDATE users SET reset_code_hash = NULL, reset_expires = NULL, reset_attempts = 0 WHERE id = :id',
+            [':id' => $id]
+        );
     }
 }

@@ -69,6 +69,11 @@
           <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </button>
+      <a href="/admin?page=settings" class="hdr-btn" title="تنظیمات ایمیل" aria-label="تنظیمات ایمیل">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
+        </svg>
+      </a>
       <a href="/" class="hdr-btn" title="داشبورد" aria-label="داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
       </a>
@@ -126,13 +131,13 @@
         <p><?= ($userSearch ?? '') !== '' ? 'کاربری با این مشخصات یافت نشد' : 'هنوز هیچ کاربری ثبت نشده' ?></p>
       </div>
     <?php else: foreach ($users as $u):
-      $searchKey = trim(($u['display_name'] ?? '') . ' ' . ($u['phone'] ?? '') . ' ' . ($u['username'] ?? ''));
+      $searchKey = trim(($u['display_name'] ?? '') . ' ' . ($u['phone'] ?? '') . ' ' . ($u['username'] ?? '') . ' ' . ($u['email'] ?? ''));
     ?>
       <div class="user-row" data-uid="<?= (int)$u['id'] ?>" data-search="<?= htmlspecialchars($searchKey, ENT_QUOTES) ?>">
         <div class="user-row-avatar"><?= htmlspecialchars(mb_substr($u['display_name'] ?: $u['username'], 0, 1)) ?></div>
         <div class="user-row-info">
           <h3><?= htmlspecialchars($u['display_name'] ?: $u['username']) ?></h3>
-          <p style="direction:ltr;text-align:right;"><?= htmlspecialchars($u['phone'] ?: '—') ?></p>
+          <p style="direction:ltr;text-align:right;"><?= htmlspecialchars($u['email'] ?: ($u['phone'] ?: '—')) ?></p>
         </div>
         <div class="user-row-meta">
           <?php if (($u['role'] ?? 'user') === 'admin'): ?>
@@ -170,6 +175,7 @@
             data-name="<?= htmlspecialchars($u['display_name'] ?: trim(($u['first_name'] ?? '').' '.($u['last_name'] ?? '')), ENT_QUOTES) ?>"
             data-username="<?= htmlspecialchars($u['username'] ?? '', ENT_QUOTES) ?>"
             data-phone="<?= htmlspecialchars($u['phone'] ?? '', ENT_QUOTES) ?>"
+            data-email="<?= htmlspecialchars($u['email'] ?? '', ENT_QUOTES) ?>"
             data-role="<?= htmlspecialchars($u['role'] ?? 'user', ENT_QUOTES) ?>">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -257,6 +263,10 @@
         <div class="field">
           <label>شماره موبایل <span class="opt">(اختیاری)</span></label>
           <input type="tel" id="editPhone" placeholder="09123456789" maxlength="11" dir="ltr" style="direction:ltr;text-align:left">
+        </div>
+        <div class="field">
+          <label>ایمیل <span class="req">*</span></label>
+          <input type="email" id="editEmail" placeholder="example@mail.com" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
         </div>
         <div class="field">
           <label>سطح دسترسی</label>

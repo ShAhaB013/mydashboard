@@ -87,4 +87,16 @@ class Validator
         }
         return '';
     }
+
+    /**
+     * اعتبارسنجی ایمیل: فرمت معتبر + حداکثر ۱۹۰ کاراکتر.
+     * @return string پیام خطا، یا '' در صورت معتبر بودن.
+     */
+    public static function email(string $email): string
+    {
+        if (mb_strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return 'ایمیل معتبر نیست';
+        }
+        return '';
+    }
 }

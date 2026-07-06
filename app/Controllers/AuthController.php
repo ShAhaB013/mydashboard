@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
 // AuthController — احراز هویت (عمومی، بدون CSRF — مسیر api.php)
-//   login / change_password
-// کاربران فقط توسط ادمین ساخته می‌شوند؛ ثبت‌نام عمومی و بازیابی رمز از طریق
-// ایمیل حذف شده است (ورود فقط با نام‌کاربری).
+//   login / forgot_password / verify_reset_code / reset_password / change_password
+// کاربران فقط توسط ادمین ساخته می‌شوند؛ ثبت‌نام عمومی وجود ندارد (ورود با
+// نام‌کاربری). بازیابی رمز عبور self-service با کد OTP ایمیلی امکان‌پذیر است.
 // ═══════════════════════════════════════════════════════════
 
 class AuthController
@@ -99,6 +99,171 @@ class AuthController
             $limiter->recordFailure();
             echo json_encode(['ok' => false, 'msg' => 'نام کاربری یا رمز عبور اشتباه است']);
         }
+    }
+
+    // ── forgot_password ──────────────────────────────────────
+    // ارسال کد OTP بازیابی به ایمیل یک کاربر فعال (پاسخ یکنواخت ضد افشای وجود ایمیل).
+    public function forgotPassword(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'msg' => 'Method Not Allowed']);
+            return;
+        }
+        $body  = json_decode(file_get_contents('php://input'), true) ?? [];
+        $email = trim($body['email'] ?? '');
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['ok' => false, 'field' => 'email', 'msg' => 'ایمیل معتبر نیست'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $base = SettingsModel::getInt('resend_cooldown', 10, 600, 30);
+        $resp = [
+            'ok'              => true,
+            'msg'             => 'اگر این ایمیل ثبت شده باشد، کد بازیابی ارسال شد',
+            'resend_cooldown' => $base,
+        ];
+
+        // محدودیت سمت‌سرور (مقاوم در برابر ریلود/بازکردن دوباره صفحه) — مستقل از وجود
+        // کاربر اعمال می‌شود تا هم بازکردن دوباره صفحه دور زده نشود و هم وجود/عدم ایمیل لو نرود.
+        $retry = ResendThrottle::retryAfter('reset', $email, $base);
+        if ($retry > 0) {
+            $resp['retry_after'] = $retry;          // کلاینت شمارش معکوس را با همین مقدار نشان می‌دهد؛ ایمیلی ارسال نمی‌شود
+            echo json_encode($resp, JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $userModel = new UserModel();
+        $user      = $userModel->findActiveByEmail($email);
+        if ($user) {
+            $code     = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $codeHash = password_hash($code, PASSWORD_BCRYPT);
+            $userModel->setResetCode((int) $user['id'], $codeHash, time() + SettingsModel::getInt('code_ttl', 60, 86400, 600));
+            $mail = Mailer::sendCode($email, $code, 'reset');
+            if (!$mail['ok'] && Mailer::devCodeAllowed()) {
+                $resp['dev_code'] = $code; // فقط وقتی ارسال واقعی ناموفق بوده و محیط محلی است
+            }
+        }
+        ResendThrottle::record('reset', $email); // برای همه ایمیل‌ها (یکنواخت، ضد افشای وجود کاربر)
+        echo json_encode($resp, JSON_UNESCAPED_UNICODE);
+    }
+
+    // ── verify_reset_code ────────────────────────────────────
+    // مرحله میانی فراموشی رمز: فقط درستی کد را می‌سنجد (بدون مصرف/پاک‌کردن کد).
+    public function verifyResetCode(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'msg' => 'Method Not Allowed']);
+            return;
+        }
+        $body  = json_decode(file_get_contents('php://input'), true) ?? [];
+        $email = trim($body['email'] ?? '');
+        $code  = trim((string) ($body['code'] ?? ''));
+        if ($email === '' || $code === '') {
+            echo json_encode(['ok' => false, 'msg' => 'ایمیل و کد الزامی است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $userModel = new UserModel();
+        $user      = $userModel->findActiveByEmail($email);
+        if (!$user || empty($user['reset_code_hash'])) {
+            echo json_encode(['ok' => false, 'msg' => 'درخواست بازیابی برای این ایمیل یافت نشد'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (time() > (int) $user['reset_expires']) {
+            echo json_encode(['ok' => false, 'msg' => 'کد منقضی شده است؛ کد جدید بگیرید', 'expired' => true], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if ((int) $user['reset_attempts'] >= 5) {
+            echo json_encode(['ok' => false, 'msg' => 'تعداد تلاش‌های نادرست زیاد است؛ کد جدید بگیرید', 'expired' => true], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (!password_verify($code, (string) $user['reset_code_hash'])) {
+            $userModel->incrementResetAttempts((int) $user['id']);
+            echo json_encode(['ok' => false, 'field' => 'code', 'msg' => 'کد بازیابی نادرست است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        // کد درست است — مصرف نمی‌شود؛ کاربر به مرحله «رمز جدید» می‌رود.
+        echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    }
+
+    // ── reset_password ───────────────────────────────────────
+    // تایید کد بازیابی + تنظیم رمز جدید + ورود خودکار (هم‌راستا با session-setting فعلی login())
+    public function resetPassword(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'msg' => 'Method Not Allowed']);
+            return;
+        }
+        $body        = json_decode(file_get_contents('php://input'), true) ?? [];
+        $email       = trim($body['email']            ?? '');
+        $code        = trim((string) ($body['code']   ?? ''));
+        $password    = $body['password']              ?? '';
+        $confirmPass = $body['confirm_password']      ?? '';
+
+        if ($email === '' || $code === '' || $password === '') {
+            echo json_encode(['ok' => false, 'msg' => 'ایمیل، کد و رمز عبور الزامی است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if ($confirmPass !== '' && $password !== $confirmPass) {
+            echo json_encode(['ok' => false, 'field' => 'password', 'msg' => 'رمز عبور و تکرار آن یکسان نیستند'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (!PasswordPolicy::isAcceptable($password)) {
+            echo json_encode(['ok' => false, 'field' => 'password', 'msg' => PasswordPolicy::errorMessage()], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $userModel = new UserModel();
+        $user      = $userModel->findActiveByEmail($email);
+        if (!$user || empty($user['reset_code_hash'])) {
+            echo json_encode(['ok' => false, 'msg' => 'درخواست بازیابی برای این ایمیل یافت نشد'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (time() > (int) $user['reset_expires']) {
+            echo json_encode(['ok' => false, 'msg' => 'کد منقضی شده است؛ کد جدید بگیرید', 'expired' => true], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if ((int) $user['reset_attempts'] >= 5) {
+            echo json_encode(['ok' => false, 'msg' => 'تعداد تلاش‌های نادرست زیاد است؛ کد جدید بگیرید', 'expired' => true], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (!password_verify($code, (string) $user['reset_code_hash'])) {
+            $userModel->incrementResetAttempts((int) $user['id']);
+            echo json_encode(['ok' => false, 'field' => 'code', 'msg' => 'کد بازیابی نادرست است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // موفق → تنظیم رمز جدید، پاک‌سازی کد، و ورود خودکار (عینِ بلوکِ session-setting در login())
+        $userModel->changePassword((int) $user['id'], $password);
+        $userModel->clearResetCode((int) $user['id']);
+
+        $uid = (int) $user['id'];
+        $ua  = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+        try {
+            DB::run(
+                'DELETE FROM sessions WHERE user_id = :uid AND user_agent = :ua',
+                [':uid' => $uid, ':ua' => $ua]
+            );
+        } catch (\Throwable $e) {}
+
+        session_regenerate_id(true);
+        $_SESSION['user_id']      = $uid;
+        $_SESSION['username']     = $user['username'];
+        $_SESSION['display_name'] = $user['display_name'];
+        $_SESSION['phone']        = $user['phone'] ?? '';
+        $_SESSION['role']         = ($user['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
+        $_SESSION['login_time']   = time();
+        UserSession::ensureCsrfToken();
+
+        echo json_encode([
+            'ok'           => true,
+            'msg'          => 'رمز عبور با موفقیت تغییر کرد',
+            'display_name' => $user['display_name'] ?: $user['username'],
+            'is_admin'     => $_SESSION['role'] === 'admin',
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ── change_password ──────────────────────────────────────

@@ -23,6 +23,7 @@ class UserController
         $fullName = trim((string) $this->request->input('full_name'));
         $username = trim((string) $this->request->input('username'));
         $phone    = trim((string) $this->request->input('phone'));
+        $email    = trim((string) $this->request->input('email'));
         $password = $this->request->input('password');
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
 
@@ -45,6 +46,14 @@ class UserController
             Response::error($err);
             return;
         }
+        if ($email === '') {
+            Response::error('ایمیل الزامی است');
+            return;
+        }
+        if (($err = Validator::email($email)) !== '') {
+            Response::error($err);
+            return;
+        }
 
         if (!PasswordPolicy::isAcceptable($password)) {
             Response::error(PasswordPolicy::errorMessage());
@@ -59,8 +68,12 @@ class UserController
             Response::error('این شماره موبایل قبلا ثبت شده است');
             return;
         }
+        if ($this->model->emailExists($email)) {
+            Response::error('این ایمیل قبلا ثبت شده است');
+            return;
+        }
 
-        $id = $this->model->create($firstName, $lastName, $username, $phone, $password, $role);
+        $id = $this->model->create($firstName, $lastName, $username, $phone, $email, $password, $role);
         Response::ok(['id' => $id]);
     }
 
@@ -70,6 +83,7 @@ class UserController
         $id       = $this->request->inputInt('id');
         $fullName = trim((string) $this->request->input('full_name'));
         $phone    = trim((string) $this->request->input('phone'));
+        $email    = trim((string) $this->request->input('email'));
         $password = $this->request->input('password');
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
 
@@ -93,6 +107,14 @@ class UserController
             Response::error($err);
             return;
         }
+        if ($email === '') {
+            Response::error('ایمیل الزامی است');
+            return;
+        }
+        if (($err = Validator::email($email)) !== '') {
+            Response::error($err);
+            return;
+        }
 
         $existing = $this->model->findById($id);
         if (!$existing) {
@@ -104,6 +126,10 @@ class UserController
             Response::error('این شماره موبایل قبلا ثبت شده است');
             return;
         }
+        if ($this->model->emailExists($email, $id)) {
+            Response::error('این ایمیل قبلا ثبت شده است');
+            return;
+        }
 
         // گارد: تنزل آخرین ادمین فعال به کاربر عادی ممنوع است
         if (($existing['role'] ?? 'user') === 'admin'
@@ -113,7 +139,7 @@ class UserController
             return;
         }
 
-        $this->model->update($id, $firstName, $lastName, $phone, $role);
+        $this->model->update($id, $firstName, $lastName, $phone, $email, $role);
 
         // تغییر رمز اختیاری است
         if ($password !== '') {

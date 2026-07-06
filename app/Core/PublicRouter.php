@@ -22,6 +22,9 @@ class PublicRouter
 
         // ── احراز هویت / حساب ─────────────────────────────────
         'login'             => [AuthController::class, 'login'],
+        'forgot_password'   => [AuthController::class, 'forgotPassword'],
+        'verify_reset_code' => [AuthController::class, 'verifyResetCode'],
+        'reset_password'    => [AuthController::class, 'resetPassword'],
         'change_password'   => [AuthController::class, 'changePassword'],
 
         // ── اعلان‌های عمومی ───────────────────────────────────

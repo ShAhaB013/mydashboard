@@ -32,6 +32,11 @@
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
       </a>
+      <a href="/admin?page=settings" class="hdr-btn" title="تنظیمات ایمیل" aria-label="تنظیمات ایمیل">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
+        </svg>
+      </a>
       <a href="/" class="hdr-btn" title="بازگشت به داشبورد" aria-label="بازگشت به داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M19 12H5M12 5l-7 7 7 7"/>

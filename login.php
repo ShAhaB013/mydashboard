@@ -118,6 +118,8 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
+        <button type="button" class="login-forgot-link" id="forgotLink">فراموشی رمز عبور؟</button>
+
         <p class="login-error" id="loginError" aria-live="polite"></p>
 
         <button type="submit" class="login-submit-btn" id="loginSubmitBtn">
@@ -128,6 +130,91 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
           <svg class="login-btn-check" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
           <span class="login-btn-label">ورود</span>
         </button>
+      </form>
+
+      <!-- ═══ فرم فراموشی رمز عبور (سه‌مرحله‌ای: ایمیل → تایید کد → رمز جدید) ═══ -->
+      <form class="login-card-body login-form" id="forgotForm" autocomplete="off" novalidate data-step="1" hidden>
+
+        <div class="forgot-head">
+          <button type="button" class="forgot-back-top" id="fpBack" aria-label="بازگشت به ورود" title="بازگشت به ورود">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          </button>
+          <h2 class="forgot-title">بازیابی رمز عبور</h2>
+        </div>
+
+        <!-- مرحله ۱: ایمیل -->
+        <div class="reg-step" data-step="1">
+          <p class="reg-code-hint">ایمیل حسابتان را وارد کنید تا کد بازیابی برایتان ارسال شود.</p>
+          <div class="field" data-state="idle">
+            <label class="field-label" for="fpEmail">ایمیل</label>
+            <div class="field-box">
+              <input type="email" id="fpEmail" name="email" class="field-input" placeholder="you@example.com"
+                     autocomplete="email" dir="ltr" maxlength="190">
+              <span class="field-status" aria-hidden="true"></span>
+            </div>
+            <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
+          </div>
+        </div>
+
+        <!-- مرحله ۲: تایید کد -->
+        <div class="reg-step" data-step="2" hidden>
+          <p class="reg-code-hint">کد ۶ رقمی به <b id="fpEmailEcho" dir="ltr"></b> ارسال شد؛ آن را وارد کنید.</p>
+          <input type="text" id="fpCode" class="reg-code-input" inputmode="numeric" maxlength="6"
+                 placeholder="------" autocomplete="one-time-code" dir="ltr" aria-label="کد بازیابی">
+          <button type="button" class="reg-resend" id="fpResend">
+            <span class="reg-resend-spin" aria-hidden="true"></span>
+            <span class="reg-resend-label">ارسال مجدد کد</span>
+            <span id="fpResendTimer"></span>
+          </button>
+          <p class="reg-dev-note" id="fpDevNote" hidden></p>
+        </div>
+
+        <!-- مرحله ۳: رمز جدید (فقط پس از تایید کد) -->
+        <div class="reg-step" data-step="3" hidden>
+          <p class="reg-code-hint">کد تایید شد. رمز جدید خود را تعیین کنید.</p>
+          <div class="field" data-state="idle">
+            <label class="field-label" for="fpPassword">رمز عبور جدید</label>
+            <div class="field-box">
+              <input type="password" id="fpPassword" name="password" class="field-input" placeholder="رمز عبور جدید"
+                     autocomplete="new-password" dir="ltr" maxlength="128">
+              <button type="button" class="login-pass-gen" aria-label="تولید رمز تصادفی" title="تولید رمز تصادفی" data-act="genPassword" data-target="fpPassword" data-confirm="fpConfirm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-5.14-1.32a.5.5 0 0 1 0-.97L8.5 10.44A2 2 0 0 0 9.94 9l1.32-5.14a.5.5 0 0 1 .97 0L13.56 9A2 2 0 0 0 15 10.44l5.14 1.32a.5.5 0 0 1 0 .97L15 14.06a2 2 0 0 0-1.44 1.44l-1.32 5.14a.5.5 0 0 1-.97 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></svg>
+              </button>
+              <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="fpPassword">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
+          </div>
+          <div class="field" data-state="idle">
+            <label class="field-label" for="fpConfirm">تکرار رمز عبور</label>
+            <div class="field-box">
+              <input type="password" id="fpConfirm" name="confirm_password" class="field-input" placeholder="تکرار رمز عبور"
+                     autocomplete="new-password" dir="ltr" maxlength="128">
+              <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="fpConfirm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
+          </div>
+        </div>
+
+        <div class="reg-nav">
+          <button type="submit" class="login-submit-btn" id="fpSubmitBtn">
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <svg class="login-btn-check" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            <span class="login-btn-label">ارسال کد</span>
+          </button>
+        </div>
+
+        <div class="reg-footer">
+          <div class="reg-progress" aria-hidden="true">
+            <span class="reg-seg active"></span>
+            <span class="reg-seg"></span>
+            <span class="reg-seg"></span>
+          </div>
+          <div class="reg-step-label">مرحله <span id="fpStepNum">۱</span> از ۳</div>
+        </div>
       </form>
 
       <a href="/" class="login-back-link">بازگشت به داشبورد</a>

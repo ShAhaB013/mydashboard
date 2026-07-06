@@ -32,6 +32,8 @@ spl_autoload_register(function (string $class): void {
             'PasswordPolicy'         => $core . 'PasswordPolicy.php',
             'ImageProcessor'         => $core . 'ImageProcessor.php',
             'RateLimiter'            => $core . 'RateLimiter.php',
+            'Mailer'                 => $core . 'Mailer.php',
+            'ResendThrottle'         => $core . 'ResendThrottle.php',
             // ── Models ────────────────────────────────────
             'ToolModel'              => $mdl . 'ToolModel.php',
             'IconModel'              => $mdl . 'IconModel.php',
@@ -50,6 +52,7 @@ spl_autoload_register(function (string $class): void {
             'AccessController'       => $ctl . 'AccessController.php',
             'NotificationController' => $ctl . 'NotificationController.php',
             'SessionController'      => $ctl . 'SessionController.php',
+            'SettingsController'     => $ctl . 'SettingsController.php',
             // ── Controllers (عمومی — api.php) ─────────────
             'AppController'          => $ctl . 'AppController.php',
             'AuthController'         => $ctl . 'AuthController.php',
