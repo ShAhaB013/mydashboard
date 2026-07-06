@@ -1514,15 +1514,18 @@ const AdminTools = {
   },
 
   _dirty: false,
+  _isAdd: false,
   _unsaved: null,
   _showUnsaved() {
     if (!this._unsaved) this._unsaved = document.getElementById('toolUnsaved');
     if (!this._unsaved) return;
+    const title = document.getElementById('tmUnsavedTitle');
+    if (title) title.textContent = this._isAdd ? 'افزودن ابزار' : 'ویرایش ابزار';
     this._unsaved.classList.add('open'); this._unsaved.setAttribute('aria-hidden', 'false');
-    const saveBtn = document.getElementById('tmUnsavedSave');
-    const cancel  = document.getElementById('tmUnsavedCancel');
-    saveBtn.onclick = () => { this._hideUnsaved(); this.save(); };
-    cancel.onclick  = () => { this._hideUnsaved(); this.closeModal(true); };
+    const stayBtn    = document.getElementById('tmUnsavedStay');
+    const discardBtn = document.getElementById('tmUnsavedDiscard');
+    stayBtn.onclick    = () => this._hideUnsaved();
+    discardBtn.onclick = () => { this._hideUnsaved(); this.closeModal(true); };
     this._unsaved.onclick = (e) => { if (e.target === this._unsaved) this._hideUnsaved(); };
   },
   _hideUnsaved() { if (this._unsaved) { this._unsaved.classList.remove('open'); this._unsaved.setAttribute('aria-hidden', 'true'); } },
@@ -1535,6 +1538,7 @@ const AdminTools = {
 
   openAdd() {
     this._ensureWired(); if (!this._modal) return;
+    this._isAdd = true;
     document.getElementById('tmHeadTitle').textContent = 'افزودن ابزار';
     document.getElementById('tmId').value = '';
     ['tmTitle', 'tmDesc', 'tmPath', 'tmBadge'].forEach(id => document.getElementById(id).value = '');
@@ -1549,6 +1553,7 @@ const AdminTools = {
 
   openEdit(tool) {
     this._ensureWired(); if (!this._modal) return;
+    this._isAdd = false;
     document.getElementById('tmHeadTitle').textContent = 'ویرایش ابزار';
     document.getElementById('tmId').value    = tool.id;
     document.getElementById('tmTitle').value = tool.title || '';

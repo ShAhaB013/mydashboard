@@ -110,14 +110,16 @@ const Modal = {
 // ═══════════════════════════════════════════════════════════
 const Confirm = {
   _callback: null,
+  _cancelCallback: null,
   _defaultIcon:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
       '<polyline points="3 6 5 6 21 6"/>' +
       '<path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>' +
       '<path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>' +
     '</svg>',
-  show({ title, heading, body, warn = null, type = 'danger', btnLabel = 'حذف', icon = null, onConfirm }) {
+  show({ title, heading, body, warn = null, type = 'danger', btnLabel = 'حذف', btnClass = null, cancelLabel = 'انصراف', icon = null, onConfirm, onCancel = null }) {
     this._callback = onConfirm;
+    this._cancelCallback = onCancel;
     document.getElementById('confirmTitle').textContent   = title;
     document.getElementById('confirmHeading').textContent = heading;
     document.getElementById('confirmBody').innerHTML      = body;
@@ -128,12 +130,19 @@ const Confirm = {
     iconEl.className = `confirm-icon ${type}`;
     iconEl.innerHTML = icon || this._defaultIcon;
     const btn = document.getElementById('confirmActionBtn');
-    btn.className   = `btn btn-sm ${type === 'warning' ? 'btn-warning' : type === 'save' ? 'btn-primary' : 'btn-danger'}`;
+    btn.className   = `btn btn-sm ${btnClass || (type === 'warning' ? 'btn-warning' : type === 'save' ? 'btn-primary' : 'btn-danger')}`;
     btn.textContent = btnLabel;
     btn.disabled    = false;
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+    if (cancelBtn) cancelBtn.textContent = cancelLabel;
     Modal.open('confirmModal');
   },
-  close() { Modal.close('confirmModal'); this._callback = null; },
+  close() { Modal.close('confirmModal'); this._callback = null; this._cancelCallback = null; },
+  cancel() {
+    const cb = this._cancelCallback;
+    this.close();
+    if (cb) cb();
+  },
   async run() {
     const btn = document.getElementById('confirmActionBtn');
     btn.disabled = true;
@@ -487,13 +496,16 @@ const UserManager = {
   close(force) {
     if (!force && this._dirty) {
       Confirm.show({
-        title: 'تغییرات ذخیره نشده',
+        title: this._isAdd ? 'افزودن کاربر' : 'ویرایش کاربر',
         heading: 'تغییرات ذخیره نشده دارید',
-        body: 'آیا می‌خواهید تغییرات را ذخیره کنید؟',
-        type: 'save',
+        body: 'آیا تغییرات ذخیره شوند؟',
+        type: 'warning',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-        btnLabel: 'ذخیره تغییرات',
+        cancelLabel: 'خیر',
+        btnLabel: 'بله',
+        btnClass: 'btn-primary',
         onConfirm: () => { Confirm.close(); this.save(); },
+        onCancel: () => { this.close(true); },
       });
       return;
     }
@@ -653,11 +665,14 @@ const AccessManager = {
       Confirm.show({
         title: 'تغییرات ذخیره نشده',
         heading: 'تغییرات ذخیره نشده دارید',
-        body: 'آیا می‌خواهید تغییرات را ذخیره کنید؟',
-        type: 'save',
+        body: 'آیا تغییرات ذخیره شوند؟',
+        type: 'warning',
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-        btnLabel: 'ذخیره تغییرات',
+        cancelLabel: 'خیر',
+        btnLabel: 'بله',
+        btnClass: 'btn-primary',
         onConfirm: () => { Confirm.close(); this.save(); },
+        onCancel: () => { this.close(true); },
       });
       return;
     }
@@ -1109,7 +1124,7 @@ function togglePanel(id, tile) {
   }
 }
 function toggleTheme()              { Theme.toggle(); }
-function closeConfirm()             { Confirm.close(); }
+function closeConfirm()             { Confirm.cancel(); }
 function runConfirm()               { Confirm.run(); }
 function closeModal(id)             { Modal.close(id); }
 function saveIconEdit()             { IconEditor.save(); }
@@ -1501,8 +1516,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
       if (e.target !== o) return;
-      if (o.id === 'confirmModal') { Confirm.close(); }
-      else                         { Modal.close(o.id); }
+      if (o.id === 'confirmModal')   { Confirm.cancel(); }
+      else if (o.id === 'userModal') { UserManager.close(); }
+      else                            { Modal.close(o.id); }
     });
   });
 
@@ -1512,8 +1528,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const open = document.querySelectorAll('.modal-overlay.open');
     if (!open.length) return;
     const top = open[open.length - 1];
-    if (top.id === 'confirmModal') { Confirm.close(); }
-    else                           { Modal.close(top.id); }
+    if (top.id === 'confirmModal')   { Confirm.cancel(); }
+    else if (top.id === 'userModal') { UserManager.close(); }
+    else                              { Modal.close(top.id); }
   });
 });
 

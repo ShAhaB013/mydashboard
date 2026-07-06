@@ -235,7 +235,7 @@
       </div>
 
       <div class="field">
-        <label>مخاطبان</label>
+        <label>مخاطبان <span class="req">*</span></label>
         <div class="audience-box">
           <div class="audience-row">
             <div class="audience-row-label">
@@ -271,7 +271,7 @@
       <div class="field">
         <label>
           تاریخ و ساعت انقضا
-          <span style="color:var(--text-3);font-weight:400;">(خالی = بدون انقضا)</span>
+          <span class="req">*</span>
         </label>
         <div style="display:flex;gap:8px;">
           <input
@@ -336,7 +336,7 @@
       <p class="confirm-desc" id="notifConfirmDesc"></p>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" data-act="nmCloseConfirm">انصراف</button>
+      <button class="btn btn-secondary btn-sm" id="notifConfirmCancelBtn" data-act="nmCloseConfirm">انصراف</button>
       <button class="btn btn-danger btn-sm" id="notifConfirmBtn" data-act="nmRunAsk">حذف اعلان</button>
     </div>
   </div>
