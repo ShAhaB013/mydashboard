@@ -441,7 +441,7 @@
       <div class="confirm-warn" id="confirmWarn"></div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" data-act="closeConfirm">انصراف</button>
+      <button class="btn btn-secondary btn-sm" id="confirmCancelBtn" data-act="closeConfirm">انصراف</button>
       <button class="btn btn-sm" id="confirmActionBtn" data-act="runConfirm">تایید</button>
     </div>
   </div>

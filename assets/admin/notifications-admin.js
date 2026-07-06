@@ -734,13 +734,16 @@ const NM = {
     // اگر تغییر ذخیره‌نشده وجود دارد، با مودال سفارشی تایید بگیر
     if (!force && this._dirty) {
       this._ask({
-        title:    'بستن فرم',
-        heading:  'تغییرات ذخیره‌نشده دارید',
-        desc:     'تغییرات را ذخیره نکرده‌اید، آیا از بستن فرم اطمینان دارید؟',
+        title:    this._editId ? 'ویرایش اعلان' : 'افزودن اعلان',
+        heading:  'تغییرات ذخیره‌ نشده دارید',
+        desc:     'آیا تغییرات ذخیره شوند؟',
         type:     'warning',
         icon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-        btnLabel: 'بستن بدون ذخیره',
-        onConfirm: () => { this.closeConfirm(); this.closeForm(true); },
+        cancelLabel: 'خیر',
+        btnLabel: 'بله',
+        btnClass: 'btn-primary',
+        onConfirm: () => { this.closeConfirm(); this.save(); },
+        onCancel: () => { this.closeForm(true); },
       });
       return;
     }
@@ -934,26 +937,42 @@ const NM = {
 
   // ── Save ─────────────────────────────────────────────
   async save() {
-    const title    = document.getElementById('nf-title').value.trim();
-    const body     = RTE.getHTML();
-    const isPublic = document.getElementById('nf-public').checked    ? '1' : '0';
-    const allUsers = document.getElementById('nf-all-users').checked ? '1' : '0';
-    const badges   = [...document.querySelectorAll('.badge-check-cb:checked')].map(c => c.value);
+    const title       = document.getElementById('nf-title').value.trim();
+    const body        = RTE.getHTML();
+    const isPublicChk = document.getElementById('nf-public').checked;
+    const allUsersChk = document.getElementById('nf-all-users').checked;
+    const isPublic    = isPublicChk ? '1' : '0';
+    const allUsers    = allUsersChk ? '1' : '0';
+    const badges      = [...document.querySelectorAll('.badge-check-cb:checked')].map(c => c.value);
 
     // ترکیب date+time و تبدیل به UTC برای ذخیره صحیح صرف‌نظر از timezone سرور
     const expiresDate = document.getElementById('nf-expires-date').value;
     const expiresTime = document.getElementById('nf-expires-time').value || '00:00';
     let expires = '';
+    let expiresLocalDt = null;
     if (expiresDate) {
-      const localDt = new Date(`${expiresDate}T${expiresTime}:00`);
-      if (!isNaN(localDt.getTime())) {
-        expires = localDt.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM" در UTC
+      expiresLocalDt = new Date(`${expiresDate}T${expiresTime}:00`);
+      if (!isNaN(expiresLocalDt.getTime())) {
+        expires = expiresLocalDt.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM" در UTC
       }
     }
 
     if (!title) { Toast.show('عنوان الزامی است', 'error'); return; }
+    if (!body)  { Toast.show('متن اعلان الزامی است', 'error'); return; }
     if (RTE.plainLength() > RTE.MAX_CHARS) {
       Toast.show(`متن اعلان نباید بیشتر از ${RTE.MAX_CHARS.toLocaleString('en-GB')} کاراکتر باشد`, 'error');
+      return;
+    }
+    if (!isPublicChk && !allUsersChk && !badges.length) {
+      Toast.show('مخاطبان اعلان را مشخص کنید', 'error');
+      return;
+    }
+    if (!expiresDate) {
+      Toast.show('تاریخ و ساعت انقضا را مشخص کنید', 'error');
+      return;
+    }
+    if (expiresLocalDt && expiresLocalDt.getTime() < Date.now()) {
+      Toast.show('تاریخ و ساعت انقضا نباید قبل از زمان حال باشد', 'error');
       return;
     }
 
@@ -999,8 +1018,9 @@ const NM = {
       '<path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>' +
       '<path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>' +
     '</svg>',
-  _ask({ title, heading, desc, icon = null, type = 'danger', btnLabel = 'تایید', onConfirm }) {
+  _ask({ title, heading, desc, icon = null, type = 'danger', btnLabel = 'تایید', btnClass = null, cancelLabel = 'انصراف', onConfirm, onCancel = null }) {
     this._askCb = onConfirm || null;
+    this._askCancelCb = onCancel || null;
     document.getElementById('notifConfirmTitle').textContent   = title;
     document.getElementById('notifConfirmHeading').textContent = heading;
     document.getElementById('notifConfirmDesc').innerHTML      = desc;
@@ -1008,9 +1028,11 @@ const NM = {
     ic.className = `confirm-icon ${type}`;
     ic.innerHTML = icon || this._defaultConfirmIcon;
     const btn = document.getElementById('notifConfirmBtn');
-    btn.className   = `btn btn-sm ${type === 'warning' ? 'btn-warning' : 'btn-danger'}`;
+    btn.className   = `btn btn-sm ${btnClass || (type === 'warning' ? 'btn-warning' : 'btn-danger')}`;
     btn.textContent = btnLabel;
     btn.disabled    = false;
+    const cancelBtn = document.getElementById('notifConfirmCancelBtn');
+    if (cancelBtn) cancelBtn.textContent = cancelLabel;
     this._openModal('notifConfirmModal');
   },
   async _runAsk() {
@@ -1032,7 +1054,12 @@ const NM = {
       onConfirm: () => this.confirmDelete(),
     });
   },
-  closeConfirm() { this._closeModal('notifConfirmModal'); this._askCb = null; this._deleteId = null; },
+  closeConfirm() { this._closeModal('notifConfirmModal'); this._askCb = null; this._askCancelCb = null; this._deleteId = null; },
+  cancelConfirm() {
+    const cb = this._askCancelCb;
+    this.closeConfirm();
+    if (cb) cb();
+  },
   async confirmDelete() {
     if (!this._deleteId) return;
     const res = await apiCall('delete_notification', { id: this._deleteId });
@@ -1073,7 +1100,7 @@ if (window.Actions) {
     nmPublicChange:   (el) => NM.onPublicChange(el),
     nmExpiryInput:    () => NM.onExpiryInput(),
     nmSave:           () => NM.save(),
-    nmCloseConfirm:   () => NM.closeConfirm(),
+    nmCloseConfirm:   () => NM.cancelConfirm(),
     nmRunAsk:         () => NM._runAsk(),
     nmGoToPage:       (el) => NM.goToPage(parseInt(el.dataset.page, 10)),
     nmOpenEdit:       (el) => NM.openEdit(parseInt(el.dataset.id, 10)),
@@ -1097,7 +1124,7 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => {
     if (e.target !== o) return;
     if (o.id === 'notifFormModal')    NM.closeForm();
-    if (o.id === 'notifConfirmModal') NM.closeConfirm();
+    if (o.id === 'notifConfirmModal') NM.cancelConfirm();
   });
 });
 document.addEventListener('keydown', e => {
@@ -1105,7 +1132,7 @@ document.addEventListener('keydown', e => {
   const open = document.querySelectorAll('.modal-overlay.open');
   if (!open.length) return;
   const top = open[open.length - 1];   // آخرین = بالاترین
-  if (top.id === 'notifConfirmModal')   NM.closeConfirm();
+  if (top.id === 'notifConfirmModal')   NM.cancelConfirm();
   else if (top.id === 'notifFormModal') NM.closeForm();
 });
 

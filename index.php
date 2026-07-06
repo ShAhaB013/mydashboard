@@ -536,7 +536,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   <div class="tm-overlay" id="toolUnsaved" aria-hidden="true">
     <div class="tm-dialog tm-dialog-sm" role="dialog" aria-modal="true">
       <div class="tm-head">
-        <h3>بستن فرم</h3>
+        <h3 id="tmUnsavedTitle">بستن فرم</h3>
         <button type="button" class="tm-close" data-act="tmHideUnsaved" aria-label="بستن">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -551,11 +551,11 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
           </svg>
         </div>
         <h4 class="tm-confirm-heading">تغییرات ذخیره نشده دارید</h4>
-        <p class="tm-confirm-desc">آیا می‌خواهید تغییرات را ذخیره کنید؟</p>
+        <p class="tm-confirm-desc">در صورت خروج، تغییرات شما ذخیره نخواهد شد. آیا مایلید به تغییرات ادامه دهید؟</p>
       </div>
       <div class="tm-foot tm-confirm-foot">
-        <button type="button" class="btn btn-secondary btn-sm" id="tmUnsavedCancel">انصراف</button>
-        <button type="button" class="btn btn-primary btn-sm" id="tmUnsavedSave">ذخیره تغییرات</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="tmUnsavedDiscard">خیر</button>
+        <button type="button" class="btn btn-primary btn-sm" id="tmUnsavedStay">بله</button>
       </div>
     </div>
   </div>
