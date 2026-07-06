@@ -185,53 +185,6 @@ const Preview = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// UserSearch — جستجوی سمت کلاینت در لیست کاربران
-// ═══════════════════════════════════════════════════════════
-const UserSearch = {
-  init() {
-    const input = document.getElementById('userSearchInput');
-    const clear = document.getElementById('userSearchClear');
-    if (!input) return;
-    input.addEventListener('input', () => this.filter(input.value));
-    clear?.addEventListener('click', () => {
-      input.value = '';
-      this.filter('');
-      input.focus();
-    });
-  },
-
-  filter(q) {
-    q = (q || '').trim().toLowerCase();
-    const wrap = document.querySelector('.user-search');
-    if (wrap) wrap.classList.toggle('has-value', q !== '');
-
-    const rows = document.querySelectorAll('#userList .user-row');
-    let shown = 0;
-    rows.forEach(row => {
-      const name = (row.dataset.search || '').toLowerCase();
-      const match = !q || name.includes(q);
-      row.style.display = match ? '' : 'none';
-      if (match) shown++;
-    });
-
-    // نمایش پیام «نتیجه‌ای یافت نشد»
-    let empty = document.getElementById('userSearchEmpty');
-    if (shown === 0 && rows.length > 0) {
-      if (!empty) {
-        empty = document.createElement('div');
-        empty.id = 'userSearchEmpty';
-        empty.className = 'empty-tools';
-        empty.innerHTML = '<p>کاربری با این مشخصات یافت نشد</p>';
-        document.getElementById('userList').appendChild(empty);
-      }
-      empty.style.display = '';
-    } else if (empty) {
-      empty.style.display = 'none';
-    }
-  },
-};
-
-// ═══════════════════════════════════════════════════════════
 // UserManager
 // ═══════════════════════════════════════════════════════════
 const UserManager = {
@@ -246,6 +199,291 @@ const UserManager = {
     this._wiredDirty = true;
   },
   _isAdd: false,
+
+  // ── لیست (سمت سرور، AJAX — هم‌ساختار با مدیریت اعلان‌ها) ─────
+  _users:       [],
+  _page:        1,
+  _perPage:     10,
+  _search:      '',
+  _fRole:       '',
+  _fStatus:     '',
+  _total:       0,
+  _pageCount:   1,
+  _loading:     false,
+  _searchTimer: null,
+
+  async load(page = this._page) {
+    if (this._loading) return;
+    this._loading = true;
+    this._page    = Math.max(1, page);
+
+    const res = await Api.call('list_users', {
+      page:      this._page,
+      per_page:  this._perPage,
+      search:    this._search,
+      role:      this._fRole,
+      status:    this._fStatus,
+    });
+
+    this._loading = false;
+    if (!res.ok) { Toast.show(res.msg || 'خطا در بارگذاری', 'error'); return; }
+
+    this._users = res.users || [];
+    const pg = res.pagination || {};
+    this._total     = pg.total      ?? this._users.length;
+    this._pageCount = pg.page_count ?? 1;
+    this._page      = pg.page       ?? this._page;
+
+    // اگر صفحه فعلی خالی شد (مثلا بعد از حذف آخرین آیتم صفحه)، یک صفحه عقب برو
+    if (!this._users.length && this._page > 1) {
+      return this.load(this._page - 1);
+    }
+
+    this._render();
+  },
+
+  _render() {
+    const list  = document.getElementById('userList');
+    const badge = document.getElementById('userCountBadge');
+    if (badge) badge.textContent = this._total;
+
+    if (!this._users.length) {
+      const emptyMsg = this._search || this._fRole || this._fStatus
+        ? 'کاربری با این مشخصات یافت نشد'
+        : 'هنوز هیچ کاربری ثبت نشده';
+      list.innerHTML = `
+        <div class="user-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+          </svg>
+          <p>${esc(emptyMsg)}</p>
+        </div>`;
+      this._renderPagination();
+      return;
+    }
+
+    list.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    this._users.forEach(u => frag.appendChild(this._makeRow(u)));
+    list.appendChild(frag);
+
+    this._renderPagination();
+  },
+
+  _makeRow(u) {
+    const row = document.createElement('div');
+    row.className = 'user-row';
+    row.dataset.uid = u.id;
+
+    const name    = u.display_name || u.username || '';
+    const initial = esc((name || '?').slice(0, 1));
+
+    const rolePill = u.role === 'admin'
+      ? `<span class="user-role-pill admin" title="دسترسی به پنل مدیریت">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+             <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/>
+           </svg>
+           مدیر
+         </span>`
+      : '';
+    const statusPill = `<span class="user-status-pill ${u.is_active ? 'active' : 'inactive'}">${u.is_active ? 'فعال' : 'غیرفعال'}</span>`;
+    const sessDot = u.session_count ? `<span class="sess-count-dot">${(u.session_count).toLocaleString('en-US')}</span>` : '';
+
+    row.innerHTML = `
+      <div class="user-row-avatar">${initial}</div>
+      <div class="user-row-info">
+        <h3>${esc(name)}</h3>
+        <p style="direction:ltr;text-align:right;">${esc(u.email || u.phone || '—')}</p>
+      </div>
+      <div class="user-row-meta">
+        ${rolePill}
+        ${statusPill}
+      </div>
+      <div class="user-row-actions">
+        <button class="btn btn-secondary btn-icon btn-sm" title="تنظیم دسترسی"
+          data-act="accessOpen" data-id="${u.id}" data-name="${esc(name)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+        <span class="sess-user-wrap">
+          <button class="btn btn-secondary btn-icon btn-sm" title="نشست‌های فعال"
+            data-act="sessOpenUser" data-id="${u.id}" data-name="${esc(name)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+            </svg>
+          </button>
+          ${sessDot}
+        </span>
+        <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش"
+          data-act="userEdit"
+          data-id="${u.id}"
+          data-name="${esc(name)}"
+          data-username="${esc(u.username || '')}"
+          data-phone="${esc(u.phone || '')}"
+          data-email="${esc(u.email || '')}"
+          data-role="${esc(u.role || 'user')}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn btn-secondary btn-icon btn-sm toggle-user-btn ${!u.is_active ? 'is-inactive' : ''}"
+          title="${u.is_active ? 'غیرفعال کردن' : 'فعال کردن'}"
+          data-act="userToggle" data-id="${u.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/>
+            <line x1="12" y1="2" x2="12" y2="12"/>
+          </svg>
+        </button>
+        <button class="btn btn-danger btn-icon btn-sm" title="حذف"
+          data-act="userDelete" data-id="${u.id}" data-name="${esc(name)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+          </svg>
+        </button>
+      </div>`;
+    return row;
+  },
+
+  // ── Pagination (سمت سرور) ─────────────────────────────
+  _renderPagination() {
+    const pag  = document.getElementById('userPagination');
+    const info = document.getElementById('userPageInfo');
+    if (!pag || !info) return;
+    const total     = this._total;
+    const pageCount = this._pageCount;
+    const cur       = this._page;
+    const shown     = this._users.length;
+
+    if (total === 0) {
+      pag.classList.add('hidden');
+      pag.innerHTML = '';
+      info.textContent = '';
+      return;
+    }
+
+    const start = (cur - 1) * this._perPage;
+    info.textContent = `نمایش ${start + 1} تا ${start + shown} از ${total} کاربر`;
+
+    if (pageCount <= 1) {
+      pag.classList.add('hidden');
+      pag.innerHTML = '';
+      return;
+    }
+
+    const items = [];
+    items.push(`<button class="pg-btn" ${cur === 1 ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur - 1}" aria-label="قبلی">«</button>`);
+    this._pageRange(cur, pageCount).forEach(p => {
+      if (p === '...') {
+        items.push(`<span class="pg-ellipsis">…</span>`);
+      } else {
+        items.push(`<button class="pg-btn ${p === cur ? 'active' : ''}" data-act="userGoToPage" data-page="${p}">${p}</button>`);
+      }
+    });
+    items.push(`<button class="pg-btn" ${cur === pageCount ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur + 1}" aria-label="بعدی">»</button>`);
+
+    pag.innerHTML = items.join('');
+    pag.classList.remove('hidden');
+  },
+
+  _pageRange(cur, count) {
+    if (count <= 7) return Array.from({ length: count }, (_, i) => i + 1);
+    const range = [1];
+    const left  = Math.max(2, cur - 1);
+    const right = Math.min(count - 1, cur + 1);
+    if (left > 2) range.push('...');
+    for (let i = left; i <= right; i++) range.push(i);
+    if (right < count - 1) range.push('...');
+    range.push(count);
+    return range;
+  },
+
+  goToPage(p) {
+    p = Math.min(Math.max(1, p), this._pageCount);
+    if (p === this._page) return;
+    this.load(p).then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  },
+
+  // ── جستجو (با debounce) ───────────────────────────────
+  onSearchInput(value) {
+    const wrap = document.querySelector('.user-search');
+    if (wrap) wrap.classList.toggle('has-value', value.trim() !== '');
+    clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => {
+      const v = value.trim();
+      if (v === this._search) return;
+      this._search = v;
+      this.load(1);
+    }, 350);
+  },
+
+  clearSearch() {
+    const inp  = document.getElementById('userSearchInput');
+    const wrap = document.querySelector('.user-search');
+    if (inp)  inp.value = '';
+    if (wrap) wrap.classList.remove('has-value');
+    if (this._search === '') return;
+    this._search = '';
+    this.load(1);
+  },
+
+  // ── جستجوی پیشرفته (نقش/وضعیت) ─────────────────────────
+  toggleAdvanced() {
+    const panel = document.getElementById('userAdvPanel');
+    const btn   = document.getElementById('userAdvToggle');
+    if (!panel) return;
+    const open = panel.classList.toggle('open');
+    if (btn) { btn.classList.toggle('active', open); btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  },
+
+  applyFilters() {
+    this._fRole   = document.getElementById('user-f-role').value   || '';
+    this._fStatus = document.getElementById('user-f-status').value || '';
+    this._syncAdvBtn();
+    this.load(1);
+  },
+
+  resetFilters() {
+    document.getElementById('user-f-role').value   = '';
+    document.getElementById('user-f-status').value = '';
+    CustomSelect.refresh(document.getElementById('user-f-role'));
+    CustomSelect.refresh(document.getElementById('user-f-status'));
+    this._fRole = this._fStatus = '';
+    this._syncAdvBtn();
+    this.load(1);
+  },
+
+  _syncAdvBtn() {
+    const has = !!(this._fRole || this._fStatus);
+    const btn = document.getElementById('userAdvToggle');
+    if (btn) btn.classList.toggle('has-filters', has);
+  },
+
+  // ── تعداد آیتم در هر صفحه (قابل تنظیم + ماندگار) ─────────
+  setPerPage(val) {
+    const allowed = [10, 20, 50];
+    let n = parseInt(val, 10);
+    if (!allowed.includes(n)) n = 10;
+    this._perPage = n;
+    try { localStorage.setItem('user_admin_perpage', String(n)); } catch (e) {}
+    this.load(1);
+  },
+  _initPerPage() {
+    let n = 10;
+    try {
+      const saved = parseInt(localStorage.getItem('user_admin_perpage'), 10);
+      if ([10, 20, 50].includes(saved)) n = saved;
+    } catch (e) {}
+    this._perPage = n;
+    const sel = document.getElementById('userPerPage');
+    if (sel) { sel.value = String(n); CustomSelect.refresh(sel); }
+  },
+
   close(force) {
     if (!force && this._dirty) {
       Confirm.show({
@@ -342,7 +580,8 @@ const UserManager = {
     if (res.ok) {
       this.close(true);
       Toast.show(isAdd ? 'کاربر اضافه شد' : 'کاربر ویرایش شد');
-      setTimeout(() => location.reload(), 900);
+      if (isAdd) this._page = 1;
+      this.load();
     } else {
       Toast.show(res.msg || 'خطا', 'error');
     }
@@ -384,7 +623,7 @@ const UserManager = {
         if (res.ok) {
           Confirm.close();
           Toast.show('کاربر حذف شد');
-          setTimeout(() => location.reload(), 900);
+          this.load();
         } else {
           Toast.show(res.msg || 'خطا در حذف', 'error');
         }
@@ -1239,9 +1478,10 @@ document.addEventListener('DOMContentLoaded', () => {
   Theme.init();
   CustomSelect.enhanceAll();   // ارتقای همه <select>های بومی به dropdown هماهنگ با تم
 
-  // جستجوی کاربران (صفحه مدیریت کاربران)
-  if (typeof UserSearch !== 'undefined' && document.getElementById('userSearchInput')) {
-    UserSearch.init();
+  // لیست کاربران با AJAX (صفحه مدیریت کاربران)
+  if (document.getElementById('userList')) {
+    UserManager._initPerPage();
+    UserManager.load();
   }
 
   // ایمیل آزمایشی (صفحه تنظیمات): تا وقتی فرمت ایمیل معتبر نیست، دکمه ارسال غیرفعال است
@@ -1282,7 +1522,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════
 (function () {
   const SEL = '.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn,'
-    + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close';
+    + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close,'
+    + ' .user-adv-toggle, .user-search-clear';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
@@ -1351,6 +1592,13 @@ if (window.Actions) {
     userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.email, d.role); },
     userToggle:         (el) => toggleUser(+el.dataset.id, el),
     userDelete:         (el) => openDeleteUserModal(+el.dataset.id, el.dataset.name),
+    userSearch:         (el) => UserManager.onSearchInput(el.value),
+    userClearSearch:    () => UserManager.clearSearch(),
+    userSetPerPage:     (el) => UserManager.setPerPage(el.value),
+    userToggleAdvanced: () => UserManager.toggleAdvanced(),
+    userApplyFilters:   () => UserManager.applyFilters(),
+    userResetFilters:   () => UserManager.resetFilters(),
+    userGoToPage:       (el) => UserManager.goToPage(parseInt(el.dataset.page, 10)),
     togglePass:         (el) => togglePass(el.dataset.target, el),
     closeModal:         (el) => closeModal(el.dataset.modal),
     // دسترسی
