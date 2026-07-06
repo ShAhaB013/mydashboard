@@ -33,18 +33,25 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
     .settings-card .add-asset-form:last-child { padding-bottom:22px; }
     .toggle-sw { position:relative; width:38px; height:22px; flex-shrink:0; display:inline-block; }
     .toggle-sw input { opacity:0; width:0; height:0; position:absolute; }
-    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:20px; cursor:pointer; transition:background var(--transition); }
-    .toggle-sw input:checked + .toggle-sw-track { background:var(--color-accent); }
-    .toggle-sw input:focus-visible + .toggle-sw-track { box-shadow:0 0 0 3px var(--color-accent-bg); }
-    .toggle-sw-track::after { content:''; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:right var(--transition); box-shadow:0 1px 3px rgba(0,0,0,.3); }
+    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:20px; cursor:pointer; transition:background var(--t); }
+    .toggle-sw input:checked + .toggle-sw-track { background:var(--accent); }
+    .toggle-sw input:focus-visible + .toggle-sw-track { box-shadow:0 0 0 3px var(--accent-bg); }
+    .toggle-sw-track::after { content:''; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:right var(--t); box-shadow:0 1px 3px rgba(0,0,0,.3); }
     .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
     .test-email-row { display:flex; align-items:flex-end; gap:10px; }
     .test-email-row .field { flex:1 1 auto; min-width:0; position:relative; }
     .test-email-row .btn { flex:0 0 auto; }
     .test-email-row .field-error-msg { position:absolute; top:100%; right:0; margin-top:3px; }
+    .test-email-row { margin-bottom:22px; }
     @media (max-width:560px){
       .test-email-row { flex-direction:column; align-items:stretch; }
       .test-email-row .btn { width:100%; justify-content:center; }
+    }
+    /* بخش فعال‌سازی SMTP از بقیه فیلدها مجزا شود — هم‌الگو با .sess-ttl-row پروژه
+       (پس‌زمینه خاکستری ملایم + radius-xs، همان الگوی جعبه‌های تنظیمات دیگر) */
+    .set-toggle-box {
+      background:var(--bg-2, rgba(127,127,127,.06)); border:1px solid var(--border); border-radius:var(--radius-xs);
+      padding:12px 14px; margin-bottom:18px;
     }
   </style>
 </head>
@@ -67,9 +74,8 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 
 <div class="admin-wrap">
 
-  <!-- ── نوار فرعی ── -->
-  <div class="tools-header">
-    <h2>پیکربندی ایمیل</h2>
+  <!-- ── نوار فرعی (بدون عنوان؛ عنوان صفحه در هدر بالا «تنظیمات ایمیل» است) ── -->
+  <div class="tools-header" style="justify-content:flex-end;">
     <div class="tools-header-actions">
       <button type="button" class="btn btn-primary btn-sm" data-act="saveSettings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -88,7 +94,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
       سرور ایمیل (SMTP)
     </h4>
 
-    <div class="field full">
+    <div class="set-toggle-box">
       <label class="set-switch">
         <span class="toggle-sw">
           <input type="checkbox" id="setSmtpEnabled" <?= ($s['smtp_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
@@ -99,7 +105,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
       <div class="set-hint">اگر غیرفعال باشد، در محیط محلی کد OTP به‌صورت آزمایشی در پاسخ API نمایش داده می‌شود.</div>
     </div>
 
-    <div class="settings-grid" style="margin-top:12px;">
+    <div class="settings-grid">
       <div class="field">
         <label>آدرس سرور (Host)</label>
         <input type="text" id="setSmtpHost" value="<?= $val('smtp_host') ?>" placeholder="smtp.gmail.com" dir="ltr" style="direction:ltr;text-align:left">
@@ -194,6 +200,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
   const DECOS_DATA = {};
 </script>
 <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
+<script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/../../assets/js/actions.js') ?>"></script>
 <script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
 </body>
 </html>

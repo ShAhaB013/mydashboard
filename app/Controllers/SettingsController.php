@@ -98,7 +98,12 @@ class SettingsController
         if ($res['ok']) {
             Response::ok(['msg' => 'ایمیل آزمایشی ارسال شد']);
         } else {
-            Response::error('ارسال ناموفق بود: ' . $res['error']);
+            // پاسخ خام SMTP می‌تواند طولانی/چندخطی باشد؛ برای Toast کوتاه می‌شود
+            $err = trim(preg_replace('/\s+/', ' ', $res['error']));
+            if (mb_strlen($err) > 160) {
+                $err = mb_substr($err, 0, 160) . '…';
+            }
+            Response::error('ارسال ناموفق بود: ' . $err);
         }
     }
 }

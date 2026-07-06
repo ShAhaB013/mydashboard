@@ -107,6 +107,10 @@ input::placeholder { color:var(--text-3); }
 }
 .field.has-error .field-error-msg { display:flex; }
 .field-error-msg svg { width:14px; height:14px; flex:0 0 auto; }
+/* پیام‌های خطا گاهی متن انگلیسی/فنی (پاسخ خام SMTP و…) در دل جمله فارسی دارند؛
+   plaintext باعث می‌شود جهت هر پاراگراف مستقل از dir والد و بر اساس محتوای
+   خودش تعیین شود، تا هنگام wrap شدن خط، ترتیب فارسی/انگلیسی به‌هم نریزد. */
+.field-error-msg span { unicode-bidi: plaintext; }
 /* رفع به‌هم‌ریختن تم هنگام Autofill مرورگر */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -653,7 +657,8 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   box-shadow:0 8px 24px rgba(0,0,0,.4);
   z-index:500; opacity:0;
   transition:opacity .2s,transform .2s;
-  display:flex; align-items:center; gap:8px; white-space:nowrap;
+  display:flex; align-items:flex-start; gap:8px;
+  max-width:min(560px, 92vw); white-space:normal; word-break:break-word; line-height:1.6;
   /* toast محتوای تعاملی ندارد و با opacity:0 مخفی می‌شود (نه display:none)، پس
      جعبه‌اش همچنان کلیک می‌گیرد و روی دکمه‌های مودال می‌افتد. این خط کلیک را
      همیشه به عناصر زیرین می‌سپارد. */
@@ -662,7 +667,11 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .toast.show    { opacity:1; transform:translateX(-50%) translateY(0); }
 .toast.success { border-color:rgba(63,185,80,.3); color:var(--success); }
 .toast.error   { border-color:rgba(248,81,73,.3); color:var(--danger); }
-.toast svg     { width:16px; height:16px; flex-shrink:0; }
+.toast svg     { width:16px; height:16px; flex-shrink:0; margin-top:3px; }
+/* پیام‌های Toast گاهی متن انگلیسی/فنی (پاسخ خام SMTP و…) در دل جمله فارسی
+   دارند؛ plaintext جهت هر پاراگراف را مستقل از dir والد و بر اساس محتوای
+   خودش تعیین می‌کند تا هنگام چندخطی‌شدن، ترتیب فارسی/انگلیسی به‌هم نریزد. */
+.toast span    { unicode-bidi: plaintext; }
 
 /* ── Deco Animations ── */
 .bar { fill:var(--card-color); transform-origin:bottom; animation:barGrow 2.4s ease-in-out infinite alternate; }

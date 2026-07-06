@@ -1178,6 +1178,9 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .login-toast.hide { animation: login-toast-out .25s ease forwards; }
 .login-toast svg { width: 18px; height: 18px; flex: 0 0 auto; }
+/* اگر پیام ترکیبی از فارسی و انگلیسی/ایمیل باشد، جهت پاراگراف بر اساس محتوای
+   خودش تعیین شود تا هنگام wrap شدن، ترتیب فارسی/انگلیسی به‌هم نریزد. */
+.login-toast span { unicode-bidi: plaintext; }
 .login-toast.error   { border-color: rgba(239, 68, 68, .45); }
 .login-toast.error   svg { color: #ef4444; }
 .login-toast.success { border-color: rgba(34, 197, 94, .45); }
@@ -2756,6 +2759,7 @@ body.notif-modal-open .card-corner-deco * {
 }
 .field-msg-icon { display: inline-flex; width: 15px; height: 15px; flex: 0 0 auto; }
 .field-msg-icon svg { width: 100%; height: 100%; }
+.field-msg-text { unicode-bidi: plaintext; }
 
 /* ── حالت focus ── */
 .field[data-state="focus"] .field-box,

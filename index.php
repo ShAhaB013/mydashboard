@@ -43,9 +43,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   </script>
   <script src="/assets/js/theme.js?v=<?= $v_theme ?>" defer></script>
   <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
-<?php if ($isAdmin): ?>
   <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
-<?php endif; ?>
   <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {

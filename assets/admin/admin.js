@@ -1114,10 +1114,15 @@ const SessionsManager = {
 // ═══════════════════════════════════════════════════════════
 // SettingsManager — ذخیره تنظیمات ایمیل/SMTP + ارسال آزمایشی
 // ═══════════════════════════════════════════════════════════
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/;
+
 const SettingsManager = {
   _v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; },
 
   async save() {
+    const fromEmail = this._v('setSmtpFromEmail');
+    if (fromEmail && !EMAIL_RE.test(fromEmail)) return FieldErr.set('setSmtpFromEmail', 'قالب ایمیل نامعتبر است');
+
     const payload = {
       smtp_enabled:    document.getElementById('setSmtpEnabled').checked ? 1 : 0,
       smtp_host:       this._v('setSmtpHost'),
@@ -1125,7 +1130,7 @@ const SettingsManager = {
       smtp_secure:     document.getElementById('setSmtpSecure').value,
       smtp_user:       this._v('setSmtpUser'),
       smtp_pass:       document.getElementById('setSmtpPass').value, // بدون trim تا رمز دست‌نخورده بماند
-      smtp_from_email: this._v('setSmtpFromEmail'),
+      smtp_from_email: fromEmail,
       smtp_from_name:  this._v('setSmtpFromName'),
       resend_cooldown: this._v('setResendCooldown'),
       code_ttl:        this._v('setCodeTtl'),
@@ -1142,7 +1147,7 @@ const SettingsManager = {
   async test() {
     const to = this._v('setTestEmail');
     if (!to) return FieldErr.set('setTestEmail', 'ایمیل مقصد را وارد کنید');
-    if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(to)) return FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
+    if (!EMAIL_RE.test(to)) return FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
     Toast.show('در حال ارسال…');
     const res = await Api.call('test_email', { test_email: to });
     if (res.ok) Toast.show(res.msg || 'ایمیل آزمایشی ارسال شد');
@@ -1237,6 +1242,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // جستجوی کاربران (صفحه مدیریت کاربران)
   if (typeof UserSearch !== 'undefined' && document.getElementById('userSearchInput')) {
     UserSearch.init();
+  }
+
+  // ایمیل آزمایشی (صفحه تنظیمات): تا وقتی فرمت ایمیل معتبر نیست، دکمه ارسال غیرفعال است
+  const testEmailInput = document.getElementById('setTestEmail');
+  const testEmailBtn   = document.querySelector('[data-act="testSettings"]');
+  if (testEmailInput && testEmailBtn) {
+    const syncTestEmailBtn = () => { testEmailBtn.disabled = !EMAIL_RE.test(testEmailInput.value.trim()); };
+    testEmailInput.addEventListener('input', syncTestEmailBtn);
+    testEmailInput.addEventListener('blur', () => {
+      const v = testEmailInput.value.trim();
+      if (v && !EMAIL_RE.test(v)) FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
+    });
+    syncTestEmailBtn();
   }
 
   // بستن مودال با کلیک روی overlay
