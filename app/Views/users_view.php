@@ -19,8 +19,9 @@
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
   <style>
-    /* ── جستجوی کاربران ── */
-    .user-search { position:relative; margin-bottom:16px; }
+    /* ── نوار جستجو/فیلتر/تعداد در هر صفحه (هماهنگ با بخش مدیریت اعلان‌ها) ── */
+    .user-list-controls { display:flex; gap:10px; align-items:stretch; margin-bottom:16px; }
+    .user-search { position:relative; flex:1; margin-bottom:0; }
     .user-search-icon {
       position:absolute; top:50%; right:14px; transform:translateY(-50%);
       width:18px; height:18px; color:var(--text-3); pointer-events:none;
@@ -29,7 +30,7 @@
       width:100%; box-sizing:border-box;
       font-family:'DashboardFont',sans-serif; font-size:14px;
       background:var(--bg-input); color:var(--text);
-      border:1px solid var(--border); border-radius:var(--radius);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
       padding:11px 44px 11px 40px; outline:none;
       transition:border-color var(--t), box-shadow var(--t);
     }
@@ -39,17 +40,84 @@
       width:26px; height:26px; border-radius:50%; border:none;
       background:var(--bg-card); color:var(--text-3); cursor:pointer;
       display:none; align-items:center; justify-content:center;
+      overflow:hidden;
       transition:background var(--t), color var(--t);
     }
     .user-search-clear svg { width:13px; height:13px; }
     .user-search-clear:hover { background:var(--danger-bg); color:var(--danger); }
     .user-search.has-value .user-search-clear { display:flex; }
 
-    .user-list { display:flex; flex-direction:column; gap:8px; margin-bottom:22px; }
+    .user-perpage { display:inline-flex; align-items:stretch; flex-shrink:0; }
+    .user-perpage select {
+      appearance:none; -webkit-appearance:none; -moz-appearance:none;
+      font-family:inherit; font-size:13px; font-weight:600; height:100%;
+      color:var(--text-2); background:var(--bg-card);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
+      padding:0 12px 0 30px; cursor:pointer; min-height:42px;
+      direction:rtl; text-align:right;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:left 10px center;
+    }
+    .user-perpage select:hover { border-color:var(--accent); }
+    .user-perpage select:focus { outline:none; border-color:var(--border-focus,var(--accent)); }
+    .user-perpage .cselect { width:auto; }
+    .user-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); }
 
-    /* صفحه‌بندی سمت سرور (لینک‌محور) — هم‌استایل با pager ابزارها */
-    a.pg-btn { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
-    .user-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:22px; }
+    /* ── دکمه و پنل جستجوی پیشرفته ── */
+    .user-adv-toggle {
+      display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+      font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
+      padding:0 16px; min-height:42px; cursor:pointer; white-space:nowrap;
+      color:var(--text-2); background:var(--bg-card);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
+      transition:border-color var(--t), color var(--t), background var(--t);
+    }
+    .user-adv-toggle svg { width:16px; height:16px; flex-shrink:0; }
+    .user-adv-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .user-adv-toggle.active,
+    .user-adv-toggle.has-filters { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+    .user-adv-panel {
+      display:none; flex-wrap:wrap; gap:14px; align-items:flex-end;
+      margin-bottom:16px; padding:16px 18px;
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:var(--radius-lg);
+    }
+    .user-adv-panel.open { display:flex; }
+    .user-adv-field { display:flex; flex-direction:column; gap:6px; flex:1; min-width:140px; }
+    .user-adv-field label { font-size:12px; font-weight:600; color:var(--text-2); }
+    .user-adv-field select {
+      appearance:none; -webkit-appearance:none; -moz-appearance:none; cursor:pointer;
+      font-family:'DashboardFont',sans-serif; font-size:14px; height:42px;
+      color:var(--text); background:var(--bg-input);
+      border:1px solid var(--border); border-radius:var(--radius-xs);
+      padding:0 30px 0 12px;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:left 10px center;
+      outline:none; transition:border-color var(--t), box-shadow var(--t);
+    }
+    .user-adv-field select:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,166,255,.12); }
+    .user-adv-field .cselect-trigger { min-height:42px; border-radius:var(--radius-xs); }
+    .user-adv-actions { display:flex; gap:8px; align-items:center; }
+    .user-adv-actions .btn { height:42px; border-radius:var(--radius-xs); }
+    @media (max-width:560px) {
+      .user-list-controls { flex-wrap:wrap; }
+      .user-adv-field { min-width:120px; }
+      .user-adv-actions { width:100%; justify-content:flex-end; }
+    }
+
+    .user-list { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+    .user-skeleton { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); height:76px; animation:userShimmer 1.6s ease-in-out infinite; }
+    @keyframes userShimmer { 0%,100%{opacity:.6} 50%{opacity:1} }
+    .user-empty { text-align:center; padding:60px 24px; color:var(--text-2); border:1.5px dashed var(--border); border-radius:var(--radius-lg); }
+    .user-empty svg { width:40px; height:40px; opacity:.35; display:block; margin:0 auto 12px; }
+
+    /* ── صفحه‌بندی سمت سرور (AJAX) — هم‌ساختار با بخش اعلان‌ها ── */
+    .user-page-info { text-align:center; font-size:12px; color:var(--text-3); margin-bottom:8px; }
+    .user-pagination {
+      display:flex; align-items:center; justify-content:center;
+      flex-wrap:wrap; gap:6px; margin:20px 0 8px;
+    }
+    .user-pagination.hidden { display:none; }
   </style>
 </head>
 <body>
@@ -83,7 +151,7 @@
 
   <!-- ── سرتیتر ── -->
   <div class="tools-header">
-    <h2>کاربران <span class="count-badge" id="userCountBadge"><?= (int) ($totalUsers ?? 0) ?></span></h2>
+    <h2>کاربران <span class="count-badge" id="userCountBadge">0</span></h2>
   </div>
 
   <!-- ── تنظیم مدت اعتبار نشست ── -->
@@ -98,137 +166,72 @@
     <span class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</span>
   </div>
 
-  <!-- ── جستجو (سمت سرور) ── -->
-  <form class="user-search" method="GET" action="/admin" role="search">
-    <input type="hidden" name="page" value="users">
-    <svg class="user-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-    <input type="text" name="q" value="<?= htmlspecialchars($userSearch ?? '', ENT_QUOTES) ?>"
-           placeholder="جستجو در نام، شماره موبایل و نام کاربری... (Enter)" autocomplete="off" autofocus>
-    <?php if (($userSearch ?? '') !== ''): ?>
-      <a class="user-search-clear" href="/admin?page=users" title="پاک کردن" style="display:flex;">
+  <!-- ── جستجو + تعداد در هر صفحه + فیلتر پیشرفته (سمت سرور، AJAX) ── -->
+  <div class="user-list-controls">
+    <div class="user-search">
+      <svg class="user-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" id="userSearchInput" placeholder="جستجو در نام، شماره موبایل و نام کاربری..."
+             data-input="userSearch" autocomplete="off">
+      <button type="button" class="user-search-clear" id="userSearchClear" data-act="userClearSearch" title="پاک کردن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
-      </a>
-    <?php endif; ?>
-  </form>
+      </button>
+    </div>
 
-  <!-- ── لیست کاربران ── -->
-  <div class="user-list" id="userList">
-    <?php if (empty($users)): ?>
-      <div class="empty-tools">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-        </svg>
-        <p><?= ($userSearch ?? '') !== '' ? 'کاربری با این مشخصات یافت نشد' : 'هنوز هیچ کاربری ثبت نشده' ?></p>
-      </div>
-    <?php else: foreach ($users as $u):
-      $searchKey = trim(($u['display_name'] ?? '') . ' ' . ($u['phone'] ?? '') . ' ' . ($u['username'] ?? '') . ' ' . ($u['email'] ?? ''));
-    ?>
-      <div class="user-row" data-uid="<?= (int)$u['id'] ?>" data-search="<?= htmlspecialchars($searchKey, ENT_QUOTES) ?>">
-        <div class="user-row-avatar"><?= htmlspecialchars(mb_substr($u['display_name'] ?: $u['username'], 0, 1)) ?></div>
-        <div class="user-row-info">
-          <h3><?= htmlspecialchars($u['display_name'] ?: $u['username']) ?></h3>
-          <p style="direction:ltr;text-align:right;"><?= htmlspecialchars($u['email'] ?: ($u['phone'] ?: '—')) ?></p>
-        </div>
-        <div class="user-row-meta">
-          <?php if (($u['role'] ?? 'user') === 'admin'): ?>
-            <span class="user-role-pill admin" title="دسترسی به پنل مدیریت">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-                <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/>
-              </svg>
-              مدیر
-            </span>
-          <?php endif; ?>
-          <span class="user-status-pill <?= $u['is_active'] ? 'active' : 'inactive' ?>">
-            <?= $u['is_active'] ? 'فعال' : 'غیرفعال' ?>
-          </span>
-        </div>
-        <div class="user-row-actions">
-          <button class="btn btn-secondary btn-icon btn-sm" title="تنظیم دسترسی"
-            data-act="accessOpen" data-id="<?= (int)$u['id'] ?>" data-name="<?= htmlspecialchars($u['display_name'] ?: $u['username'], ENT_QUOTES) ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-            </svg>
-          </button>
-          <span class="sess-user-wrap">
-            <button class="btn btn-secondary btn-icon btn-sm" title="نشست‌های فعال"
-              data-act="sessOpenUser" data-id="<?= (int)$u['id'] ?>" data-name="<?= htmlspecialchars($u['display_name'] ?: $u['username'], ENT_QUOTES) ?>">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-              </svg>
-            </button>
-            <?php if (!empty($sessionCounts[$u['id']])): ?><span class="sess-count-dot"><?= (int) $sessionCounts[$u['id']] ?></span><?php endif; ?>
-          </span>
-          <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش"
-            data-act="userEdit"
-            data-id="<?= (int)$u['id'] ?>"
-            data-name="<?= htmlspecialchars($u['display_name'] ?: trim(($u['first_name'] ?? '').' '.($u['last_name'] ?? '')), ENT_QUOTES) ?>"
-            data-username="<?= htmlspecialchars($u['username'] ?? '', ENT_QUOTES) ?>"
-            data-phone="<?= htmlspecialchars($u['phone'] ?? '', ENT_QUOTES) ?>"
-            data-email="<?= htmlspecialchars($u['email'] ?? '', ENT_QUOTES) ?>"
-            data-role="<?= htmlspecialchars($u['role'] ?? 'user', ENT_QUOTES) ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="btn btn-secondary btn-icon btn-sm toggle-user-btn <?= !$u['is_active'] ? 'is-inactive' : '' ?>"
-            title="<?= $u['is_active'] ? 'غیرفعال کردن' : 'فعال کردن' ?>"
-            data-act="userToggle" data-id="<?= (int)$u['id'] ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/>
-              <line x1="12" y1="2" x2="12" y2="12"/>
-            </svg>
-          </button>
-          <button class="btn btn-danger btn-icon btn-sm" title="حذف"
-            data-act="userDelete" data-id="<?= (int)$u['id'] ?>" data-name="<?= htmlspecialchars($u['display_name'] ?: $u['username'], ENT_QUOTES) ?>">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-              <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    <?php endforeach; endif; ?>
+    <label class="user-perpage" title="تعداد آیتم در هر صفحه">
+      <span class="sr-only">تعداد در هر صفحه</span>
+      <select id="userPerPage" data-change="userSetPerPage" aria-label="تعداد آیتم در هر صفحه">
+        <option value="10">۱۰</option>
+        <option value="20">۲۰</option>
+        <option value="50">۵۰</option>
+      </select>
+    </label>
+
+    <button type="button" class="user-adv-toggle" id="userAdvToggle" data-act="userToggleAdvanced"
+            aria-expanded="false" aria-controls="userAdvPanel" title="جستجوی پیشرفته">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
+      </svg>
+      <span>فیلتر</span>
+    </button>
   </div>
 
-  <!-- ── صفحه‌بندی سمت سرور ── -->
-  <?php if (($userPages ?? 1) > 1):
-    $qStr  = ($userSearch ?? '') !== '' ? '&q=' . rawurlencode($userSearch) : '';
-    $from  = ($userPage - 1) * $perPage + 1;
-    $to    = $from + count($users) - 1;
-    $pgUrl = fn($p) => '/admin?page=users&p=' . (int) $p . $qStr;
-  ?>
-    <nav class="user-pagination" aria-label="صفحه‌بندی کاربران">
-      <span class="pg-info">نمایش <?= $from ?> تا <?= $to ?> از <?= (int) $totalUsers ?> کاربر</span>
-      <div class="pg-controls">
-        <?php if ($userPage > 1): ?>
-          <a class="pg-btn" href="<?= $pgUrl($userPage - 1) ?>" aria-label="قبلی">«</a>
-        <?php else: ?>
-          <span class="pg-btn" aria-disabled="true" style="opacity:.45;">«</span>
-        <?php endif; ?>
-        <?php for ($i = 1; $i <= $userPages; $i++):
-          $near = ($i === 1 || $i === $userPages || abs($i - $userPage) <= 2);
-          if (!$near) { if ($i === 2 || $i === $userPages - 1) echo '<span class="pg-ellipsis">…</span>'; continue; }
-          if ($i === $userPage): ?>
-            <span class="pg-btn active"><?= $i ?></span>
-          <?php else: ?>
-            <a class="pg-btn" href="<?= $pgUrl($i) ?>"><?= $i ?></a>
-        <?php endif; endfor; ?>
-        <?php if ($userPage < $userPages): ?>
-          <a class="pg-btn" href="<?= $pgUrl($userPage + 1) ?>" aria-label="بعدی">»</a>
-        <?php else: ?>
-          <span class="pg-btn" aria-disabled="true" style="opacity:.45;">»</span>
-        <?php endif; ?>
-      </div>
-    </nav>
-  <?php endif; ?>
+  <!-- پنل جستجوی پیشرفته -->
+  <div class="user-adv-panel" id="userAdvPanel">
+    <div class="user-adv-field">
+      <label for="user-f-role">نقش</label>
+      <select id="user-f-role">
+        <option value="">همه</option>
+        <option value="admin">مدیر</option>
+        <option value="user">کاربر عادی</option>
+      </select>
+    </div>
+    <div class="user-adv-field">
+      <label for="user-f-status">وضعیت</label>
+      <select id="user-f-status">
+        <option value="">همه</option>
+        <option value="active">فعال</option>
+        <option value="inactive">غیرفعال</option>
+      </select>
+    </div>
+    <div class="user-adv-actions">
+      <button type="button" class="btn btn-primary btn-sm" data-act="userApplyFilters">اعمال</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-act="userResetFilters">حذف فیلترها</button>
+    </div>
+  </div>
+
+  <!-- ── لیست کاربران (بارگذاری AJAX) ── -->
+  <div class="user-list" id="userList">
+    <div class="user-skeleton"></div>
+    <div class="user-skeleton"></div>
+    <div class="user-skeleton"></div>
+  </div>
+
+  <div class="user-page-info" id="userPageInfo"></div>
+  <div class="user-pagination hidden" id="userPagination"></div>
 
 
 </div><!-- /admin-wrap -->

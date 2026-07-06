@@ -35,6 +35,7 @@ class Router
         'delete_deco'   => [DecoController::class,         'delete'],
 
         // ── کاربران ──────────────────────────────────────────
+        'list_users'    => [UserController::class,         'list'],
         'add_user'      => [UserController::class,         'create'],
         'edit_user'     => [UserController::class,         'update'],
         'delete_user'   => [UserController::class,         'delete'],

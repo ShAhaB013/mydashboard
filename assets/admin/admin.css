@@ -314,7 +314,8 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 
 /* ── افکت ripple (موج کلیک، سبک تلگرام) — همه آیتم‌های تعاملی به‌جز کارت‌ها — مشترک با style.css ── */
 .hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn, .access-tool-label,
-.deco-opt, .nm-adv-toggle, .notif-row, .section-box-head, .modal-close {
+.deco-opt, .nm-adv-toggle, .notif-row, .section-box-head, .modal-close,
+.user-adv-toggle, .user-search-clear {
   position:relative; overflow:hidden;
 }
 .ripple {

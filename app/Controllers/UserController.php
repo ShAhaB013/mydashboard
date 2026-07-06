@@ -17,6 +17,58 @@ class UserController
         $this->request = $request;
     }
 
+    /** فهرست کاربران با صفحه‌بندی سمت سرور + جستجو/فیلتر (برای پنل مدیریت کاربران) */
+    public function list(): void
+    {
+        $page    = $this->request->inputInt('page', 1);
+        $perPage = $this->request->inputInt('per_page', 15);
+        $search  = trim((string) $this->request->input('search'));
+
+        $page    = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+
+        $role = $this->request->input('role');
+        if (!in_array($role, UserModel::ROLES, true)) {
+            $role = '';
+        }
+        $status = $this->request->input('status');
+        if (!in_array($status, ['active', 'inactive'], true)) {
+            $status = '';
+        }
+        $filters = ['role' => $role, 'status' => $status];
+
+        $total = $this->model->countAll($search, $filters);
+        $rows  = $this->model->allPaginated($page, $perPage, $search, $filters);
+
+        $sessionCounts = SessionModel::countsByUser();
+
+        $result = [];
+        foreach ($rows as $u) {
+            $result[] = [
+                'id'           => (int) $u['id'],
+                'username'     => $u['username'] ?? '',
+                'display_name' => $u['display_name'] ?: trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? '')),
+                'phone'        => $u['phone'] ?? '',
+                'email'        => $u['email'] ?? '',
+                'role'         => $u['role'] ?? 'user',
+                'is_active'    => (bool) $u['is_active'],
+                'session_count' => $sessionCounts[(int) $u['id']] ?? 0,
+            ];
+        }
+
+        $pageCount = (int) max(1, (int) ceil($total / $perPage));
+
+        Response::ok([
+            'users'      => $result,
+            'pagination' => [
+                'page'       => $page,
+                'per_page'   => $perPage,
+                'total'      => $total,
+                'page_count' => $pageCount,
+            ],
+        ]);
+    }
+
     /** افزودن کاربر جدید (نام‌کاربری و شماره موبایل توسط ادمین تعیین می‌شوند) */
     public function create(): void
     {

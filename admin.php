@@ -126,17 +126,7 @@ if ($page === 'notifications') {
 }
 
 if ($page === 'users') {
-    // ── صفحه‌بندی سمت سرور ─────────────────────────────────
-    $perPage    = 15;
-    $userPage   = max(1, (int) ($_GET['p'] ?? 1));
-    $userSearch = trim((string) ($_GET['q'] ?? ''));
-
-    $totalUsers = $userModel->countAll($userSearch);
-    $userPages  = max(1, (int) ceil($totalUsers / $perPage));
-    $userPage   = min($userPage, $userPages);
-
-    $users      = $userModel->allPaginated($userPage, $perPage, $userSearch);
-    $sessionCounts = SessionModel::countsByUser();   // [user_id => تعداد نشست فعال]
+    // فهرست کاربران با AJAX (list_users) بارگذاری می‌شود — سمت سرور فقط داده‌های اولیه صفحه را می‌سازد.
     $sessionTtlHours = SettingsModel::getInt('session_ttl_hours', 1, 720, 24);
     // مودال دسترسی به «همه ابزارها» نیاز دارد — نسخه سبک تزریق می‌شود
     $toolsLite  = json_encode(ToolModel::toLite($toolModel->all()), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);

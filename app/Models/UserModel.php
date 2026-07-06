@@ -48,10 +48,31 @@ class UserModel
     }
 
     /**
-     * صفحه‌بندی سمت سرور + جستجوی اختیاری (نام نمایشی/نام/فامیل/موبایل/نام‌کاربری/ایمیل).
-     * فقط ردیف‌های صفحه جاری از DB می‌آیند.
+     * ساخت شرط فیلترهای پیشرفته (نقش + وضعیت) برای لیست ادمین.
+     * $filters: ['role'=>'admin|user', 'status'=>'active|inactive']
      */
-    public function allPaginated(int $page, int $perPage, string $search = ''): array
+    private function buildAdminFilters(array $filters, array &$params): string
+    {
+        $sql  = '';
+        $role = trim((string) ($filters['role'] ?? ''));
+        $st   = trim((string) ($filters['status'] ?? ''));
+
+        if (in_array($role, self::ROLES, true)) {
+            $sql .= ' AND role = :f_role';
+            $params[':f_role'] = $role;
+        }
+        if ($st === 'active' || $st === 'inactive') {
+            $sql .= ' AND is_active = :f_active';
+            $params[':f_active'] = $st === 'active' ? 1 : 0;
+        }
+        return $sql;
+    }
+
+    /**
+     * صفحه‌بندی سمت سرور + جستجوی اختیاری (نام نمایشی/نام/فامیل/موبایل/نام‌کاربری/ایمیل)
+     * + فیلترهای پیشرفته (نقش/وضعیت). فقط ردیف‌های صفحه جاری از DB می‌آیند.
+     */
+    public function allPaginated(int $page, int $perPage, string $search = '', array $filters = []): array
     {
         $page    = max(1, $page);
         $perPage = max(1, min(100, $perPage));
@@ -59,30 +80,38 @@ class UserModel
         $like    = '%' . $search . '%';
         $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
 
+        $params = [':search' => $search, ':like' => $like, ':like2' => $like,
+             ':like3' => $like, ':like4' => $like, ':like5' => $like, ':like6' => $like];
+        $filterSql = $this->buildAdminFilters($filters, $params);
+
         return DB::run(
             'SELECT id, username, first_name, last_name, display_name, phone, email, role, is_active, created_at
              FROM users
              WHERE (:search = \'\'
                     OR display_name LIKE :like OR first_name LIKE :like2 OR last_name LIKE :like3
                     OR phone LIKE :like4 OR username LIKE :like5 OR email LIKE :like6)
+             ' . $filterSql . '
              ORDER BY id ASC
              ' . $limitSql,
-            [':search' => $search, ':like' => $like, ':like2' => $like,
-             ':like3' => $like, ':like4' => $like, ':like5' => $like, ':like6' => $like]
+            $params
         )->fetchAll();
     }
 
-    /** تعداد کل کاربران برای صفحه‌بندی (با جستجوی اختیاری) */
-    public function countAll(string $search = ''): int
+    /** تعداد کل کاربران برای صفحه‌بندی (با جستجو و فیلترهای پیشرفته اختیاری) */
+    public function countAll(string $search = '', array $filters = []): int
     {
         $like = '%' . $search . '%';
+        $params = [':search' => $search, ':like' => $like, ':like2' => $like,
+             ':like3' => $like, ':like4' => $like, ':like5' => $like, ':like6' => $like];
+        $filterSql = $this->buildAdminFilters($filters, $params);
+
         return (int) DB::run(
             'SELECT COUNT(*) FROM users
              WHERE (:search = \'\'
                     OR display_name LIKE :like OR first_name LIKE :like2 OR last_name LIKE :like3
-                    OR phone LIKE :like4 OR username LIKE :like5 OR email LIKE :like6)',
-            [':search' => $search, ':like' => $like, ':like2' => $like,
-             ':like3' => $like, ':like4' => $like, ':like5' => $like, ':like6' => $like]
+                    OR phone LIKE :like4 OR username LIKE :like5 OR email LIKE :like6)
+             ' . $filterSql,
+            $params
         )->fetchColumn();
     }
 
