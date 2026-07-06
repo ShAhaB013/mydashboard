@@ -1486,7 +1486,39 @@ const CustomSelect = {
 document.addEventListener('click', () =>
   document.querySelectorAll('.cselect.open').forEach(w => w.classList.remove('open')));
 
+// ═══════════════════════════════════════════════════════════
+// SessionWatch — پایش انقضای TTL نشست در پس‌زمینه
+// پنل ادمین (برخلاف داشبورد اصلی) هیچ poll دوره‌ای نداشت؛ یعنی مدیرِ فعالی
+// که تب را باز نگه داشته بود، حتی بعد از پایان TTL هم تا اولین اکشنِ ناموفق
+// (401/403) در پنل باقی می‌ماند. اینجا با poll سبک هر ۲۵ ثانیه، همان لحظه‌ی
+// انقضا شناسایی و کاربر به صفحه‌ی ورود هدایت می‌شود.
+// ═══════════════════════════════════════════════════════════
+const SessionWatch = {
+  _timer: null,
+  _POLL_MS: 25000,
+
+  start() {
+    this._timer = setInterval(() => {
+      if (!document.hidden) this._check();
+    }, this._POLL_MS);
+  },
+
+  async _check() {
+    try {
+      const res  = await fetch('/api.php?action=me', { cache: 'no-cache' });
+      const data = await res.json();
+      // رفرش همان صفحه (نه هدایت به /login) — گیت سرور در admin.php خودش
+      // کاربرِ غیرمجاز/مهمان را به مقصد درست (داشبورد عمومی) هدایت می‌کند.
+      if (data.ok && data.logged_in === false) {
+        location.reload();
+      }
+    } catch { /* silent — خطای شبکه موقت، در poll بعدی دوباره بررسی می‌شود */ }
+  },
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+  SessionWatch.start();
+
   // مدیریت آیکون/انیمیشن (مدیریت ابزارها به داشبورد اصلی منتقل شده است)
   if (document.getElementById('iconAssetGrid'))  IconEditor.buildGrid();
   if (document.getElementById('decoAssetGrid'))  DecoEditor.buildGrid();

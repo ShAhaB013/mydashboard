@@ -17,7 +17,11 @@ declare(strict_types=1);
 // (همان رفتار درایور database در Laravel).
 //
 // SessionUpdateTimestampHandlerInterface برای پشتیبانی lazy_write:
-// اگر داده نشست تغییر نکند، فقط مهر زمانی (انقضا) تمدید می‌شود.
+// اگر داده نشست تغییر نکند، فقط last_seen (آخرین فعالیت) به‌روز می‌شود.
+//
+// سقف مطلق TTL: expires_at فقط در INSERT اول (لحظه‌ی login) ست می‌شود و در
+// نوشتن‌های بعدی تمدید نمی‌شود — یعنی نشست دقیقاً session_ttl_hours ساعت پس
+// از ورود منقضی می‌شود، صرف‌نظر از میزان فعالیت کاربر.
 // ═══════════════════════════════════════════════════════════
 
 class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface
@@ -63,12 +67,16 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
             ':exp'     => $now + $this->ttl,
         ];
         try {
+            // نکته کلیدی سقف مطلق: expires_at را فقط در INSERT اول (لحظه‌ی واقعی
+            // شروع نشست) ست می‌کنیم و در UPDATEهای بعدی دست‌نخورده می‌ماند —
+            // یعنی سقفِ عمر نشست از لحظه‌ی ورود ثابت است و با فعالیت کاربر جلو
+            // نمی‌رود (برخلاف last_seen که همچنان برای نمایش «آخرین فعالیت» به‌روز می‌شود).
             DB::run(
                 'INSERT INTO sessions (id, user_id, ip, user_agent, payload, last_seen, expires_at)
                  VALUES (:id, :uid, :ip, :ua, :payload, :seen, :exp)
                  ON DUPLICATE KEY UPDATE
                    user_id = VALUES(user_id), ip = VALUES(ip), user_agent = VALUES(user_agent),
-                   payload = VALUES(payload), last_seen = VALUES(last_seen), expires_at = VALUES(expires_at)',
+                   payload = VALUES(payload), last_seen = VALUES(last_seen)',
                 $params
             );
             return true;
@@ -113,14 +121,16 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
         }
     }
 
-    // ── lazy_write: تمدید انقضا بدون بازنویسی payload ──
+    // ── lazy_write: به‌روزرسانی آخرین فعالیت بدون بازنویسی payload ──
+    // expires_at عمداً دست نمی‌خورد؛ سقف مطلق TTL از لحظه‌ی INSERT اول (login)
+    // ثابت می‌ماند و با فعالیت کاربر تمدید نمی‌شود.
     public function updateTimestamp(string $id, string $data): bool
     {
         $now = time();
         try {
             DB::run(
-                'UPDATE sessions SET last_seen = :seen, expires_at = :exp WHERE id = :id',
-                [':seen' => $now, ':exp' => $now + $this->ttl, ':id' => $id]
+                'UPDATE sessions SET last_seen = :seen WHERE id = :id',
+                [':seen' => $now, ':id' => $id]
             );
             return true;
         } catch (\PDOException $e) {

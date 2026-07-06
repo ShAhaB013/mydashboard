@@ -24,6 +24,12 @@ class UserSession
         $ttl = SettingsModel::getInt('session_ttl_hours', 1, 720, self::TTL_HOURS_DEFAULT) * 3600;
         ini_set('session.gc_maxlifetime', (string) $ttl);
         ini_set('session.use_strict_mode', '1'); // شناسه نامعتبر پذیرفته نشود
+
+        // بعضی هاست‌ها gc را در php.ini غیرفعال کرده‌اند (gc_probability=0) و
+        // آن را با cron جداگانه انجام می‌دهند — چیزی که این پروژه ندارد. بدون
+        // این تنظیم صریح، ردیف‌های منقضی‌شده‌ی جدول sessions هرگز پاک نمی‌شدند.
+        ini_set('session.gc_probability', '1');
+        ini_set('session.gc_divisor', '100');
         session_set_save_handler(new DbSessionHandler($ttl), true);
 
         session_name(self::SESSION_NAME);
