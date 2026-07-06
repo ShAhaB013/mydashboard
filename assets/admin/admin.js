@@ -13,6 +13,18 @@ const State = {
   selDecoKey:  null,
 };
 
+// ═══════════════════════════════════════════════════════════
+// Skeleton — قالب‌های لودینگ (هم‌ساختار با پنل کاربر در style.css)
+// ═══════════════════════════════════════════════════════════
+const SKELETON_TABLE_ROW =
+  '<div class="sk-table-row" aria-hidden="true">'
+  + '<div class="sk sk-avatar"></div>'
+  + '<div class="sk-lines"><div class="sk sk-line sk-line--title"></div><div class="sk sk-line sk-line--sub"></div></div>'
+  + '</div>';
+
+const SKELETON_GRID_TILE = '<div class="sk sk-grid-tile" aria-hidden="true"></div>';
+const SKELETON_BADGE_CHIP = '<div class="sk sk-badge-chip" aria-hidden="true"></div>';
+
 // escape برای درج امن متن کاربر در HTML رشته‌ای
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => (
@@ -221,10 +233,17 @@ const UserManager = {
   _loading:     false,
   _searchTimer: null,
 
+  _renderSkeleton(n = 5) {
+    const list = document.getElementById('userList');
+    if (!list) return;
+    list.innerHTML = SKELETON_TABLE_ROW.repeat(n);
+  },
+
   async load(page = this._page) {
     if (this._loading) return;
     this._loading = true;
     this._page    = Math.max(1, page);
+    this._renderSkeleton();
 
     const res = await Api.call('list_users', {
       page:      this._page,
@@ -687,8 +706,8 @@ const AccessManager = {
 
     document.getElementById('accessModalTitle').textContent = `تنظیم دسترسی — ${userName}`;
     document.getElementById('accessUserId').value = userId;
-    document.getElementById('accessBadgesGrid').innerHTML = '<div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>';
-    document.getElementById('accessToolsList').innerHTML  = '<div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>';
+    document.getElementById('accessBadgesGrid').innerHTML = SKELETON_BADGE_CHIP.repeat(4);
+    document.getElementById('accessToolsList').innerHTML  = SKELETON_TABLE_ROW.repeat(4);
 
     Modal.open('accessModal');
     this._dirty = false;
@@ -1192,7 +1211,7 @@ const SecurityManager = {
 
   async refresh() {
     const box = document.getElementById('blocksList');
-    box.innerHTML = '<div class="blocks-loading">در حال بارگذاری…</div>';
+    box.innerHTML = SKELETON_TABLE_ROW.repeat(3);
     const res = await Api.call('list_blocks', {});
     if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت اطلاعات</div>'; return; }
     this.render(res.blocks || []);
@@ -1269,7 +1288,7 @@ const SessionsManager = {
   async loadUser() {
     const box = document.getElementById('sessionsUserList');
     if (!box) return;
-    box.innerHTML = '<div class="blocks-loading">در حال بارگذاری…</div>';
+    box.innerHTML = SKELETON_TABLE_ROW.repeat(2);
     const res = await Api.call('list_sessions', { user_id: this._curUser });
     if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت نشست‌ها</div>'; return; }
     const list = res.sessions || [];

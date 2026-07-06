@@ -182,7 +182,14 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
           </div>
           <div class="profile-section-body">
             <div id="acctSessionsList" class="acct-sessions">
-              <div class="acct-sessions-empty">در حال بارگذاری…</div>
+              <div class="sk-list-item" aria-hidden="true">
+                <div class="sk sk-list-icon"></div>
+                <div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>
+              </div>
+              <div class="sk-list-item" aria-hidden="true">
+                <div class="sk sk-list-icon"></div>
+                <div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>
+              </div>
             </div>
             <button class="profile-submit-btn acct-killall-btn" id="acctKillOthers" data-act="terminateMyOtherSessions" style="display:none;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">

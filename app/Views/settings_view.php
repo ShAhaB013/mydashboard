@@ -54,6 +54,20 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
       padding:12px 14px; margin-bottom:18px;
     }
   </style>
+  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <script type="speculationrules" nonce="<?= csp_nonce() ?>">
+  {
+    "prerender": [{
+      "where": { "and": [
+        { "href_matches": "/*" },
+        { "not": { "href_matches": "*logout*" } },
+        { "not": { "href_matches": "*api.php*" } },
+        { "not": { "href_matches": "*action=*" } }
+      ]},
+      "eagerness": "moderate"
+    }]
+  }
+  </script>
 </head>
 <body>
 

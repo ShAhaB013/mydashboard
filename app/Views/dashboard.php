@@ -18,6 +18,20 @@
   </script>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
+  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <script type="speculationrules" nonce="<?= csp_nonce() ?>">
+  {
+    "prerender": [{
+      "where": { "and": [
+        { "href_matches": "/*" },
+        { "not": { "href_matches": "*logout*" } },
+        { "not": { "href_matches": "*api.php*" } },
+        { "not": { "href_matches": "*action=*" } }
+      ]},
+      "eagerness": "moderate"
+    }]
+  }
+  </script>
 </head>
 <body>
 

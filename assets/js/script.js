@@ -490,14 +490,15 @@ const NotifPanel = {
     }
 
     if (!list.length) {
-      body.innerHTML = `
-        <div class="notif-drop-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <p>اعلانی برای نمایش وجود ندارد</p>
-        </div>`;
+      body.innerHTML = this._loaded
+        ? `<div class="notif-drop-empty">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+             </svg>
+             <p>اعلانی برای نمایش وجود ندارد</p>
+           </div>`
+        : SKELETON_LIST_ITEM.repeat(3);
       return;
     }
 
@@ -1191,6 +1192,12 @@ const SKELETON_CARD =
   + '<div class="sk sk-icon"></div><div class="sk sk-badge"></div>'
   + '<div class="sk sk-title"></div><div class="sk sk-line"></div>'
   + '<div class="sk sk-line sk-line--short"></div></div>';
+
+const SKELETON_LIST_ITEM =
+  '<div class="sk-list-item" aria-hidden="true">'
+  + '<div class="sk sk-list-icon"></div>'
+  + '<div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>'
+  + '</div>';
 
 function showSkeleton(n = 6) {
   // قبل از پاک‌کردن DOM، observerها را قطع کن (جلوگیری از نشتی حافظه)

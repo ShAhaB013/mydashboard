@@ -931,6 +931,50 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   border:1px solid rgba(88,166,255,.2);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   Skeleton (اسکلت لودینگ پنل ادمین)
+   ═══════════════════════════════════════════════════════════ */
+.sk-table-row {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:12px 16px;
+  display:flex; align-items:center; gap:12px;
+}
+.sk-grid-tile { aspect-ratio:1; border-radius:var(--radius-xs); }
+.sk-badge-chip { width:74px; height:28px; border-radius:var(--radius-xs); }
+
+.sk-table-row .sk, .sk-grid-tile.sk, .sk-badge-chip.sk {
+  position:relative; overflow:hidden; background:var(--bg-hover);
+}
+.sk-table-row .sk-avatar { width:38px; height:38px; border-radius:50%; flex-shrink:0; }
+.sk-table-row .sk-lines { flex:1; min-width:0; }
+.sk-table-row .sk-line { height:12px; border-radius:var(--radius-xs); background:var(--bg-hover); margin-bottom:8px; position:relative; overflow:hidden; }
+.sk-table-row .sk-line--title { width:45%; }
+.sk-table-row .sk-line--sub { width:65%; margin-bottom:0; }
+
+.sk-table-row .sk-avatar::after,
+.sk-table-row .sk-line::after,
+.sk-grid-tile::after,
+.sk-badge-chip::after {
+  content:''; position:absolute; inset:0; transform:translateX(100%);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation:skSweep 1.5s ease-in-out infinite;
+}
+[data-theme="dark"] .sk-table-row .sk-avatar::after,
+[data-theme="dark"] .sk-table-row .sk-line::after,
+[data-theme="dark"] .sk-grid-tile::after,
+[data-theme="dark"] .sk-badge-chip::after {
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+}
+.sk-grid-tile, .sk-badge-chip { position:relative; overflow:hidden; background:var(--bg-hover); }
+
+@keyframes skSweep { 0%{transform:translateX(100%)} 60%,100%{transform:translateX(-200%)} }
+@media (prefers-reduced-motion: reduce) {
+  .sk-table-row .sk-avatar::after, .sk-table-row .sk-line::after,
+  .sk-grid-tile::after, .sk-badge-chip::after { animation:none; }
+  .sk-table-row .sk-avatar, .sk-table-row .sk-line, .sk-grid-tile, .sk-badge-chip { animation:skFade 1.6s ease-in-out infinite; }
+}
+@keyframes skFade { 0%,100%{opacity:.6} 50%{opacity:1} }
+
 .access-status-badge {
   font-size:10px; font-weight:700; border-radius:var(--radius-xs); padding:2px 8px;
   white-space:nowrap; flex-shrink:0;

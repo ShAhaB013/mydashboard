@@ -23,17 +23,12 @@ class ToolModel
         return DB::run(
             'SELECT DISTINCT t.*
              FROM tools t
+             LEFT JOIN tool_access ta ON ta.tool_id = t.id AND ta.user_id = :uid
+             LEFT JOIN category_access ca ON ca.badge = t.badge AND ca.user_id = :uid2
              WHERE
                  t.is_public = 1
-                 OR t.id IN (
-                     SELECT tool_id FROM tool_access WHERE user_id = :uid
-                 )
-                 OR (
-                     t.badge != \'\'
-                     AND t.badge IN (
-                         SELECT badge FROM category_access WHERE user_id = :uid2
-                     )
-                 )
+                 OR ta.user_id IS NOT NULL
+                 OR ca.user_id IS NOT NULL
              ORDER BY t.sort_order ASC',
             [':uid' => $userId, ':uid2' => $userId]
         )->fetchAll();

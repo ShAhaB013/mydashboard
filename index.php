@@ -137,12 +137,17 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
             <!-- آیتم‌ها توسط JS ساخته می‌شوند -->
             <div class="notif-drop-body" id="notifDropdownBody" role="list">
-              <div class="notif-drop-empty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                <p>در حال بارگذاری...</p>
+              <div class="sk-list-item" aria-hidden="true">
+                <div class="sk sk-list-icon"></div>
+                <div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>
+              </div>
+              <div class="sk-list-item" aria-hidden="true">
+                <div class="sk sk-list-icon"></div>
+                <div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>
+              </div>
+              <div class="sk-list-item" aria-hidden="true">
+                <div class="sk sk-list-icon"></div>
+                <div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>
               </div>
             </div>
 

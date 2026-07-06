@@ -339,10 +339,16 @@ const NM = {
   _loading:       false,
   _searchTimer:   null,
 
+  _renderSkeleton(n = 3) {
+    const list = document.getElementById('notifList');
+    if (list) list.innerHTML = '<div class="notif-skeleton"></div>'.repeat(n);
+  },
+
   async load(page = this._page) {
     if (this._loading) return;
     this._loading = true;
     this._page    = Math.max(1, page);
+    this._renderSkeleton();
 
     const res = await apiCall('list_notifications', {
       page:      this._page,
