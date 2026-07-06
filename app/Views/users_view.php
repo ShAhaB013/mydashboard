@@ -159,7 +159,7 @@
     <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود:</label>
     <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
     <span>ساعت</span>
-    <button class="btn btn-secondary btn-sm" data-act="saveTtl">
+    <button class="btn btn-primary btn-sm" data-act="saveTtl">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       ذخیره
     </button>
