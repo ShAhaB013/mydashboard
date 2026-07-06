@@ -26,17 +26,6 @@
   <div class="app-header__inner">
     <h1 class="app-header__title">پنل مدیریت ابزارها</h1>
     <div class="app-header__actions">
-      <a href="/admin?page=notifications" class="hdr-btn" title="مدیریت اعلان‌ها" aria-label="مدیریت اعلان‌ها">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-      </a>
-      <a href="/admin?page=settings" class="hdr-btn" title="تنظیمات ایمیل" aria-label="تنظیمات ایمیل">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
-        </svg>
-      </a>
       <a href="/" class="hdr-btn" title="بازگشت به داشبورد" aria-label="بازگشت به داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M19 12H5M12 5l-7 7 7 7"/>
@@ -63,6 +52,35 @@
       <span class="admin-tile-info">
         <span class="admin-tile-title">مدیریت کاربران</span>
         <span class="admin-tile-count"><b><?= (int) ($usersTotal ?? 0) ?></b> کاربر</span>
+      </span>
+      <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+
+    <!-- مدیریت اعلان‌ها -->
+    <a href="/admin?page=notifications" class="admin-tile">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">مدیریت اعلان‌ها</span>
+        <span class="admin-tile-count">ارسال و مدیریت اعلان‌های کاربران</span>
+      </span>
+      <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+
+    <!-- تنظیمات ایمیل -->
+    <a href="/admin?page=settings" class="admin-tile">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
+        </svg>
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">تنظیمات ایمیل</span>
+        <span class="admin-tile-count">سرور SMTP و زمان‌بندی کد OTP</span>
       </span>
       <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
