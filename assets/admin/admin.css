@@ -38,7 +38,7 @@
 @font-face {
   font-family:'HeadingFont';
   src:url('../../fonts/IRANSans/IRANSansWeb_Bold.woff') format('woff');
-  font-weight:normal; font-display:swap;
+  font-weight:700; font-display:swap;
 }
 /* کلاس کمکی فقط برای screen-reader (پنهان از دید) */
 .sr-only {
