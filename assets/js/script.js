@@ -397,6 +397,15 @@ const NotifPanel = {
         const res  = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
         const data = await res.json();
         if (!data.ok) return;
+
+        // نشست ممکن است بین دو poll منقضی شده باشد (بدون رفرش صفحه)؛
+        // بدون این چک، auth-area/notifBellWrap تا رفرش دستی در حالت لاگین می‌ماندند.
+        if (data.logged_in === false) {
+          Auth.setLoggedOut();
+          this.reset();
+          return;
+        }
+
         const newCount = data.count || 0;
         if (newCount !== this._unreadCount) {
           await this.load();                 // لیست + badge را هماهنگ می‌کند

@@ -85,6 +85,7 @@ class AuthController
             $_SESSION['display_name'] = $row['display_name'];
             $_SESSION['phone']        = $row['phone'] ?? '';
             $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
+            $_SESSION['login_time']   = time();
             // توکن CSRF در همین سشن واحد ساخته می‌شود (پنل ادمین از همین می‌خواند)
             UserSession::ensureCsrfToken();
             $limiter->reset();

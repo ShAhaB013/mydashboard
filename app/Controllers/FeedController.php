@@ -56,13 +56,13 @@ class FeedController
     public function unreadCount(): void
     {
         if (!UserSession::check()) {
-            echo json_encode(['ok' => true, 'count' => 0], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => true, 'count' => 0, 'logged_in' => false], JSON_UNESCAPED_UNICODE);
             return;
         }
         $nm    = new NotificationModel();
         $count = $nm->unreadCount(UserSession::id());
         header('Cache-Control: private, no-store');
-        echo json_encode(['ok' => true, 'count' => $count], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['ok' => true, 'count' => $count, 'logged_in' => true], JSON_UNESCAPED_UNICODE);
     }
 
     // ── mark_read: علامت‌گذاری یک اعلان به‌عنوان خوانده‌شده ──

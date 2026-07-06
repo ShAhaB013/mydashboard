@@ -56,7 +56,21 @@ class UserSession
 
     public static function check(): bool
     {
-        return !empty($_SESSION['user_id']);
+        if (empty($_SESSION['user_id'])) return false;
+
+        // محدودیت مطلق عمر نشست: چون DbSessionHandler با هر درخواست expires_at
+        // را جلو می‌برد (sliding)، بدون این چک، کاربرِ فعال هیچ‌وقت بعد از
+        // «session_ttl_hours» از لحظه‌ی لاگین مجبور به ورود مجدد نمی‌شد.
+        $loginTime = $_SESSION['login_time'] ?? null;
+        if ($loginTime !== null) {
+            $ttl = SettingsModel::getInt('session_ttl_hours', 1, 720, self::TTL_HOURS_DEFAULT) * 3600;
+            if (time() - (int) $loginTime > $ttl) {
+                self::destroy();
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
