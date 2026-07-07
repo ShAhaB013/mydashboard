@@ -42,6 +42,11 @@
   <div class="app-header__inner">
     <div class="app-header__lead"><h1 class="app-header__title">مدیریت اعلان‌ها</h1></div>
     <div class="app-header__actions">
+      <button type="button" class="hdr-btn" data-act="nmOpenAdd" title="اعلان جدید" aria-label="اعلان جدید">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
       <a href="/" class="hdr-btn" title="داشبورد" aria-label="داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
       </a>
@@ -56,14 +61,6 @@
 
   <div class="tools-header">
     <h2>اعلان‌ها <span class="count-badge" id="notifCountBadge">0</span></h2>
-    <div class="tools-header-actions">
-      <button class="btn btn-primary btn-sm" data-act="nmOpenAdd">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        اعلان جدید
-      </button>
-    </div>
   </div>
 
   <div class="notif-list-controls">
