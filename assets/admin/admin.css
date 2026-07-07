@@ -197,13 +197,16 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .btn-sm { height:34px; font-size:13px; padding:0 13px; }
 .btn svg { width:15px; height:15px; flex-shrink:0; }
 .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
-/* اسپینر دکمه «ارسال آزمایشی» هنگام ارسال ایمیل تست (به‌جای toast «در حال پردازش») */
-#testEmailBtn .btn-spinner {
+/* اسپینر دکمه‌های «ارسال آزمایشی» و «ذخیره تنظیمات» حین درخواست (به‌جای toast «در حال پردازش») */
+#testEmailBtn .btn-spinner,
+#saveSettingsBtn .btn-spinner {
   display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,.4);
   border-top-color:#fff; border-radius:50%; animation:btn-spin .7s linear infinite;
 }
-#testEmailBtn.loading .btn-spinner { display:inline-block; }
-#testEmailBtn.loading svg { display:none; }
+#testEmailBtn.loading .btn-spinner,
+#saveSettingsBtn.loading .btn-spinner { display:inline-block; }
+#testEmailBtn.loading svg,
+#saveSettingsBtn.loading svg { display:none; }
 @keyframes btn-spin { to { transform:rotate(360deg); } }
 /* فوکوس یکپارچه روی همه دکمه‌ها — هماهنگ با سمت عمومی (دسترس‌پذیری) */
 .btn:focus-visible,

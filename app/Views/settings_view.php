@@ -91,7 +91,8 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
   <!-- ── نوار فرعی (بدون عنوان؛ عنوان صفحه در هدر بالا «تنظیمات ایمیل» است) ── -->
   <div class="tools-header" style="justify-content:flex-end;">
     <div class="tools-header-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-act="saveSettings">
+      <button type="button" class="btn btn-primary btn-sm" id="saveSettingsBtn" data-act="saveSettings">
+        <span class="btn-spinner" aria-hidden="true"></span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         ذخیره تنظیمات
       </button>

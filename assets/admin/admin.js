@@ -1429,7 +1429,10 @@ const SettingsManager = {
       resend_cooldown: this._v('setResendCooldown'),
       code_ttl:        this._v('setCodeTtl'),
     };
+    const btn = document.getElementById('saveSettingsBtn');
+    if (btn) { btn.classList.add('loading'); btn.disabled = true; }
     const res = await Api.call('save_settings', payload);
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
     if (res.ok) {
       Toast.show('تنظیمات ذخیره شد', 'success', 'ذخیره موفق');
       document.getElementById('setSmtpPass').value = ''; // پاک‌سازی فیلد رمز پس از ذخیره
