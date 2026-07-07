@@ -203,7 +203,11 @@
   if (!header) return;
   let ticking = false;
   function update() {
-    header.classList.toggle('is-stuck', window.scrollY > 4);
+    const y = window.scrollY;
+    // آستانه‌ی دوگانه (hysteresis) تا با نوسان چند پیکسلی اسکرول (مثلا اثر
+    // خودِ تغییر padding-top روی is-stuck) کلاس پشت‌هم toggle نشود و هدر نلرزد.
+    if (y > 24) header.classList.add('is-stuck');
+    else if (y < 8) header.classList.remove('is-stuck');
     ticking = false;
   }
   window.addEventListener('scroll', function () {
