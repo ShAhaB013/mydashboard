@@ -86,6 +86,50 @@
     }
     .profile-email { color: var(--color-text-primary); font-weight: 600; }
 
+    /* ── اسکلت لودینگ هدر کارت حساب کاربری (آواتار/نام/ایمیل) ── */
+    .profile-card-head { --sk-base: rgba(100,116,139,.13); --sk-glow: rgba(255,255,255,.55); }
+    [data-theme="dark"] .profile-card-head { --sk-base: rgba(148,163,184,.12); --sk-glow: rgba(255,255,255,.06); }
+    .profile-card-head.is-loading .profile-avatar,
+    .profile-card-head.is-loading #profileDisplayName,
+    .profile-card-head.is-loading .profile-email {
+      color: transparent;
+      border-color: transparent;
+      background: var(--sk-base);
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+    .profile-card-head.is-loading #profileDisplayName {
+      display: inline-block;
+      width: 140px;
+      height: 16px;
+      border-radius: var(--radius-xs);
+    }
+    .profile-card-head.is-loading .profile-email {
+      display: inline-block;
+      width: 170px;
+      height: 13px;
+      border-radius: var(--radius-xs);
+    }
+    .profile-card-head.is-loading .profile-avatar::after,
+    .profile-card-head.is-loading #profileDisplayName::after,
+    .profile-card-head.is-loading .profile-email::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(100%);
+      background: linear-gradient(90deg, transparent, var(--sk-glow), transparent);
+      animation: skSweep 1.5s ease-in-out infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .profile-card-head.is-loading .profile-avatar::after,
+      .profile-card-head.is-loading #profileDisplayName::after,
+      .profile-card-head.is-loading .profile-email::after { animation: none; }
+      .profile-card-head.is-loading .profile-avatar,
+      .profile-card-head.is-loading #profileDisplayName,
+      .profile-card-head.is-loading .profile-email { animation: shimmer 1.6s ease-in-out infinite; }
+    }
+
     /* بدنه = تک‌ستونه؛ بخش‌ها وسط‌چین کارت قرار می‌گیرند (کارت تمام‌عرض هدر می‌ماند) */
     .profile-card-body {
       display: flex;
