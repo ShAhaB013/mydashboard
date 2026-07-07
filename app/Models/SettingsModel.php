@@ -43,6 +43,9 @@ class SettingsModel
         } catch (\Throwable $e) {
             // جدول هنوز ساخته نشده → پیش‌فرض‌ها
         }
+        // smtp_pass ممکن است رمزنگاری‌شده (Crypto) ذخیره شده باشد؛ مقادیرِ
+        // قدیمیِ متن‌ساده بدون تغییر برمی‌گردند (سازگاری با نصب‌های موجود).
+        $out['smtp_pass'] = Crypto::decrypt($out['smtp_pass']);
         return self::$cache = $out;
     }
 
@@ -69,10 +72,14 @@ class SettingsModel
             if (!array_key_exists($k, self::DEFAULTS)) {
                 continue;
             }
+            $v = (string) $v;
+            if ($k === 'smtp_pass') {
+                $v = Crypto::encrypt($v);
+            }
             DB::run(
                 'INSERT INTO app_settings (skey, svalue) VALUES (:k, :v)
                  ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)',
-                [':k' => $k, ':v' => (string) $v]
+                [':k' => $k, ':v' => $v]
             );
         }
         self::$cache = null; // باطل‌سازی کش

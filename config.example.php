@@ -16,6 +16,14 @@ return [
         'pass' => 'your_db_password',
     ],
 
+    // کلید رمزنگاری مقادیر حساسِ قابل‌بازیابی در DB (مثل smtp_pass).
+    // تولید: php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"
+    // خالی گذاشتنِ این مقدار رمزنگاری را غیرفعال می‌کند (بدون خطا)؛ اما تا
+    // وقتی تنظیم نشود، smtp_pass به‌صورت متن‌ساده در DB ذخیره می‌ماند.
+    'crypto' => [
+        'key' => '',
+    ],
+
     'files' => [
         'icons' => __DIR__ . '/public_html/data/icons.json',
         'decos' => __DIR__ . '/public_html/data/decos.json',

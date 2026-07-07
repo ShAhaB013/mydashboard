@@ -79,6 +79,14 @@ class Mailer
             $cfg['from'] = $cfg['user'];
         }
 
+        // اعتبارسنجی مجدد فرستنده درست پیش از ارسال (دفاع در عمق؛ مستقل از
+        // اعتبارسنجی زمان ذخیره در SettingsController) + پاک‌سازی کاراکترهای
+        // کنترلی از نام نمایشی (تزریق هدر/دستور SMTP).
+        if (!filter_var($cfg['from'], FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'آدرس فرستنده نامعتبر است'];
+        }
+        $cfg['fname'] = preg_replace('/[\x00-\x1F\x7F]/', '', $cfg['fname']);
+
         try {
             return self::smtpSend($to, $subject, $body, $cfg);
         } catch (\Throwable $e) {
@@ -92,7 +100,7 @@ class Mailer
     private static function smtpSend(string $to, string $subject, string $body, array $cfg): array
     {
         $transport = $cfg['secure'] === 'ssl' ? 'ssl://' : '';
-        $ctx = stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]]);
+        $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]);
         $fp  = @stream_socket_client(
             $transport . $cfg['host'] . ':' . $cfg['port'],
             $errno, $errstr, 15, STREAM_CLIENT_CONNECT, $ctx

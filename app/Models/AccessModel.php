@@ -62,27 +62,36 @@ class AccessModel
             DB::run('DELETE FROM tool_access     WHERE user_id = :uid', [':uid' => $userId]);
             DB::run('DELETE FROM category_access WHERE user_id = :uid', [':uid' => $userId]);
 
-            // ثبت دسترسی مستقیم به ابزارها
+            // ثبت دسترسی مستقیم به ابزارها (یک INSERT چندردیفی به‌جای یک اجرا به‌ازای هر ردیف)
             if (!empty($toolIds)) {
-                $stmtT = $pdo->prepare(
-                    'INSERT IGNORE INTO tool_access (user_id, tool_id) VALUES (:uid, :tid)'
-                );
-                foreach ($toolIds as $tid) {
-                    $stmtT->execute([':uid' => $userId, ':tid' => (int) $tid]);
+                $placeholders = [];
+                $params       = [];
+                foreach (array_values($toolIds) as $i => $tid) {
+                    $placeholders[] = "(:uid{$i}, :tid{$i})";
+                    $params[":uid{$i}"] = $userId;
+                    $params[":tid{$i}"] = (int) $tid;
                 }
+                DB::run(
+                    'INSERT IGNORE INTO tool_access (user_id, tool_id) VALUES ' . implode(', ', $placeholders),
+                    $params
+                );
             }
 
-            // ثبت دسترسی گروهی به badge ها (whitelist شده)
+            // ثبت دسترسی گروهی به badge ها (whitelist شده، یک INSERT چندردیفی)
             $validBadges = $this->getAvailableBadges();
+            $badges      = array_values(array_filter($badges, fn ($b) => in_array($b, $validBadges, true)));
             if (!empty($badges)) {
-                $stmtB = $pdo->prepare(
-                    'INSERT IGNORE INTO category_access (user_id, badge) VALUES (:uid, :badge)'
-                );
-                foreach ($badges as $badge) {
-                    if (in_array($badge, $validBadges, true)) {
-                        $stmtB->execute([':uid' => $userId, ':badge' => $badge]);
-                    }
+                $placeholders = [];
+                $params       = [];
+                foreach ($badges as $i => $badge) {
+                    $placeholders[] = "(:uid{$i}, :badge{$i})";
+                    $params[":uid{$i}"]   = $userId;
+                    $params[":badge{$i}"] = $badge;
                 }
+                DB::run(
+                    'INSERT IGNORE INTO category_access (user_id, badge) VALUES ' . implode(', ', $placeholders),
+                    $params
+                );
             }
 
             $pdo->commit();

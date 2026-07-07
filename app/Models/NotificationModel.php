@@ -23,7 +23,8 @@ class NotificationModel
                     CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
              FROM notifications n
              WHERE n.is_public = 1
-             ORDER BY n.created_at DESC',
+             ORDER BY n.created_at DESC
+             LIMIT 500',
             [':now' => $now]
         )->fetchAll();
     }
@@ -304,7 +305,8 @@ class NotificationModel
             'SELECT n.*,
                     CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
              FROM notifications n
-             ORDER BY n.created_at DESC, n.id DESC',
+             ORDER BY n.created_at DESC, n.id DESC
+             LIMIT 500',
             [':now' => time()]
         )->fetchAll();
     }

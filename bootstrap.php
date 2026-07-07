@@ -34,6 +34,7 @@ spl_autoload_register(function (string $class): void {
             'RateLimiter'            => $core . 'RateLimiter.php',
             'Mailer'                 => $core . 'Mailer.php',
             'ResendThrottle'         => $core . 'ResendThrottle.php',
+            'Crypto'                 => $core . 'Crypto.php',
             // ── Models ────────────────────────────────────
             'ToolModel'              => $mdl . 'ToolModel.php',
             'IconModel'              => $mdl . 'IconModel.php',
@@ -78,6 +79,11 @@ try {
     }
     exit;
 }
+
+// ── کلید رمزنگاریِ مقادیر حساسِ قابل‌بازیابی در DB (مثل smtp_pass) ──
+// نبودِ این کلید در config.php باعث خطا نمی‌شود؛ فقط رمزنگاری غیرفعال
+// می‌ماند (Crypto به‌صورت passthrough عمل می‌کند).
+Crypto::init((string) ($config['crypto']['key'] ?? ''));
 
 // ── نشست (همان realm کاربر) ──────────────────────────────
 UserSession::start();
