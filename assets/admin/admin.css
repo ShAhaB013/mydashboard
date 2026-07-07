@@ -12,7 +12,7 @@
   --success:#0ea472; --warning:#d97706;
   --accent-rgb:62,125,231; --accent-bg-hover:rgba(62,125,231,.15);
   /* تایمینگ/منحنی‌ها — هماهنگ با پنل یوزر (style.css): پایه 0.22s + منحنی فنری برای transformها */
-  --radius-xs:8px; --radius:12px; --radius-lg:22px; --radius-pill:999px;
+  --radius-xs:10px; --radius:10px; --radius-lg:10px; --radius-pill:999px;
   --t:0.22s cubic-bezier(.4,0,.2,1); --t-bounce:0.32s cubic-bezier(.34,1.56,.64,1);
   /* هدر شیشه‌ای یکپارچه (هماهنگ با style.css) */
   --header-bg:rgba(255,255,255,0.92); --header-shadow:rgba(15,23,42,0.06);
@@ -224,7 +224,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .pass-rule { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-3);
   transition:color .2s ease; }
 .pass-rule-ic { flex:none; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center;
-  border-radius:var(--radius-pill); color:#ef4444; background:rgba(239,68,68,.12);
+  border-radius:50%; color:#ef4444; background:rgba(239,68,68,.12);
   transition:color .2s ease, background .2s ease; }
 .pass-rule-ic svg { width:12px; height:12px; }
 .pass-rule.is-ok { color:var(--text-2); }
@@ -467,14 +467,16 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .pg-controls { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .pg-btn {
   font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
-  min-width:34px; height:34px; padding:0 10px; cursor:pointer;
-  background:var(--bg-hover); color:var(--text-2);
-  border:1px solid var(--border); border-radius:var(--radius);
+  min-width:36px; height:36px; padding:0 12px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--bg-card); color:var(--text-2);
+  border:1.5px solid var(--border); border-radius:var(--radius);
   transition:background var(--t),color var(--t),border-color var(--t);
 }
-.pg-btn:hover:not(:disabled) { color:var(--text); border-color:#484f58; }
-.pg-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-.pg-btn:disabled { opacity:.45; cursor:default; }
+.pg-btn svg { width:14px; height:14px; flex-shrink:0; }
+.pg-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+.pg-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); cursor:default; }
+.pg-btn:disabled { opacity:.4; cursor:not-allowed; pointer-events:none; }
 .pg-ellipsis { color:var(--text-3); padding:0 2px; }
 .tool-row-icon {
   width:38px; height:38px; border-radius:var(--radius-xs); flex-shrink:0;
@@ -614,7 +616,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .preview-card-badge { display:inline-block; font-size:10px; font-weight:700; color:var(--card-color); background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius-xs); padding:1px 8px; margin-bottom:7px; position:relative; z-index:1; }
 .preview-card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; position:relative; z-index:1; }
 .preview-card-desc  { font-size:12px; color:var(--text-2); line-height:1.5; position:relative; z-index:1; }
-.preview-deco-wrap  { position:absolute; bottom:0; left:0; right:0; height:72px; pointer-events:none; overflow:hidden; border-radius:0 0 16px 16px; opacity:.45; }
+.preview-deco-wrap  { position:absolute; bottom:0; left:0; right:0; height:72px; pointer-events:none; overflow:hidden; border-radius:0 0 var(--radius) var(--radius); opacity:.45; }
 .preview-deco-wrap svg, #decoEditorPreview svg { width:100%; height:100%; display:block; }
 
 /* ── Theme Toggle ── */
@@ -1081,6 +1083,6 @@ html.theme-instant * { transition: none !important; }
 .sess-count-dot {
   position:absolute; top:-5px; left:-5px; min-width:16px; height:16px; padding:0 4px;
   display:flex; align-items:center; justify-content:center;
-  font-size:10px; font-weight:700; line-height:1; border-radius:999px;
+  font-size:10px; font-weight:700; line-height:1; border-radius:var(--radius-pill);
   background:var(--accent); color:#fff; box-shadow:0 0 0 2px var(--bg-card);
 }

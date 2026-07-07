@@ -405,7 +405,7 @@ const UserManager = {
     }
 
     const items = [];
-    items.push(`<button class="pg-btn" ${cur === 1 ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur - 1}" aria-label="قبلی">«</button>`);
+    items.push(`<button class="pg-btn" ${cur === 1 ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur - 1}" aria-label="قبلی"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>`);
     this._pageRange(cur, pageCount).forEach(p => {
       if (p === '...') {
         items.push(`<span class="pg-ellipsis">…</span>`);
@@ -413,7 +413,7 @@ const UserManager = {
         items.push(`<button class="pg-btn ${p === cur ? 'active' : ''}" data-act="userGoToPage" data-page="${p}">${p}</button>`);
       }
     });
-    items.push(`<button class="pg-btn" ${cur === pageCount ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur + 1}" aria-label="بعدی">»</button>`);
+    items.push(`<button class="pg-btn" ${cur === pageCount ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur + 1}" aria-label="بعدی"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>`);
 
     pag.innerHTML = items.join('');
     pag.classList.remove('hidden');

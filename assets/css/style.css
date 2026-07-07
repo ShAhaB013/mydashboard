@@ -18,10 +18,10 @@
   --color-accent-border:  rgba(62,125,231,0.25);
   --color-shadow-card:    rgba(62,125,231,0.12);
 
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius-lg: 22px;
-  --radius-pill: 999px; /* کنترل‌های کاملا گرد: چیپ، دکمه‌های pill، نوار جستجو */
+  --radius-xs: 10px;
+  --radius-sm: 10px;
+  --radius-lg: 10px;
+  --radius-pill: 999px; /* فقط کنترل‌های کاملا گرد و کپسولی: دکمه‌های auth، سگمنت پیشرفت، toggle */
 
   --transition:        0.22s cubic-bezier(0.4,0,0.2,1);
   --transition-bounce: 0.32s cubic-bezier(0.34,1.56,0.64,1);

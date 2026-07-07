@@ -303,7 +303,7 @@
     /* CustomSelect (هماهنگ با سایر صفحات پنل) داخل کنترل‌های این صفحه */
     /* همه کنترل‌های جستجو/فیلتر این صفحه pill — هماهنگ با نوار جستجوی سراسری پروژه */
     .nm-perpage .cselect { width:auto; }
-    .nm-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); }
+    .nm-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); background:var(--bg-card); }
     .nm-adv-field .cselect-trigger { min-height:42px; border-radius:var(--radius-xs); }
     .nm-adv-field .tdp-trigger { min-height:42px; border-radius:var(--radius-xs); }
     .nm-adv-actions { display:flex; gap:8px; align-items:center; }
@@ -321,7 +321,7 @@
     .notif-search input {
       width:100%; box-sizing:border-box;
       font-family:'DashboardFont',sans-serif; font-size:14px;
-      background:var(--bg-input); color:var(--text);
+      background:var(--bg-card); color:var(--text);
       border:1px solid var(--border); border-radius:var(--radius-xs);
       padding:11px 44px 11px 40px; outline:none;
       transition:border-color var(--t), box-shadow var(--t);

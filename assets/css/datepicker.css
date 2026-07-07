@@ -47,14 +47,14 @@
 .tdp-title {
   font-family: 'DashboardFont', sans-serif; font-size: 13.5px; font-weight: 700;
   color: var(--text, var(--color-text-primary, #0f172a));
-  background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: var(--radius-xs, 8px);
+  background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: var(--radius-xs, 10px);
   transition: background .14s ease, color .14s ease;
 }
 button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgba(62,125,231,.1))); color: var(--accent, var(--color-accent, #3e7de7)); }
 .tdp-title-static { cursor: default; }
 .tdp-nav {
   width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border, var(--color-border, #e2e8f0)); border-radius: var(--radius-xs, 8px);
+  border: 1px solid var(--border, var(--color-border, #e2e8f0)); border-radius: var(--radius-xs, 10px);
   background: none; color: var(--text-2, var(--color-text-secondary, #64748b)); cursor: pointer;
   transition: border-color .15s ease, color .15s ease;
 }
@@ -65,7 +65,7 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
 .tdp-wd { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-3, var(--color-text-muted, #94a3b8)); padding: 4px 0; }
 .tdp-day {
   aspect-ratio: 1; min-height: 32px; display: flex; align-items: center; justify-content: center;
-  border: none; background: none; cursor: pointer; border-radius: var(--radius-xs, 8px);
+  border: none; background: none; cursor: pointer; border-radius: var(--radius-xs, 10px);
   font-size: 13px; color: var(--text, var(--color-text-primary, #0f172a));
   transition: background .14s ease, color .14s ease;
 }
@@ -78,7 +78,7 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
 /* نمای انتخاب ماه/سال (drill-down) */
 .tdp-grid-my { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 2px; }
 .tdp-cell {
-  padding: 12px 0; border: none; background: none; cursor: pointer; border-radius: var(--radius-xs, 8px);
+  padding: 12px 0; border: none; background: none; cursor: pointer; border-radius: var(--radius-xs, 10px);
   font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
   color: var(--text, var(--color-text-primary, #0f172a));
   transition: background .14s ease, color .14s ease;
@@ -90,7 +90,7 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
 
 .tdp-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border, var(--color-border, #e2e8f0)); }
 .tdp-today, .tdp-clear {
-  flex: 1; padding: 7px 0; border-radius: var(--radius-xs, 8px); cursor: pointer; font-size: 12.5px; font-weight: 600;
+  flex: 1; padding: 7px 0; border-radius: var(--radius-xs, 10px); cursor: pointer; font-size: 12.5px; font-weight: 600;
   font-family: 'DashboardFont', sans-serif;
   border: 1px solid var(--border, var(--color-border, #e2e8f0));
   background: none; color: var(--text-2, var(--color-text-secondary, #64748b));
@@ -99,7 +99,7 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
 .tdp-today:hover, .tdp-now:hover { border-color: var(--accent, var(--color-accent, #3e7de7)); color: var(--accent, var(--color-accent, #3e7de7)); }
 .tdp-clear:hover { border-color: #ef4444; color: #ef4444; }
 .tdp-now { /* هم‌استایل tdp-today (دکمه «اکنون» در ساعت) */
-  flex: 1; padding: 7px 0; border-radius: var(--radius-xs, 8px); cursor: pointer; font-size: 12.5px; font-weight: 600;
+  flex: 1; padding: 7px 0; border-radius: var(--radius-xs, 10px); cursor: pointer; font-size: 12.5px; font-weight: 600;
   font-family: 'DashboardFont', sans-serif;
   border: 1px solid var(--border, var(--color-border, #e2e8f0));
   background: none; color: var(--text-2, var(--color-text-secondary, #64748b));
@@ -122,7 +122,7 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
 .ttp-cols { display: flex; gap: 6px; }
 .ttp-col { flex: 1; max-height: 196px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 .ttp-opt {
-  padding: 7px 0; text-align: center; border: none; background: none; cursor: pointer; border-radius: var(--radius-xs, 8px);
+  padding: 7px 0; text-align: center; border: none; background: none; cursor: pointer; border-radius: var(--radius-xs, 10px);
   font-family: 'DashboardFont', sans-serif; font-size: 13px; font-variant-numeric: tabular-nums;
   color: var(--text, var(--color-text-primary, #0f172a));
   transition: background .14s ease, color .14s ease;

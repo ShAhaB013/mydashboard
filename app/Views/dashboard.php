@@ -199,7 +199,7 @@
         </div>
         <div style="margin-top:10px;">
           <div style="font-size:12px;color:var(--text-2);margin-bottom:6px;">پیش‌نمایش:</div>
-          <div id="decoEditorPreview" style="width:100%;max-width:280px;height:72px;border-radius:8px;background:rgba(88,166,255,.05);border:1px solid var(--border);overflow:hidden;--card-color:#58a6ff;"></div>
+          <div id="decoEditorPreview" style="width:100%;max-width:280px;height:72px;border-radius:var(--radius-xs);background:rgba(88,166,255,.05);border:1px solid var(--border);overflow:hidden;--card-color:#58a6ff;"></div>
         </div>
         <div class="asset-editor-actions">
           <button class="btn btn-success btn-sm" data-act="saveDecoEdit">

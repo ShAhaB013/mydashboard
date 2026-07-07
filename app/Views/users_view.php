@@ -29,7 +29,7 @@
     .user-search input {
       width:100%; box-sizing:border-box;
       font-family:'DashboardFont',sans-serif; font-size:14px;
-      background:var(--bg-input); color:var(--text);
+      background:var(--bg-card); color:var(--text);
       border:1px solid var(--border); border-radius:var(--radius-xs);
       padding:11px 44px 11px 40px; outline:none;
       transition:border-color var(--t), box-shadow var(--t);
@@ -61,7 +61,7 @@
     .user-perpage select:hover { border-color:var(--accent); }
     .user-perpage select:focus { outline:none; border-color:var(--border-focus,var(--accent)); }
     .user-perpage .cselect { width:auto; }
-    .user-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); }
+    .user-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); background:var(--bg-card); }
 
     /* ── دکمه و پنل جستجوی پیشرفته ── */
     .user-adv-toggle {

@@ -311,7 +311,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: var(--radius-pill);
+      border-radius: 50%;
       color: #ef4444;                 /* حالت رعایت‌نشده: قرمز */
       background: rgba(239, 68, 68, .12);
       transition: color var(--transition), background var(--transition);
@@ -399,7 +399,7 @@
     .acct-sess-kill {
       flex: none; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 700;
       color: #ef4444; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25);
-      padding: 6px 14px; border-radius: var(--radius-sm, 12px);
+      padding: 6px 14px; border-radius: var(--radius-sm, 10px);
       transition: background var(--transition), color var(--transition);
       position: relative; overflow: hidden;   /* میزبان افکت ripple */
     }
