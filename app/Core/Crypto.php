@@ -2,15 +2,20 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Crypto — رمزنگاری متقارن (libsodium secretbox) برای مقادیر حساسِ
-// قابل‌بازیابی در دیتابیس (مثل smtp_pass) که برخلاف رمز کاربر باید
+// Crypto — رمزنگاری متقارن (AES-256-GCM از طریق ext-openssl) برای مقادیر
+// حساسِ قابل‌بازیابی در دیتابیس (مثل smtp_pass) که برخلاف رمز کاربر باید
 // دوباره به‌صورت اصلی خوانده شود؛ پس هش یک‌طرفه اینجا کاربرد ندارد.
+// ext-openssl به‌جای libsodium انتخاب شد چون روی هاست‌های اشتراکی
+// تقریبا همیشه فعال است (لازمه‌ی TLS/cURL)، برخلاف sodium که ممکن است
+// در هاست‌های اشتراکی غیرفعال باشد.
 // کلید فقط در config.php (خارج از دیتابیس) نگه‌داری می‌شود.
 // ═══════════════════════════════════════════════════════════
 
 class Crypto
 {
     private const PREFIX = 'v1:';
+    private const CIPHER  = 'aes-256-gcm';
+    private const TAG_LEN = 16;
 
     private static ?string $key = null;
 
@@ -18,11 +23,16 @@ class Crypto
     public static function init(string $base64Key): void
     {
         self::$key = null;
-        if ($base64Key === '' || !function_exists('sodium_crypto_secretbox')) {
+        // trim: جلوگیری از شکستِ decode به‌خاطر newline/فاصله‌ی اضافی هنگام
+        // کپی‌کردنِ خروجیِ دستورِ تولید کلید در config.php
+        $base64Key = trim($base64Key);
+        if ($base64Key === ''
+            || !function_exists('openssl_encrypt')
+            || !in_array(self::CIPHER, openssl_get_cipher_methods(), true)) {
             return;
         }
         $key = base64_decode($base64Key, true);
-        if ($key !== false && strlen($key) === SODIUM_CRYPTO_SECRETBOX_KEYBYTES) {
+        if ($key !== false && strlen($key) === 32) {
             self::$key = $key;
         }
     }
@@ -33,9 +43,13 @@ class Crypto
         if (self::$key === null || $plain === '') {
             return $plain;
         }
-        $nonce  = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $cipher = sodium_crypto_secretbox($plain, $nonce, self::$key);
-        return self::PREFIX . base64_encode($nonce . $cipher);
+        $iv  = random_bytes(openssl_cipher_iv_length(self::CIPHER));
+        $tag = '';
+        $cipher = openssl_encrypt($plain, self::CIPHER, self::$key, OPENSSL_RAW_DATA, $iv, $tag);
+        if ($cipher === false) {
+            return $plain;
+        }
+        return self::PREFIX . base64_encode($iv . $tag . $cipher);
     }
 
     /**
@@ -51,13 +65,15 @@ class Crypto
         if (self::$key === null) {
             return '';
         }
-        $raw = base64_decode(substr($stored, strlen(self::PREFIX)), true);
-        if ($raw === false || strlen($raw) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
+        $raw   = base64_decode(substr($stored, strlen(self::PREFIX)), true);
+        $ivLen = openssl_cipher_iv_length(self::CIPHER);
+        if ($raw === false || strlen($raw) <= $ivLen + self::TAG_LEN) {
             return '';
         }
-        $nonce  = substr($raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $cipher = substr($raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-        $plain  = sodium_crypto_secretbox_open($cipher, $nonce, self::$key);
+        $iv     = substr($raw, 0, $ivLen);
+        $tag    = substr($raw, $ivLen, self::TAG_LEN);
+        $cipher = substr($raw, $ivLen + self::TAG_LEN);
+        $plain  = openssl_decrypt($cipher, self::CIPHER, self::$key, OPENSSL_RAW_DATA, $iv, $tag);
         return $plain === false ? '' : $plain;
     }
 }
