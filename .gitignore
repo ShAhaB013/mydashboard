@@ -7,7 +7,6 @@ secret*
 
 # ─── Database dumps & backups ──────────────────────────────────
 *.sql
-!db/optimizations.sql
 *.sqlite
 *.db
 *.bak
