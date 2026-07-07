@@ -29,6 +29,7 @@ sessions/
 # کل پوشه‌ی .claude ابزار محلی agent است و نباید در ریپو باشد
 # (SKILL.md شامل مشخصات اتصال محلی DB است)
 /.claude/
+CLAUDE.md
 
 # ─── OS / editor cruft ─────────────────────────────────────────
 .DS_Store
