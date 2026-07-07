@@ -64,6 +64,22 @@ if (!function_exists('gregorian_datetime')) {
     }
 }
 
+// ── کمک‌تابع بازه شماره صفحات (هم‌سو با _pageRange در notifications-admin.js) ──
+if (!function_exists('notif_page_range')) {
+    function notif_page_range(int $cur, int $count): array
+    {
+        if ($count <= 7) return range(1, $count);
+        $out   = [1];
+        $left  = max(2, $cur - 1);
+        $right = min($count - 1, $cur + 1);
+        if ($left > 2) $out[] = '...';
+        for ($i = $left; $i <= $right; $i++) $out[] = $i;
+        if ($right < $count - 1) $out[] = '...';
+        $out[] = $count;
+        return $out;
+    }
+}
+
 // ── واکشی داده (بر اساس وضعیت لاگین) ────────────────────
 $nm = new NotificationModel();
 
@@ -349,17 +365,15 @@ foreach ($items as $item) {
             <span class="npag-btn disabled"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           <?php endif; ?>
 
-          <?php $prevDots = false;
-          for ($i = 1; $i <= $pages; $i++):
-            $near = ($i === 1 || $i === $pages || abs($i - $page) <= 1);
-            if (!$near): if (!$prevDots): $prevDots = true; ?><span class="npag-dots">…</span><?php endif; continue; endif;
-            $prevDots = false; ?>
-            <?php if ($i === $page): ?>
+          <?php foreach (notif_page_range($page, $pages) as $i): ?>
+            <?php if ($i === '...'): ?>
+              <span class="npag-dots">…</span>
+            <?php elseif ($i === $page): ?>
               <span class="npag-btn active" aria-current="page"><?= $i ?></span>
             <?php else: ?>
               <a class="npag-btn" href="/notifications?page=<?= $i . $qStr ?>"><?= $i ?></a>
             <?php endif; ?>
-          <?php endfor; ?>
+          <?php endforeach; ?>
 
           <?php if ($page < $pages): ?>
             <a class="npag-btn" href="/notifications?page=<?= $page + 1 . $qStr ?>" aria-label="صفحه بعد">

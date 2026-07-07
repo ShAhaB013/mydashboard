@@ -358,7 +358,25 @@ const NM = {
 
   _renderSkeleton(n = 3) {
     const list = document.getElementById('notifList');
-    if (list) list.innerHTML = '<div class="notif-skeleton"></div>'.repeat(n);
+    if (!list) return;
+    const row = `
+      <div class="notif-row notif-skeleton" aria-hidden="true">
+        <div class="notif-row-num"><div class="sk sk-num"></div></div>
+        <div class="notif-row-body">
+          <div class="sk sk-line sk-line--title"></div>
+          <div class="sk sk-line sk-line--text"></div>
+          <div class="notif-row-meta">
+            <div class="sk sk-pill"></div>
+            <div class="sk sk-pill"></div>
+            <div class="sk sk-pill sk-pill--wide"></div>
+          </div>
+        </div>
+        <div class="notif-row-actions">
+          <div class="sk sk-action"></div>
+          <div class="sk sk-action"></div>
+        </div>
+      </div>`;
+    list.innerHTML = row.repeat(n);
   },
 
   async load(page = this._page) {

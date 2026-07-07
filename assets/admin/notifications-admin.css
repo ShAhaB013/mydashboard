@@ -230,8 +230,28 @@
     .rte-counter-nums { unicode-bidi:isolate; }
     .rte-counter.over { color:var(--danger); font-weight:700; }
 
-    .notif-skeleton { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); height:88px; animation:shimmer 1.6s ease-in-out infinite; }
-    @keyframes shimmer { 0%,100%{opacity:.6} 50%{opacity:1} }
+    /* اسکلت لودینگ ردیف اعلان — هم‌ساختار با notif-row واقعی (شماره/عنوان/متن/pillها/اکشن‌ها) */
+    .notif-skeleton { cursor:default; }
+    .notif-skeleton .sk { position:relative; overflow:hidden; background:var(--bg-hover); border-radius:var(--radius-xs); }
+    .notif-skeleton .sk::after {
+      content:''; position:absolute; inset:0; transform:translateX(100%);
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+      animation:skSweep 1.5s ease-in-out infinite;
+    }
+    [data-theme="dark"] .notif-skeleton .sk::after { background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); }
+    .notif-skeleton .sk-num  { width:18px; height:14px; }
+    .notif-skeleton .sk-line { height:12px; margin-bottom:9px; }
+    .notif-skeleton .sk-line--title { width:36%; height:15px; }
+    .notif-skeleton .sk-line--text  { width:72%; margin-bottom:10px; }
+    .notif-skeleton .sk-pill   { width:60px; height:20px; display:inline-block; border-radius:var(--radius-xs); }
+    .notif-skeleton .sk-pill + .sk-pill { margin-inline-start:6px; }
+    .notif-skeleton .sk-pill--wide { width:104px; }
+    .notif-skeleton .sk-action { width:30px; height:30px; border-radius:var(--radius); }
+    .notif-skeleton .sk-line--title::after { animation-delay:.08s; }
+    .notif-skeleton .sk-line--text::after  { animation-delay:.16s; }
+    .notif-skeleton .sk-pill::after         { animation-delay:.24s; }
+    @keyframes skSweep { 0%{transform:translateX(100%)} 60%,100%{transform:translateX(-200%)} }
+    @media(prefers-reduced-motion:reduce) { .notif-skeleton .sk::after { animation:none; } }
 
     /* نمایش تاریخ انقضا در فرم — helper */
     .expiry-display {

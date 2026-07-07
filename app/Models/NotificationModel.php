@@ -7,6 +7,11 @@ declare(strict_types=1);
 
 class NotificationModel
 {
+    // حداقل طول عبارت جستجو برای استفاده از ایندکس FULLTEXT (باید با
+    // innodb_ft_min_token_size روی سرور MySQL هماهنگ باشد؛ عبارات کوتاه‌تر
+    // به LIKE سقوط می‌کنند چون FULLTEXT اصلاً آن‌ها را توکنایز نکرده است)
+    private const FTS_MIN_TOKEN = 3;
+
     // ── Visibility Queries ──────────────────────────────────
 
     /**
@@ -64,9 +69,46 @@ class NotificationModel
     }
 
     /**
-     * تاریخچه اعلان‌های عمومی برای مهمان — با صفحه‌بندی و جستجو
-     * شامل اعلان‌های منقضی‌شده هم می‌شود (تاریخچه کامل)
+     * ساخت شرط جستجوی متنی — فقط وقتی $search خالی نباشد به SQL اضافه می‌شود
+     * (هم‌سو با buildHistoryFilters که فیلترهای خالی را اصلاً به کوئری اضافه
+     * نمی‌کند، تا مسیر پرتکرارِ «مرور بدون جستجو» درگیر اسکن جدول نشود).
+     *
+     * برای عبارت‌های به‌اندازه‌کافی بلند از ایندکس FULLTEXT (BOOLEAN MODE،
+     * تطبیق پیشوند کلمه) استفاده می‌شود؛ برای عبارت‌های کوتاه‌تر از حد توکن
+     * سرور، MATCH...AGAINST چیزی برنمی‌گرداند، پس به LIKE قبلی سقوط می‌کنیم.
+     * توجه: این یعنی معنای جستجو برای عبارت‌های بلند از «substring دلخواه»
+     * به «تطبیق کلمه/پیشوند کلمه» تغییر می‌کند.
      */
+    private function buildSearchClause(string $search, array &$params): string
+    {
+        $search = trim($search);
+        if ($search === '') return '';
+
+        if (mb_strlen($search) >= self::FTS_MIN_TOKEN) {
+            $params[':ftq'] = $this->buildBooleanQuery($search);
+            return ' AND MATCH(n.title, n.body) AGAINST(:ftq IN BOOLEAN MODE)';
+        }
+
+        $like = '%' . $search . '%';
+        $params[':like']  = $like;
+        $params[':like2'] = $like;
+        return ' AND (n.title LIKE :like OR n.body LIKE :like2)';
+    }
+
+    /**
+     * تبدیل عبارت جستجوی کاربر به کوئری امنِ BOOLEAN MODE — عملگرهای
+     * ویژه‌ی این حالت (+ - * " ( ) ~ < >) حذف می‌شوند تا کاربر نتواند
+     * عملگر غیرمنتظره تزریق کند، و هر کلمه با * پسوندی می‌شود (تطبیق پیشوند)
+     * تا تجربه‌ی جستجوی زنده به رفتار قبلی LIKE نزدیک بماند.
+     */
+    private function buildBooleanQuery(string $search): string
+    {
+        $clean = preg_replace('/[+\-*"()~<>]+/u', ' ', $search);
+        $words = array_filter(preg_split('/\s+/u', trim($clean)), static fn($w) => $w !== '');
+        $terms = array_map(static fn($w) => $w . '*', $words);
+        return implode(' ', $terms);
+    }
+
     /**
      * ساخت شرط‌های جستجوی پیشرفته (تاریخ ایجاد + وضعیت انقضا).
      * پارامترها به آرایه $params اضافه می‌شوند و رشته SQL برگردانده می‌شود.
@@ -97,20 +139,19 @@ class NotificationModel
         return $sql;
     }
 
+    /**
+     * تاریخچه اعلان‌های عمومی برای مهمان — با صفحه‌بندی و جستجو
+     * شامل اعلان‌های منقضی‌شده هم می‌شود (تاریخچه کامل)
+     */
     public function historyForGuest(int $page, int $perPage, string $search = '', array $filters = []): array
     {
         $page    = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset  = ($page - 1) * $perPage;
-        $like    = '%' . $search . '%';
         $now     = time();
 
-        $params = [
-            ':now'    => $now,
-            ':search' => $search,
-            ':like'   => $like,
-            ':like2'  => $like,
-        ];
+        $params    = [':now' => $now];
+        $searchSql = $this->buildSearchClause($search, $params);
         $filterSql = $this->buildHistoryFilters($filters, $params);
 
         // LIMIT/OFFSET به‌صورت عدد صحیح اعتبارسنجی‌شده مستقیم در کوئری تزریق می‌شوند
@@ -121,8 +162,7 @@ class NotificationModel
                     CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
              FROM notifications n
              WHERE n.is_public = 1
-               AND (:search = \'\' OR n.title LIKE :like OR n.body LIKE :like2)
-             ' . $filterSql . '
+             ' . $searchSql . $filterSql . '
              ORDER BY n.created_at DESC, n.id DESC
              ' . $limitSql,
             $params
@@ -134,21 +174,15 @@ class NotificationModel
      */
     public function historyCountForGuest(string $search = '', array $filters = []): int
     {
-        $like = '%' . $search . '%';
-
-        $params = [
-            ':search' => $search,
-            ':like'   => $like,
-            ':like2'  => $like,
-        ];
+        $params    = [];
+        $searchSql = $this->buildSearchClause($search, $params);
         $filterSql = $this->buildHistoryFilters($filters, $params);
 
         return (int) DB::run(
             'SELECT COUNT(*)
              FROM notifications n
              WHERE n.is_public = 1
-               AND (:search = \'\' OR n.title LIKE :like OR n.body LIKE :like2)
-             ' . $filterSql,
+             ' . $searchSql . $filterSql,
             $params
         )->fetchColumn();
     }
@@ -162,16 +196,13 @@ class NotificationModel
         $page    = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset  = ($page - 1) * $perPage;
-        $like    = '%' . $search . '%';
 
         $params = [
-            ':now2'   => time(),
-            ':uid2'   => $userId,
-            ':uid3'   => $userId,
-            ':search' => $search,
-            ':like'   => $like,
-            ':like2'  => $like,
+            ':now2' => time(),
+            ':uid2' => $userId,
+            ':uid3' => $userId,
         ];
+        $searchSql = $this->buildSearchClause($search, $params);
         $filterSql = $this->buildHistoryFilters($filters, $params);
 
         $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
@@ -190,8 +221,7 @@ class NotificationModel
                    OR n.target_all_users = 1
                    OR ca.user_id      IS NOT NULL
                )
-               AND (:search = \'\' OR n.title LIKE :like OR n.body LIKE :like2)
-             ' . $filterSql . '
+             ' . $searchSql . $filterSql . '
              ORDER BY n.created_at DESC, n.id DESC
              ' . $limitSql,
             $params
@@ -203,14 +233,8 @@ class NotificationModel
      */
     public function historyCountForUser(int $userId, string $search = '', array $filters = []): int
     {
-        $like = '%' . $search . '%';
-
-        $params = [
-            ':uid2'   => $userId,
-            ':search' => $search,
-            ':like'   => $like,
-            ':like2'  => $like,
-        ];
+        $params    = [':uid2' => $userId];
+        $searchSql = $this->buildSearchClause($search, $params);
         $filterSql = $this->buildHistoryFilters($filters, $params);
 
         return (int) DB::run(
@@ -223,8 +247,7 @@ class NotificationModel
                    OR n.target_all_users = 1
                    OR ca.user_id      IS NOT NULL
                )
-               AND (:search = \'\' OR n.title LIKE :like OR n.body LIKE :like2)
-             ' . $filterSql,
+             ' . $searchSql . $filterSql,
             $params
         )->fetchColumn();
     }
@@ -319,14 +342,9 @@ class NotificationModel
         $page    = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset  = ($page - 1) * $perPage;
-        $like    = '%' . $search . '%';
 
-        $params = [
-            ':now'    => time(),
-            ':search' => $search,
-            ':like'   => $like,
-            ':like2'  => $like,
-        ];
+        $params    = [':now' => time()];
+        $searchSql = $this->buildSearchClause($search, $params);
         $filterSql = $this->buildHistoryFilters($filters, $params);
 
         $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
@@ -335,8 +353,8 @@ class NotificationModel
             'SELECT n.*,
                     CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
              FROM notifications n
-             WHERE (:search = \'\' OR n.title LIKE :like OR n.body LIKE :like2)
-             ' . $filterSql . '
+             WHERE 1=1
+             ' . $searchSql . $filterSql . '
              ORDER BY n.created_at DESC, n.id DESC
              ' . $limitSql,
             $params
@@ -348,20 +366,15 @@ class NotificationModel
      */
     public function countForAdmin(string $search = '', array $filters = []): int
     {
-        $like = '%' . $search . '%';
-
-        $params = [
-            ':search' => $search,
-            ':like'   => $like,
-            ':like2'  => $like,
-        ];
+        $params    = [];
+        $searchSql = $this->buildSearchClause($search, $params);
         $filterSql = $this->buildHistoryFilters($filters, $params);
 
         return (int) DB::run(
             'SELECT COUNT(*)
              FROM notifications n
-             WHERE (:search = \'\' OR n.title LIKE :like OR n.body LIKE :like2)
-             ' . $filterSql,
+             WHERE 1=1
+             ' . $searchSql . $filterSql,
             $params
         )->fetchColumn();
     }
