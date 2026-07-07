@@ -133,14 +133,14 @@ const Auth = {
   loggedIn:    false,
   displayName: '',
   username:    '',
-  phone:       '',
+  email:       '',
   isAdmin:     false,
 
-  setLoggedIn(displayName, username = '', isAdmin = false, phone = '') {
+  setLoggedIn(displayName, username = '', isAdmin = false, email = '') {
     this.loggedIn    = true;
     this.displayName = displayName;
     this.username    = username;
-    this.phone       = phone;
+    this.email       = email;
     this.isAdmin     = !!isAdmin;
     this._updateUI();
   },
@@ -148,7 +148,7 @@ const Auth = {
     this.loggedIn    = false;
     this.displayName = '';
     this.username    = '';
-    this.phone       = '';
+    this.email       = '';
     this.isAdmin     = false;
     this._updateUI();
   },
@@ -171,7 +171,7 @@ const Auth = {
       if (avatar) avatar.textContent = firstChar;
       if (name)   name.textContent   = display;
       if (dName)  dName.textContent  = display;
-      if (dUname) dUname.textContent = this.phone || this.username;
+      if (dUname) dUname.textContent = this.email || this.username;
 
       const adminLink = document.getElementById('adminPanelLink');
       if (adminLink) adminLink.style.display = this.isAdmin ? '' : 'none';
@@ -1270,7 +1270,7 @@ async function init() {
 /* اعمال خروجی bootstrap روی state */
 function applyBootstrap(data) {
   if (data.me && data.me.logged_in) {
-    Auth.setLoggedIn(data.me.display_name || '', data.me.username || '', data.me.is_admin, data.me.phone || '');
+    Auth.setLoggedIn(data.me.display_name || '', data.me.username || '', data.me.is_admin, data.me.email || '');
   } else {
     Auth.setLoggedOut();
   }
@@ -1307,7 +1307,7 @@ async function initLegacy() {
     ]);
 
     if (meData.ok && meData.logged_in) {
-      Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.phone || '');
+      Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '');
     } else {
       Auth.setLoggedOut();
     }

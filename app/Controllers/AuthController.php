@@ -84,6 +84,7 @@ class AuthController
             $_SESSION['username']     = $row['username'];
             $_SESSION['display_name'] = $row['display_name'];
             $_SESSION['phone']        = $row['phone'] ?? '';
+            $_SESSION['email']        = $row['email'] ?? '';
             $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
             $_SESSION['login_time']   = time();
             // توکن CSRF در همین سشن واحد ساخته می‌شود (پنل ادمین از همین می‌خواند)
@@ -254,6 +255,7 @@ class AuthController
         $_SESSION['username']     = $user['username'];
         $_SESSION['display_name'] = $user['display_name'];
         $_SESSION['phone']        = $user['phone'] ?? '';
+        $_SESSION['email']        = $user['email'] ?? '';
         $_SESSION['role']         = ($user['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
         $_SESSION['login_time']   = time();
         UserSession::ensureCsrfToken();

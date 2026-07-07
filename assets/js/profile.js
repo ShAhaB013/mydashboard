@@ -25,9 +25,11 @@
         const display = data.display_name || data.username || '';
 
         document.getElementById('profileDisplayName').textContent = display;
-        document.getElementById('profilePhone').textContent       = data.phone || '—';
+        document.getElementById('profileEmail').textContent       = data.email || '—';
         document.getElementById('profileAvatar').textContent      =
           display ? [...display][0] : '؟';
+        const head = document.getElementById('profileCardHead');
+        if (head) head.classList.remove('is-loading');
 
       } catch {
         window.location.href = 'index.php';

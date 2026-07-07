@@ -70,12 +70,12 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
     <div class="profile-card">
 
       <!-- هدر کارت -->
-      <div class="profile-card-head">
+      <div class="profile-card-head is-loading" id="profileCardHead">
         <div class="profile-avatar" id="profileAvatar">؟</div>
         <div class="profile-card-head-info">
           <h2 id="profileDisplayName">در حال بارگذاری...</h2>
           <div class="profile-meta-row">
-            <span class="profile-meta-val profile-email" id="profilePhone" dir="ltr"></span>
+            <span class="profile-meta-val profile-email" id="profileEmail" dir="ltr"></span>
           </div>
         </div>
       </div>

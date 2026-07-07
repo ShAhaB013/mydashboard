@@ -38,6 +38,7 @@ class AppController
                 'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
                 'username'     => $_SESSION['username'] ?? '',
                 'phone'        => $_SESSION['phone'] ?? '',
+                'email'        => $_SESSION['email'] ?? '',
                 'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
             ];
         } else {
@@ -166,6 +167,7 @@ class AppController
                 'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
                 'username'     => $_SESSION['username'] ?? '',
                 'phone'        => $_SESSION['phone'] ?? '',
+                'email'        => $_SESSION['email'] ?? '',
                 'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
             ];
             echo json_encode($resp, JSON_UNESCAPED_UNICODE);
