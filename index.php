@@ -441,7 +441,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
       <div class="tm-body">
         <input type="hidden" id="tmId" value="">
         <div class="tm-field">
-          <label for="tmTitle">عنوان</label>
+          <label for="tmTitle">عنوان <span class="req">*</span></label>
           <input type="text" id="tmTitle" maxlength="120" placeholder="نام ابزار">
         </div>
         <div class="tm-field">
@@ -449,20 +449,45 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
           <textarea id="tmDesc" rows="2" maxlength="300" placeholder="توضیح کوتاه"></textarea>
         </div>
         <div class="tm-field">
-          <label for="tmPath">آدرس / مسیر</label>
+          <label for="tmPath">آدرس / مسیر <span class="req">*</span></label>
           <input type="text" id="tmPath" dir="ltr" placeholder="tools/foo/ یا https://...">
         </div>
         <div class="tm-field">
-          <label for="tmBadge">دسته</label>
-          <input type="text" id="tmBadge" maxlength="40" placeholder="مثلا عمومی">
+          <label for="tmBadge">دسته‌بندی</label>
+          <div class="tm-combo" id="tmBadgeSelect">
+            <div class="tm-combo-box">
+              <input type="text" id="tmBadge" class="tm-combo-input" maxlength="40" placeholder="مثلا عمومی یا دسته جدید" autocomplete="off">
+              <button type="button" class="tm-combo-toggle" id="tmBadgeToggle" aria-label="نمایش دسته‌های موجود" aria-haspopup="listbox" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+            </div>
+            <div class="tm-combo-menu" id="tmBadgeMenu" role="listbox"></div>
+          </div>
         </div>
         <div class="tm-field">
-          <label>آیکون</label>
-          <div class="tm-picker-grid" id="tmIconGrid"></div>
+          <label for="tmIcon">آیکون</label>
+          <div class="tm-combo" id="tmIconSelect">
+            <div class="tm-combo-box">
+              <span class="tm-combo-icon-preview" id="tmIconPreview" aria-hidden="true"></span>
+              <input type="text" id="tmIcon" class="tm-combo-input" placeholder="جستجوی آیکون..." autocomplete="off">
+              <button type="button" class="tm-combo-toggle" id="tmIconToggle" aria-label="نمایش آیکون‌ها" aria-haspopup="listbox" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+            </div>
+            <div class="tm-combo-menu tm-combo-menu--icons" id="tmIconMenu" role="listbox"></div>
+          </div>
         </div>
         <div class="tm-field">
-          <label>طرح پس‌زمینه</label>
-          <div class="tm-deco-grid" id="tmDecoGrid"></div>
+          <label for="tmDeco">طرح پس‌زمینه</label>
+          <div class="tm-combo" id="tmDecoSelect">
+            <div class="tm-combo-box">
+              <input type="text" id="tmDeco" class="tm-combo-input" placeholder="جستجوی طرح..." autocomplete="off">
+              <button type="button" class="tm-combo-toggle" id="tmDecoToggle" aria-label="نمایش طرح‌های پس‌زمینه" aria-haspopup="listbox" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+            </div>
+            <div class="tm-combo-menu" id="tmDecoMenu" role="listbox"></div>
+          </div>
         </div>
         <div class="tm-field">
           <label>رنگ کارت <span class="tm-label-opt">(اختیاری)</span></label>
@@ -492,7 +517,6 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
             <div class="tm-preview-deco" id="tmPrevDeco" aria-hidden="true"></div>
           </div>
         </div>
-        <p class="tm-error" id="tmError" aria-live="polite"></p>
       </div>
       <div class="tm-foot">
         <button type="button" class="btn btn-secondary btn-sm tm-btn-cancel" id="tmCancel">انصراف</button>
@@ -565,6 +589,9 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
     </div>
   </div>
 <?php endif; ?>
+
+  <!-- ظرف Toast داشبورد (خطاهای ذخیره/حذف ابزار و…) -->
+  <div class="toast-wrap" id="toastWrap" aria-live="assertive"></div>
 
   <script src="/assets/js/lightbox.js?v=<?= $v_lb ?>" defer></script>
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>" defer></script>

@@ -8,25 +8,8 @@
       codeIncomplete: 'کد ۶ رقمی را کامل وارد کنید',
     };
 
-    /* ══ Toast صفحه + خطای روی فیلد (قاب قرمز) + ریست با تایپ ══ */
-    const _toastWrap = document.getElementById('loginToastWrap');
-    const _TOAST_ICON = {
-      error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
-      success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>',
-    };
-    let _toastTimer = null;
-    function showToast(msg, type) {
-      type = type || 'error';
-      if (!_toastWrap) return;
-      _toastWrap.innerHTML = '';
-      const t = document.createElement('div');
-      t.className = 'login-toast ' + type;
-      t.innerHTML = (_TOAST_ICON[type] || '') + '<span></span>';
-      t.querySelector('span').textContent = msg;
-      _toastWrap.appendChild(t);
-      clearTimeout(_toastTimer);
-      _toastTimer = setTimeout(() => { t.classList.add('hide'); setTimeout(() => t.remove(), 250); }, 4500);
-    }
+    /* ══ Toast صفحه (پیاده‌سازی مشترک در theme.js) + خطای روی فیلد (قاب قرمز) + ریست با تایپ ══ */
+    function showToast(msg, type, title) { Toast.show(msg, type || 'error', title); }
     function _fieldComp(id) { const el = document.getElementById(id); return (el && el.closest) ? el.closest('.field') : null; }
     function _fieldWrap(id) { const el = document.getElementById(id); return el ? (el.closest('.login-input-wrap') || el) : null; }
     function markFieldError(id) { const w = _fieldWrap(id); if (w) w.classList.add('has-error'); }
@@ -171,9 +154,11 @@
       if (first && !forgotForm.hidden) setTimeout(() => first.focus(), 70);
     }
 
+    const loginCardHead = document.querySelector('.login-card-head');
     function showForgot() {
       loginForm.hidden = true;
       forgotForm.hidden = false;
+      if (loginCardHead) loginCardHead.hidden = true;
       forgotForm.dataset.step = 1;
       showFpStep(1);
       forgotForm.classList.remove('anim-in'); void forgotForm.offsetWidth; forgotForm.classList.add('anim-in');
@@ -182,6 +167,7 @@
     function hideForgot() {
       forgotForm.hidden = true;
       loginForm.hidden = false;
+      if (loginCardHead) loginCardHead.hidden = false;
       clearAllErrors(loginForm);
       history.replaceState(null, '', location.pathname);
       setTimeout(() => document.getElementById('loginUsername').focus(), 60);
@@ -326,7 +312,7 @@
           if (data.dev_code) { note.hidden = false; note.textContent = 'کد تست (محیط محلی): ' + data.dev_code; }
           if (data.retry_after) runCooldown(fpResendBtn, fpResendTime, data.retry_after);
           else runCooldown(fpResendBtn, fpResendTime, nextCooldown(fpResendBtn, false));
-          showToast('کد جدید ارسال شد', 'success');
+          showToast('کد جدید ارسال شد', 'success', 'ارسال موفق');
         } else if (data.retry_after) {
           if (data.resend_cooldown) RESEND_COOLDOWN = data.resend_cooldown;
           runCooldown(fpResendBtn, fpResendTime, data.retry_after);

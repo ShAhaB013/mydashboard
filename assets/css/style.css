@@ -312,7 +312,8 @@ header, main { position: relative; z-index: 1; }
 .login-forgot-link, .login-back-link, .forgot-back-top, .reg-back-btn,
 .reg-resend, .login-pass-toggle, .login-pass-gen, .profile-pass-toggle,
 .profile-link-btn,
-.tm-icon-opt, .tm-deco-opt, .tm-close, .tm-foot .btn,
+.tm-close, .tm-foot .btn,
+.tm-combo-toggle, .tm-combo-option, .toast-msg-close,
 .reorder-toggle, .reorder-bar .btn, .cab-btn, .card-add-tile {
   position: relative; overflow: hidden;
 }
@@ -1181,33 +1182,70 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, .16);
 }
 
-/* ── Toast صفحه ورود/ثبت‌نام ── */
-.login-toast-wrap {
-  position: fixed; left: 0; right: 0; bottom: 24px;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  z-index: 1000; pointer-events: none; padding: 0 16px;
+/* ── Toast عمومی (ورود/ثبت‌نام + داشبورد): آیکون رنگی + عنوان + توضیح + بستن ── */
+.toast-wrap {
+  position: fixed; right: 24px; bottom: 24px; max-width: calc(100vw - 32px);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  z-index: 1000; pointer-events: none;
 }
-.login-toast {
-  display: flex; align-items: center; gap: 9px;
-  max-width: 92vw; font-family: 'DashboardFont', sans-serif;
-  font-size: 13px; font-weight: 600; line-height: 1.6;
-  padding: 11px 16px; border-radius: var(--radius-sm);
+@media (max-width: 480px) { .toast-wrap { right: 16px; bottom: 16px; } }
+.toast-msg {
+  position: relative; overflow: hidden;
+  display: flex; align-items: flex-start; gap: 10px; pointer-events: auto;
+  min-width: 260px; max-width: 92vw; font-family: 'DashboardFont', sans-serif;
+  padding: 12px 14px; border-radius: var(--radius-sm);
   background: var(--color-bg-card); color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-border);
   box-shadow: 0 12px 32px rgba(0, 0, 0, .22);
-  animation: login-toast-in .25s cubic-bezier(.2, .8, .2, 1);
+  animation: toast-msg-in .25s cubic-bezier(.2, .8, .2, 1);
 }
-.login-toast.hide { animation: login-toast-out .25s ease forwards; }
-.login-toast svg { width: 18px; height: 18px; flex: 0 0 auto; }
-/* اگر پیام ترکیبی از فارسی و انگلیسی/ایمیل باشد، جهت پاراگراف بر اساس محتوای
-   خودش تعیین شود تا هنگام wrap شدن، ترتیب فارسی/انگلیسی به‌هم نریزد. */
-.login-toast span { unicode-bidi: plaintext; }
-.login-toast.error   { border-color: rgba(239, 68, 68, .45); }
-.login-toast.error   svg { color: #ef4444; }
-.login-toast.success { border-color: rgba(34, 197, 94, .45); }
-.login-toast.success svg { color: #22c55e; }
-@keyframes login-toast-in  { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes login-toast-out { to { opacity: 0; transform: translateY(14px); } }
+/* نوار پیشرفتِ زمانِ باقی‌مانده تا محو‌شدن خودکار toast */
+.toast-msg-progress {
+  position: absolute; bottom: 0; inset-inline: 0; height: 3px;
+  background: currentColor; opacity: .3; transform-origin: right;
+  animation: toast-msg-progress 4.5s linear forwards;
+}
+.toast-msg.hide .toast-msg-progress { animation-play-state: paused; }
+.toast-msg.hide { animation: toast-msg-out .25s ease forwards; }
+.toast-msg-icon {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.toast-msg-icon svg { width: 16px; height: 16px; }
+.toast-msg-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 1px; }
+.toast-msg-title { font-size: 13px; font-weight: 700; }
+/* عمدا بدون unicode-bidi:plaintext: پیام‌ها معمولا با یک کلمه لاتین (نام
+   ابزار/کاربر) شروع می‌شوند و plaintext در آن صورت کل پاراگراف را با جهت
+   LTR تشخیص می‌دهد و چپ‌چین غلط می‌شود. جهت raست از dir=rtl والد ارث می‌رسد
+   و bidi استاندارد کلمه لاتین را داخل جمله‌ی فارسی درست جا می‌دهد. */
+.toast-msg-text { font-size: 12.5px; font-weight: 500; line-height: 1.6; color: var(--color-text-secondary); }
+.toast-msg-close {
+  flex: 0 0 auto; width: 22px; height: 22px; margin-inline-start: 2px;
+  border: none; background: none; padding: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-muted); cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.toast-msg-close:hover { background: var(--color-accent-bg); color: var(--color-text-primary); }
+.toast-msg-close svg { width: 13px; height: 13px; }
+
+.toast-msg.success { border-inline-start-color: #22c55e; }
+.toast-msg.success .toast-msg-icon { background: rgba(34, 197, 94, .14); color: #22c55e; }
+.toast-msg.success .toast-msg-progress { background: #22c55e; }
+.toast-msg.error   { border-inline-start-color: #ef4444; }
+.toast-msg.error   .toast-msg-icon { background: rgba(239, 68, 68, .14); color: #ef4444; }
+.toast-msg.error   .toast-msg-progress { background: #ef4444; }
+.toast-msg.warning { border-inline-start-color: #f59e0b; }
+.toast-msg.warning .toast-msg-icon { background: rgba(245, 158, 11, .14); color: #f59e0b; }
+.toast-msg.warning .toast-msg-progress { background: #f59e0b; }
+.toast-msg.info    { border-inline-start-color: var(--color-accent); }
+.toast-msg.info    .toast-msg-icon { background: var(--color-accent-bg); color: var(--color-accent); }
+.toast-msg.info    .toast-msg-progress { background: var(--color-accent); }
+
+@keyframes toast-msg-in  { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toast-msg-out { to { opacity: 0; transform: translateX(30px); } }
+@keyframes toast-msg-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 .login-modal-foot {
   padding: 0 20px 20px;
@@ -2280,6 +2318,12 @@ body.notif-modal-open .card-corner-deco * {
   animation-play-state: paused !important;
 }
 
+/* همان بهینه‌سازی برای مودال‌های ویرایش/حذف ابزار (پنل مدیریت درون داشبورد) */
+body.tool-modal-open .card-deco-wrap *,
+body.tool-modal-open .card-corner-deco * {
+  animation-play-state: paused !important;
+}
+
 .notif-detail-box {
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border);
@@ -2959,6 +3003,52 @@ body.notif-modal-open .card-corner-deco * {
 .tm-field input:focus, .tm-field textarea:focus, .tm-field select:focus {
   border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg);
 }
+
+/* کمبوباکس عمومی (دسته‌بندی/طرح پس‌زمینه): باکس متنی جستجوپذیر + دراپ‌داون.
+   پنل هم‌ساختار با سایر dropdownهای پروژه (user-menu-dropdown/notif-dropdown):
+   fade + scale، سایه یکسان. دسته‌بندی هم انتخاب از قبلی‌ها را می‌پذیرد هم
+   تایپ آزاد برای مقدار تازه؛ طرح پس‌زمینه فقط جستجو+انتخاب از فهرست ثابت است. */
+.tm-combo { position: relative; }
+.tm-combo-box {
+  display: flex; align-items: center; gap: 4px;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.tm-combo-box:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg); }
+.tm-combo-input {
+  flex: 1; min-width: 0; border: none; background: none; outline: none;
+  font-family: 'DashboardFont', sans-serif; font-size: 13.5px;
+  padding: 9px 12px; color: var(--color-text-primary);
+}
+.tm-combo-toggle {
+  flex-shrink: 0; width: 30px; height: 30px; margin-inline-end: 4px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: none; border-radius: var(--radius-xs);
+  color: var(--color-text-muted); cursor: pointer; padding: 0;
+  transition: background var(--transition), color var(--transition);
+}
+.tm-combo-toggle:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+.tm-combo-toggle svg { width: 16px; height: 16px; transition: transform .2s ease; }
+.tm-combo.open .tm-combo-toggle svg { transform: rotate(180deg); }
+.tm-combo-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20;
+  background: var(--color-bg-card); border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm); box-shadow: 0 8px 28px rgba(15,23,42,.12), 0 2px 8px rgba(15,23,42,.06);
+  max-height: 220px; overflow-y: auto; padding: 6px;
+  opacity: 0; transform: translateY(-6px) scale(.97); pointer-events: none;
+  transition: opacity .18s ease, transform .2s cubic-bezier(.34,1.2,.64,1);
+}
+[data-theme="dark"] .tm-combo-menu { box-shadow: 0 8px 28px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.2); }
+.tm-combo.open .tm-combo-menu { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.tm-combo-option {
+  display: block; width: 100%; text-align: right; font-family: 'DashboardFont', sans-serif;
+  font-size: 13.5px; padding: 8px 10px; border: none; background: none; border-radius: var(--radius-xs);
+  color: var(--color-text-secondary); cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.tm-combo-option:hover, .tm-combo-option.selected { background: var(--color-accent-bg); color: var(--color-accent); }
+.tm-combo-empty { padding: 10px 12px; font-size: 12.5px; color: var(--color-text-muted); text-align: center; }
 .tm-color-row { display: flex; align-items: center; gap: 8px; }
 .tm-color-row input[type="color"] {
   width: 46px; height: 38px; padding: 2px; cursor: pointer;
@@ -2970,8 +3060,6 @@ body.notif-modal-open .card-corner-deco * {
   transition: border-color var(--transition), color var(--transition);
 }
 .tm-color-clear:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.tm-error { font-size: 12.5px; font-weight: 600; color: #ef4444; margin: 0; }
-.tm-error:empty { display: none; }
 .tm-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--color-border); flex-shrink: 0; }
 .tm-confirm-text { font-size: 14px; line-height: 1.85; color: var(--color-text-primary); margin: 0; }
 .tm-confirm-body { align-items: center; text-align: center; }
@@ -3024,27 +3112,20 @@ body.notif-modal-open .card-corner-deco * {
 
 /* ── انتخابگر آیکون/طرح + رنگ + پیش‌نمایش (مودال غنی ابزار) ── */
 .tm-label-opt { font-weight: 400; color: var(--color-text-muted); font-size: 11px; }
-.tm-picker-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 6px;
+.tm-field > label .req { color: #ef4444; margin-inline-start: 2px; }
+
+/* پیش‌نمایش آیکون انتخاب‌شده، داخل باکسِ کمبوباکس آیکون */
+.tm-combo-icon-preview {
+  flex-shrink: 0; width: 30px; height: 30px; margin-inline-start: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-secondary);
 }
-.tm-icon-opt {
-  height: 34px; display: inline-flex; align-items: center; justify-content: center;
-  border: 1.5px solid var(--color-border); background: var(--color-bg-primary);
-  border-radius: var(--radius-sm); color: var(--color-text-secondary); cursor: pointer;
-  transition: border-color var(--transition), color var(--transition), background var(--transition);
-}
-.tm-icon-opt svg { width: 16px; height: 16px; pointer-events: none; }
-.tm-icon-opt:hover  { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
-.tm-icon-opt.active { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
-.tm-deco-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-.tm-deco-opt {
-  padding: 5px 12px; border-radius: var(--radius-sm); font-size: 11.5px; font-weight: 600;
-  border: 1.5px solid var(--color-border); background: var(--color-bg-primary);
-  color: var(--color-text-secondary); cursor: pointer;
-  transition: border-color var(--transition), color var(--transition), background var(--transition);
-}
-.tm-deco-opt:hover  { border-color: var(--color-accent); color: var(--color-accent); }
-.tm-deco-opt.active { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
+.tm-combo-icon-preview svg { width: 17px; height: 17px; }
+/* گزینه‌های منو با آیکون (برخلاف گزینه‌های متنی دسته‌بندی/طرح) */
+.tm-combo-menu--icons { max-height: 260px; }
+.tm-combo-option--icon { display: flex; align-items: center; gap: 8px; }
+.tm-combo-option-ic { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+.tm-combo-option-ic svg { width: 16px; height: 16px; pointer-events: none; }
 .tm-color-presets { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tm-preset {
   width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer;

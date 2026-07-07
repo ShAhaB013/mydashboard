@@ -54,22 +54,37 @@ const Api = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// Toast
+// Toast — آیکون رنگی + عنوان + توضیح + دکمه بستن (هم‌ساختار با داشبورد/ورود)
+// Toast.show(message, type, title?) — type: success | error | warning | info
+// همیشه فقط یک toast هم‌زمان نمایش داده می‌شود؛ toast تازه جای قبلی را
+// می‌گیرد نه اینکه رویش انباشته شود (این صفحه یک نگهدارنده‌ی ثابت #toast دارد).
 // ═══════════════════════════════════════════════════════════
 const Toast = {
   _timer: null,
-  show(msg, type = 'success') {
-    const el  = document.getElementById('toast');
-    const ic  = document.getElementById('toastIcon');
-    const txt = document.getElementById('toastMsg');
-    txt.textContent = msg;
-    el.className    = `toast ${type}`;
-    ic.innerHTML    = type === 'success'
-      ? '<polyline points="20 6 9 17 4 12"/>'
-      : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+  _ICON: {
+    success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
+    error:   '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+  },
+  _TITLE: { success: 'موفقیت', error: 'خطا', warning: 'هشدار', info: 'اطلاع‌رسانی' },
+  _DURATION: 4500,
+  show(msg, type, title) {
+    type = (type && this._ICON[type]) ? type : 'success';
+    const el = document.getElementById('toast');
+    if (!el) return;
     clearTimeout(this._timer);
-    el.classList.add('show');
-    this._timer = setTimeout(() => el.classList.remove('show'), 2800);
+    el.className = `toast ${type}`;
+    el.innerHTML =
+      `<span class="toast-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${this._ICON[type]}</svg></span>`
+      + '<div class="toast-body"><strong class="toast-title"></strong><span class="toast-text"></span></div>'
+      + '<button type="button" class="toast-close" aria-label="بستن"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + `<span class="toast-progress" style="animation-duration:${this._DURATION}ms"></span>`;
+    el.querySelector('.toast-title').textContent = title || this._TITLE[type];
+    el.querySelector('.toast-text').textContent  = msg;
+    el.querySelector('.toast-close').addEventListener('click', () => { clearTimeout(this._timer); el.classList.remove('show'); });
+    requestAnimationFrame(() => el.classList.add('show'));
+    this._timer = setTimeout(() => el.classList.remove('show'), this._DURATION);
   },
 };
 
@@ -610,7 +625,7 @@ const UserManager = {
     const res = await Api.call(action, body);
     if (res.ok) {
       this.close(true);
-      Toast.show(isAdd ? 'کاربر اضافه شد' : 'کاربر ویرایش شد');
+      Toast.show(isAdd ? 'کاربر اضافه شد' : 'کاربر ویرایش شد', 'success', isAdd ? 'افزودن موفق' : 'ویرایش موفق');
       if (isAdd) this._page = 1;
       this.load();
     } else {
@@ -638,7 +653,7 @@ const UserManager = {
       pill.className   = `user-status-pill ${isNowActive ? 'active' : 'inactive'}`;
     }
     btn.disabled = false;
-    Toast.show(isNowActive ? 'کاربر فعال شد' : 'کاربر غیرفعال شد');
+    Toast.show(isNowActive ? 'کاربر فعال شد' : 'کاربر غیرفعال شد', 'success', isNowActive ? 'فعال‌سازی موفق' : 'غیرفعال‌سازی موفق');
   },
 
   openDelete(id, name) {
@@ -653,7 +668,7 @@ const UserManager = {
         const res = await Api.call('delete_user', { id });
         if (res.ok) {
           Confirm.close();
-          Toast.show('کاربر حذف شد');
+          Toast.show('کاربر حذف شد', 'success', 'حذف موفق');
           this.load();
         } else {
           Toast.show(res.msg || 'خطا در حذف', 'error');
@@ -835,7 +850,7 @@ const AccessManager = {
     const res = await Api.call('set_access', { user_id: userId, tool_ids: toolIds, badges });
     if (res.ok) {
       this.close(true);
-      Toast.show('دسترسی‌ها ذخیره شد');
+      Toast.show('دسترسی‌ها ذخیره شد', 'success', 'ذخیره موفق');
     } else {
       Toast.show(res.msg || 'خطا در ذخیره', 'error');
     }
@@ -933,7 +948,7 @@ const IconEditor = {
       ICONS_DATA[State.selIconKey] = path;
       this.buildGrid();
       IconPicker.build();
-      Toast.show('آیکون ذخیره شد');
+      Toast.show('آیکون ذخیره شد', 'success', 'ویرایش موفق');
     } else {
       Toast.show(res.msg, 'error');
     }
@@ -958,7 +973,7 @@ const IconEditor = {
           this.buildGrid();
           IconPicker.build();
           Confirm.close();
-          Toast.show('آیکون با موفقیت حذف شد');
+          Toast.show('آیکون حذف شد', 'success', 'حذف موفق');
         } else {
           Toast.show(res.msg, 'error');
         }
@@ -977,7 +992,7 @@ const IconEditor = {
       document.getElementById('newIconPath').value = '';
       this.buildGrid();
       IconPicker.build();
-      Toast.show('آیکون اضافه شد');
+      Toast.show('آیکون اضافه شد', 'success', 'افزودن موفق');
     } else {
       Toast.show(res.msg, 'error');
     }
@@ -1028,7 +1043,7 @@ const DecoEditor = {
     if (res.ok) {
       DECOS_DATA[State.selDecoKey] = svg;
       DecoPicker.build();
-      Toast.show('انیمیشن ذخیره شد');
+      Toast.show('انیمیشن ذخیره شد', 'success', 'ویرایش موفق');
       Preview.update();
     } else {
       Toast.show(res.msg, 'error');
@@ -1054,7 +1069,7 @@ const DecoEditor = {
           this.buildGrid();
           DecoPicker.build();
           Confirm.close();
-          Toast.show(res.fallback ? 'انیمیشن حذف شد و ابزارهای مرتبط به پیش‌فرض بازگشتند' : 'انیمیشن حذف شد');
+          Toast.show(res.fallback ? 'انیمیشن حذف شد و ابزارهای مرتبط به پیش‌فرض بازگشتند' : 'انیمیشن حذف شد', 'success', 'حذف موفق');
         } else {
           Toast.show(res.msg, 'error');
         }
@@ -1073,7 +1088,7 @@ const DecoEditor = {
       document.getElementById('newDecoSVG').value = '';
       this.buildGrid();
       DecoPicker.build();
-      Toast.show('انیمیشن اضافه شد');
+      Toast.show('انیمیشن اضافه شد', 'success', 'افزودن موفق');
     } else {
       Toast.show(res.msg, 'error');
     }
@@ -1259,7 +1274,7 @@ const SecurityManager = {
       onConfirm: async () => {
         Confirm.close();
         const res = await Api.call('unblock_ip', { ip, scope });
-        if (res.ok) { Toast.show('انسداد رفع شد'); this.refresh(); }
+        if (res.ok) { Toast.show('انسداد رفع شد', 'success', 'رفع انسداد موفق'); this.refresh(); }
         else        { Toast.show(res.msg || 'خطا در رفع انسداد', 'error'); }
       },
     });
@@ -1344,7 +1359,7 @@ const SessionsManager = {
     const v  = parseInt(String(el ? el.value : '').replace(/[^\d]/g, ''), 10);
     if (!v || v < 1 || v > 720) { Toast.show('عددی بین ۱ تا ۷۲۰ وارد کنید', 'error'); return; }
     const res = await Api.call('save_session_ttl', { session_ttl_hours: v });
-    if (res.ok) { if (el) el.value = res.hours; Toast.show(res.msg || 'ذخیره شد'); }
+    if (res.ok) { if (el) el.value = res.hours; Toast.show(res.msg || 'ذخیره شد', 'success', 'ذخیره موفق'); }
     else        { Toast.show(res.msg || 'خطا در ذخیره', 'error'); }
   },
 
@@ -1363,7 +1378,7 @@ const SessionsManager = {
         Confirm.close();
         const res = await Api.call('terminate_session', { session_id: id });
         if (!res.ok) { Toast.show(res.msg || 'خطا', 'error'); return; }
-        Toast.show('نشست پایان یافت');
+        Toast.show('نشست پایان یافت', 'success', 'پایان نشست موفق');
         if (isCurrent) { location.href = '/'; return; }
         this.loadUser();
       },
@@ -1383,7 +1398,7 @@ const SessionsManager = {
         Confirm.close();
         const res = await Api.call('terminate_user_sessions', { user_id: this._curUser });
         if (!res.ok) { Toast.show(res.msg || 'خطا', 'error'); return; }
-        Toast.show(res.msg || 'انجام شد');
+        Toast.show(res.msg || 'انجام شد', 'success', 'خروج اجباری موفق');
         this.loadUser();
       },
     });
@@ -1416,7 +1431,7 @@ const SettingsManager = {
     };
     const res = await Api.call('save_settings', payload);
     if (res.ok) {
-      Toast.show('تنظیمات ذخیره شد');
+      Toast.show('تنظیمات ذخیره شد', 'success', 'ذخیره موفق');
       document.getElementById('setSmtpPass').value = ''; // پاک‌سازی فیلد رمز پس از ذخیره
     } else {
       Toast.show(res.msg || 'خطا در ذخیره تنظیمات', 'error');
@@ -1427,9 +1442,11 @@ const SettingsManager = {
     const to = this._v('setTestEmail');
     if (!to) return FieldErr.set('setTestEmail', 'ایمیل مقصد را وارد کنید');
     if (!EMAIL_RE.test(to)) return FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
-    Toast.show('در حال ارسال…');
+    const btn = document.getElementById('testEmailBtn');
+    if (btn) { btn.classList.add('loading'); btn.disabled = true; }
     const res = await Api.call('test_email', { test_email: to });
-    if (res.ok) Toast.show(res.msg || 'ایمیل آزمایشی ارسال شد');
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+    if (res.ok) Toast.show(res.msg || 'ایمیل آزمایشی ارسال شد', 'success', 'ارسال موفق');
     else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
   },
 };
@@ -1597,7 +1614,7 @@ document.addEventListener('DOMContentLoaded', () => {
 (function () {
   const SEL = '.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn,'
     + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close,'
-    + ' .user-adv-toggle, .user-search-clear';
+    + ' .user-adv-toggle, .user-search-clear, .toast-close';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;

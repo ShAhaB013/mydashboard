@@ -187,7 +187,8 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
         <label>ایمیل مقصد</label>
         <input type="email" id="setTestEmail" placeholder="test@example.com" dir="ltr" style="direction:ltr;text-align:left">
       </div>
-      <button type="button" class="btn btn-primary" data-act="testSettings">
+      <button type="button" class="btn btn-primary" id="testEmailBtn" data-act="testSettings">
+        <span class="btn-spinner" aria-hidden="true"></span>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
         ارسال آزمایشی
       </button>
@@ -198,11 +199,8 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 
 </div><!-- /admin-wrap -->
 
-<!-- ── Toast ── -->
-<div class="toast" id="toast">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="toastIcon"></svg>
-  <span id="toastMsg"></span>
-</div>
+<!-- ── Toast (محتوا با JS ساخته می‌شود) ── -->
+<div class="toast" id="toast" aria-live="assertive"></div>
 
 <script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';

@@ -1,16 +1,33 @@
 'use strict';
 
+// Toast — آیکون رنگی + عنوان + توضیح + دکمه بستن (هم‌ساختار با داشبورد/ورود/پنل مدیریت)
+// Toast.show(message, type, title?) — type: success | error | warning | info
 const Toast = {
   _t: null,
-  show(msg, type = 'success') {
+  _ICON: {
+    success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
+    error:   '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+  },
+  _TITLE: { success: 'موفقیت', error: 'خطا', warning: 'هشدار', info: 'اطلاع‌رسانی' },
+  _DURATION: 4500,
+  show(msg, type, title) {
+    type = (type && this._ICON[type]) ? type : 'success';
     const el = document.getElementById('toast');
-    document.getElementById('toastMsg').textContent = msg;
-    document.getElementById('toastIcon').innerHTML  = type === 'success'
-      ? '<polyline points="20 6 9 17 4 12"/>'
-      : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
-    el.className = `toast ${type} show`;
+    if (!el) return;
     clearTimeout(this._t);
-    this._t = setTimeout(() => el.classList.remove('show'), 2800);
+    el.className = `toast ${type}`;
+    el.innerHTML =
+      `<span class="toast-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${this._ICON[type]}</svg></span>`
+      + '<div class="toast-body"><strong class="toast-title"></strong><span class="toast-text"></span></div>'
+      + '<button type="button" class="toast-close" aria-label="بستن"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + `<span class="toast-progress" style="animation-duration:${this._DURATION}ms"></span>`;
+    el.querySelector('.toast-title').textContent = title || this._TITLE[type];
+    el.querySelector('.toast-text').textContent  = msg;
+    el.querySelector('.toast-close').addEventListener('click', () => { clearTimeout(this._t); el.classList.remove('show'); });
+    requestAnimationFrame(() => el.classList.add('show'));
+    this._t = setTimeout(() => el.classList.remove('show'), this._DURATION);
   },
 };
 
@@ -826,7 +843,7 @@ const NM = {
         document.getElementById('imgPreview').src = data.thumbnail_path || data.image_path;
         this._revokePreview();
         this._markDirty();
-        Toast.show('تصویر با موفقیت آپلود شد');
+        Toast.show('تصویر آپلود شد', 'success', 'آپلود موفق');
       } else {
         this._revokePreview();
         this._fileError(data.msg || 'خطا در آپلود');
@@ -1008,7 +1025,7 @@ const NM = {
       const wasCreate = !this._editId;
       this._dirty = false;
       this.closeForm(true);
-      Toast.show(this._editId ? 'اعلان ویرایش شد' : 'اعلان ایجاد شد');
+      Toast.show(this._editId ? 'اعلان ویرایش شد' : 'اعلان ایجاد شد', 'success', this._editId ? 'ویرایش موفق' : 'افزودن موفق');
       if (wasCreate) this._page = 1;
       await this.load();
     } else {
@@ -1069,7 +1086,7 @@ const NM = {
   async confirmDelete() {
     if (!this._deleteId) return;
     const res = await apiCall('delete_notification', { id: this._deleteId });
-    if (res.ok) { this.closeConfirm(); Toast.show('اعلان حذف شد'); await this.load(); }
+    if (res.ok) { this.closeConfirm(); Toast.show('اعلان حذف شد', 'success', 'حذف موفق'); await this.load(); }
     else        { Toast.show(res.msg || 'خطا در حذف', 'error'); }
   },
 
@@ -1201,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(
 // ── افکت ripple (موج کلیک) — این صفحه admin.js را لود نمی‌کند پس هندلر اینجا تکرار می‌شود ──
 (function () {
   const SEL = '.btn, .hdr-btn, .btn-icon, .notif-row, .nm-adv-toggle,'
-    + ' .cselect-option, .pg-btn, .nm-pag-btn, .modal-close, .notif-search-clear';
+    + ' .cselect-option, .pg-btn, .nm-pag-btn, .modal-close, .notif-search-clear, .toast-close';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;

@@ -223,7 +223,7 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
   </main>
 
   <!-- ظرف Toast صفحه ورود -->
-  <div class="login-toast-wrap" id="loginToastWrap" aria-live="assertive"></div>
+  <div class="toast-wrap" id="toastWrap" aria-live="assertive"></div>
 
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>

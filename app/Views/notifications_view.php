@@ -353,11 +353,8 @@
   </div>
 </div>
 
-<!-- Toast -->
-<div class="toast" id="toast">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="toastIcon"></svg>
-  <span id="toastMsg"></span>
-</div>
+<!-- Toast (محتوا با JS ساخته می‌شود) -->
+<div class="toast" id="toast" aria-live="assertive"></div>
 
 <script nonce="<?= csp_nonce() ?>">
 const CSRF_TOKEN   = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';

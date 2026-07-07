@@ -1452,7 +1452,56 @@ const AdminTools = {
     document.getElementById('tmConfirmCancel').addEventListener('click', () => this._hideConfirm());
     document.getElementById('tmConfirmOk').addEventListener('click', () => this.doDelete());
     this._confirm.addEventListener('click', (e) => { if (e.target === this._confirm) this._hideConfirm(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { this.closeModal(); this._hideConfirm(); this._hideUnsaved(); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { this.closeModal(); this._hideConfirm(); this._hideUnsaved(); this._closeBadgeMenu(); this._closeIconMenu(); this._closeDecoMenu(); } });
+    // dropdown دسته‌بندی/آیکون/طرح پس‌زمینه: چوگرون باز/بسته می‌کند، فوکوس روی
+    // باکس هم باز می‌کند، کلیک بیرون از خودِ کمبوباکس آن را می‌بندد.
+    const badgeSelect = document.getElementById('tmBadgeSelect');
+    const badgeToggle = document.getElementById('tmBadgeToggle');
+    const badgeInput  = document.getElementById('tmBadge');
+    if (badgeToggle) badgeToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (badgeSelect.classList.contains('open')) { this._closeBadgeMenu(); return; }
+      this._renderBadgeMenu();
+      this._openBadgeMenu();
+    });
+    if (badgeInput) {
+      badgeInput.addEventListener('focus', () => { this._renderBadgeMenu(); this._openBadgeMenu(); });
+      badgeInput.addEventListener('input', () => { this._renderBadgeMenu(); this._openBadgeMenu(); });
+    }
+
+    const iconSelect = document.getElementById('tmIconSelect');
+    const iconToggle = document.getElementById('tmIconToggle');
+    const iconInput  = document.getElementById('tmIcon');
+    if (iconToggle) iconToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (iconSelect.classList.contains('open')) { this._closeIconMenu(); return; }
+      this._renderIconMenu();
+      this._openIconMenu();
+    });
+    if (iconInput) {
+      iconInput.addEventListener('focus', () => { this._renderIconMenu(); this._openIconMenu(); });
+      iconInput.addEventListener('input', () => { this._renderIconMenu(); this._openIconMenu(); });
+    }
+
+    const decoSelect = document.getElementById('tmDecoSelect');
+    const decoToggle = document.getElementById('tmDecoToggle');
+    const decoInput  = document.getElementById('tmDeco');
+    if (decoToggle) decoToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (decoSelect.classList.contains('open')) { this._closeDecoMenu(); return; }
+      this._renderDecoMenu();
+      this._openDecoMenu();
+    });
+    if (decoInput) {
+      decoInput.addEventListener('focus', () => { this._renderDecoMenu(); this._openDecoMenu(); });
+      decoInput.addEventListener('input', () => { this._renderDecoMenu(); this._openDecoMenu(); });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (badgeSelect && !badgeSelect.contains(e.target)) this._closeBadgeMenu();
+      if (iconSelect && !iconSelect.contains(e.target)) this._closeIconMenu();
+      if (decoSelect && !decoSelect.contains(e.target)) this._closeDecoMenu();
+    });
     this._modal.addEventListener('input', () => { this._dirty = true; });
     this._modal.addEventListener('change', () => { this._dirty = true; });
     this._wired = true;
@@ -1465,36 +1514,14 @@ const AdminTools = {
     const icons = (typeof assetsCache !== 'undefined' && assetsCache && assetsCache.icons) ? assetsCache.icons : {};
     const decos = (typeof assetsCache !== 'undefined' && assetsCache && assetsCache.decos) ? assetsCache.decos : {};
 
-    const ig = document.getElementById('tmIconGrid');
-    ig.innerHTML = '';
-    Object.keys(icons).forEach((k) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tm-icon-opt' + (k === this._sel.icon ? ' active' : '');
-      b.title = k; b.dataset.key = k;
-      b.innerHTML = makeSVG(k, 16);
-      b.addEventListener('click', () => {
-        this._sel.icon = k;
-        ig.querySelectorAll('.tm-icon-opt').forEach(x => x.classList.toggle('active', x.dataset.key === k));
-        this._updatePreview();
-      });
-      ig.appendChild(b);
-    });
+    this._iconList = Object.keys(icons);
+    this._syncIconPreview();
+    this._renderIconMenu();
 
-    const dg = document.getElementById('tmDecoGrid');
-    dg.innerHTML = '';
-    Object.keys(decos).forEach((k) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tm-deco-opt' + (k === this._sel.deco ? ' active' : '');
-      b.dataset.key = k; b.textContent = k;
-      b.addEventListener('click', () => {
-        this._sel.deco = k;
-        dg.querySelectorAll('.tm-deco-opt').forEach(x => x.classList.toggle('active', x.dataset.key === k));
-        this._updatePreview();
-      });
-      dg.appendChild(b);
-    });
+    this._decoList = Object.keys(decos);
+    const decoInput = document.getElementById('tmDeco');
+    if (decoInput) decoInput.value = this._sel.deco;
+    this._renderDecoMenu();
   },
 
   _setColor(color) {
@@ -1539,11 +1566,183 @@ const AdminTools = {
     this._unsaved.onclick = (e) => { if (e.target === this._unsaved) this._hideUnsaved(); };
   },
   _hideUnsaved() { if (this._unsaved) { this._unsaved.classList.remove('open'); this._unsaved.setAttribute('aria-hidden', 'true'); } },
-  _show()      { this._modal.classList.add('open'); this._modal.setAttribute('aria-hidden', 'false'); },
+  // حین باز بودن مودال ویرایش/حذف، انیمیشن‌های تزئینی کارت‌ها متوقف می‌شوند
+  // (کمتر لگ + روان‌تر) — عینِ رفتار notif-modal-open برای مودال جزئیات اعلان.
+  _syncModalState() {
+    const active = !!((this._modal && this._modal.classList.contains('open')) ||
+                       (this._confirm && this._confirm.classList.contains('open')));
+    document.body.classList.toggle('tool-modal-open', active);
+  },
+  _show()      { this._modal.classList.add('open'); this._modal.setAttribute('aria-hidden', 'false'); this._syncModalState(); },
   closeModal(force) {
     if (!force && this._dirty) { this._showUnsaved(); return; }
     this._dirty = false;
     if (this._modal) { this._modal.classList.remove('open'); this._modal.setAttribute('aria-hidden', 'true'); }
+    this._syncModalState();
+  },
+
+  // dropdown دسته‌بندی: از روی دسته‌های موجود در ابزارها پر می‌شود — هم می‌شود
+  // یکی از قبلی‌ها را کلیک کرد هم مستقیم در باکس، دسته‌بندی تازه تایپ کرد.
+  // حین تایپ، لیست به مواردی که با متن واردشده مطابقت دارند محدود می‌شود.
+  _badgeList: [],
+  _closeBadgeMenu() {
+    const wrap = document.getElementById('tmBadgeSelect');
+    if (wrap) wrap.classList.remove('open');
+    const toggle = document.getElementById('tmBadgeToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  },
+  _openBadgeMenu() {
+    const wrap = document.getElementById('tmBadgeSelect');
+    const menu = document.getElementById('tmBadgeMenu');
+    if (!wrap || !menu || !menu.children.length) return;
+    wrap.classList.add('open');
+    const toggle = document.getElementById('tmBadgeToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+  },
+  // دسته‌های موجود را از allToolsList می‌خواند و منو را (بدون فیلتر) می‌سازد.
+  _updateBadgeList() {
+    this._badgeList = [...new Set((allToolsList || []).map(t => t.badge).filter(Boolean))].sort();
+    this._renderBadgeMenu();
+  },
+  // منو را بر اساس متن فعلی باکس فیلتر و رندر می‌کند.
+  _renderBadgeMenu() {
+    const menu  = document.getElementById('tmBadgeMenu');
+    const input = document.getElementById('tmBadge');
+    if (!menu) return;
+    const q     = ((input && input.value) || '').trim().toLowerCase();
+    const list  = (this._badgeList || []).filter(b => !q || b.toLowerCase().includes(q));
+    menu.innerHTML = '';
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'tm-combo-empty';
+      empty.textContent = q ? 'دسته‌بندی مطابقی یافت نشد' : 'دسته‌بندی‌ای ثبت نشده';
+      menu.appendChild(empty);
+      return;
+    }
+    list.forEach(b => {
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'tm-combo-option' + (input && input.value === b ? ' selected' : '');
+      opt.setAttribute('role', 'option');
+      opt.textContent = b;
+      // mousedown قبل از click می‌آید؛ preventDefault از blur زودهنگام باکس
+      // جلوگیری می‌کند تا کلیک همیشه به‌درستی مقدار را ثبت کند.
+      opt.addEventListener('mousedown', (e) => e.preventDefault());
+      opt.addEventListener('click', () => {
+        if (input) input.value = b;
+        this._closeBadgeMenu();
+        this._updatePreview();
+      });
+      menu.appendChild(opt);
+    });
+  },
+
+  // dropdown آیکون: فقط جستجو + انتخاب از فهرست ثابت آیکون‌ها؛ پیش‌نمایش
+  // آیکونِ انتخاب‌شده داخل باکس (کنار ورودی جستجو) نمایش داده می‌شود.
+  _iconList: [],
+  _syncIconPreview() {
+    const input   = document.getElementById('tmIcon');
+    const preview = document.getElementById('tmIconPreview');
+    if (input) input.value = this._sel.icon || '';
+    if (preview) preview.innerHTML = makeSVG(this._sel.icon || 'star', 17);
+  },
+  _closeIconMenu() {
+    const wrap = document.getElementById('tmIconSelect');
+    if (wrap) wrap.classList.remove('open');
+    const toggle = document.getElementById('tmIconToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    this._syncIconPreview();
+  },
+  _openIconMenu() {
+    const wrap = document.getElementById('tmIconSelect');
+    const menu = document.getElementById('tmIconMenu');
+    if (!wrap || !menu || !menu.children.length) return;
+    wrap.classList.add('open');
+    const toggle = document.getElementById('tmIconToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+  },
+  _renderIconMenu() {
+    const menu  = document.getElementById('tmIconMenu');
+    const input = document.getElementById('tmIcon');
+    if (!menu) return;
+    const q    = ((input && input.value) || '').trim().toLowerCase();
+    const list = (this._iconList || []).filter(k => !q || k.toLowerCase().includes(q));
+    menu.innerHTML = '';
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'tm-combo-empty';
+      empty.textContent = 'آیکونی یافت نشد';
+      menu.appendChild(empty);
+      return;
+    }
+    list.forEach(k => {
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'tm-combo-option tm-combo-option--icon' + (k === this._sel.icon ? ' selected' : '');
+      opt.setAttribute('role', 'option');
+      const ic = document.createElement('span');
+      ic.className = 'tm-combo-option-ic';
+      ic.innerHTML = makeSVG(k, 16);
+      const label = document.createElement('span');
+      label.textContent = k;
+      opt.append(ic, label);
+      opt.addEventListener('mousedown', (e) => e.preventDefault());
+      opt.addEventListener('click', () => {
+        this._sel.icon = k;
+        this._closeIconMenu();
+        this._updatePreview();
+      });
+      menu.appendChild(opt);
+    });
+  },
+
+  // dropdown طرح پس‌زمینه: فقط جستجو + انتخاب از فهرست ثابت decoها (بدون
+  // امکان تایپ مقدار تازه) — با بستن بدون انتخاب، باکس به مقدار انتخاب‌شده برمی‌گردد.
+  _decoList: [],
+  _closeDecoMenu() {
+    const wrap = document.getElementById('tmDecoSelect');
+    if (wrap) wrap.classList.remove('open');
+    const toggle = document.getElementById('tmDecoToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    const input = document.getElementById('tmDeco');
+    if (input) input.value = this._sel.deco || '';
+  },
+  _openDecoMenu() {
+    const wrap = document.getElementById('tmDecoSelect');
+    const menu = document.getElementById('tmDecoMenu');
+    if (!wrap || !menu || !menu.children.length) return;
+    wrap.classList.add('open');
+    const toggle = document.getElementById('tmDecoToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+  },
+  _renderDecoMenu() {
+    const menu  = document.getElementById('tmDecoMenu');
+    const input = document.getElementById('tmDeco');
+    if (!menu) return;
+    const q    = ((input && input.value) || '').trim().toLowerCase();
+    const list = (this._decoList || []).filter(k => !q || k.toLowerCase().includes(q));
+    menu.innerHTML = '';
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'tm-combo-empty';
+      empty.textContent = 'طرحی یافت نشد';
+      menu.appendChild(empty);
+      return;
+    }
+    list.forEach(k => {
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'tm-combo-option' + (k === this._sel.deco ? ' selected' : '');
+      opt.setAttribute('role', 'option');
+      opt.textContent = k;
+      opt.addEventListener('mousedown', (e) => e.preventDefault());
+      opt.addEventListener('click', () => {
+        this._sel.deco = k;
+        this._closeDecoMenu();
+        this._updatePreview();
+      });
+      menu.appendChild(opt);
+    });
   },
 
   openAdd() {
@@ -1553,7 +1752,7 @@ const AdminTools = {
     document.getElementById('tmId').value = '';
     ['tmTitle', 'tmDesc', 'tmPath', 'tmBadge'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('tmColor').value = '#3e7de7';
-    document.getElementById('tmError').textContent = '';
+    this._updateBadgeList();
     this._buildPickers('star', 'generic');
     this._setColor('');
     this._show();
@@ -1571,7 +1770,7 @@ const AdminTools = {
     document.getElementById('tmPath').value  = tool.path || '';
     document.getElementById('tmBadge').value = tool.badge || '';
     document.getElementById('tmColor').value = tool.accentColor || '#3e7de7';
-    document.getElementById('tmError').textContent = '';
+    this._updateBadgeList();
     this._buildPickers(tool.iconKey || 'star', tool.deco || 'generic');
     this._setColor(tool.accentColor || '');
     this._show();
@@ -1580,12 +1779,11 @@ const AdminTools = {
   },
 
   async save() {
-    const err   = document.getElementById('tmError');
     const id    = document.getElementById('tmId').value.trim();
     const title = document.getElementById('tmTitle').value.trim();
     const path  = document.getElementById('tmPath').value.trim();
-    if (!title) { err.textContent = 'عنوان الزامی است'; return; }
-    if (!path)  { err.textContent = 'آدرس / مسیر الزامی است'; return; }
+    if (!title) { Toast.show('عنوان الزامی است', 'error'); return; }
+    if (!path)  { Toast.show('آدرس / مسیر الزامی است', 'error'); return; }
     const payload = {
       title,
       description: document.getElementById('tmDesc').value.trim(),
@@ -1600,8 +1798,13 @@ const AdminTools = {
     btn.classList.add('loading'); btn.disabled = true;
     const data = await this.call(id ? 'edit' : 'add', payload);
     btn.classList.remove('loading'); btn.disabled = false;
-    if (data && data.ok) { this.closeModal(true); await this.reload(); }
-    else { err.textContent = (data && data.msg) || 'خطا در ذخیره'; }
+    if (data && data.ok) {
+      this.closeModal(true);
+      await this.reload();
+      Toast.show(id ? `${title} ویرایش شد` : `${title} ایجاد شد`, 'success', id ? 'ویرایش موفق' : 'افزودن موفق');
+    } else {
+      Toast.show((data && data.msg) || 'خطا در ذخیره', 'error');
+    }
   },
 
   async toggle(id, card, btn) {
@@ -1624,6 +1827,7 @@ const AdminTools = {
   askDelete(id, title) {
     this._ensureWired(); if (!this._confirm) return;
     this._delId = id;
+    this._delName = title || '';
     // ساختِ امنِ DOM به‌جای رشته‌ی innerHTML: عنوانِ ابزار (داده‌ی کاربر) با
     // textContent درج می‌شود تا حتی اگر شامل HTML بود، اجرا/رندر نشود (ضدِ XSS).
     const el = document.getElementById('tmConfirmDesc');
@@ -1634,14 +1838,17 @@ const AdminTools = {
     el.appendChild(name);
     el.appendChild(document.createTextNode(' به‌طور دائم حذف خواهد شد.'));
     this._confirm.classList.add('open'); this._confirm.setAttribute('aria-hidden', 'false');
+    this._syncModalState();
   },
-  _hideConfirm() { if (this._confirm) { this._confirm.classList.remove('open'); this._confirm.setAttribute('aria-hidden', 'true'); } this._delId = null; },
+  _hideConfirm() { if (this._confirm) { this._confirm.classList.remove('open'); this._confirm.setAttribute('aria-hidden', 'true'); } this._delId = null; this._syncModalState(); },
   async doDelete() {
     if (!this._delId) return;
+    const delName = this._delName || 'ابزار';
     const ok = document.getElementById('tmConfirmOk'); ok.disabled = true;
     const data = await this.call('delete', { id: this._delId });
     ok.disabled = false; this._hideConfirm();
-    if (data && data.ok) await this.reload();
+    if (data && data.ok) { await this.reload(); Toast.show(`${delName} حذف شد`, 'success', 'حذف موفق'); }
+    else Toast.show((data && data.msg) || 'خطا در حذف ابزار', 'error');
   },
 
   async reload() {

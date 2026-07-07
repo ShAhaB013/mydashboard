@@ -150,7 +150,8 @@
     + ' .nd-close-btn, .nd-close-action,'
     + ' .login-forgot-link, .login-back-link, .forgot-back-top, .reg-back-btn,'
     + ' .reg-resend, .login-pass-toggle, .login-pass-gen, .profile-pass-toggle,'
-    + ' .profile-link-btn, .tm-icon-opt, .tm-deco-opt, .tm-close,'
+    + ' .profile-link-btn, .tm-close,'
+    + ' .tm-combo-toggle, .tm-combo-option, .toast-msg-close,'
     + ' .reorder-toggle, .cab-btn, .card-add-tile, .acct-sess-kill, .acct-killall-btn';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
@@ -215,4 +216,45 @@
   }, { passive: true });
   update();
 })();
+
+/* ═══════════════════════════════════════════════════════════
+   Toast — پیام شناور با آیکون رنگی + عنوان + توضیح + دکمه بستن
+   (مشترک بین همه صفحات عمومی: داشبورد/ورود/پروفایل/اعلان‌ها).
+   Toast.show(message, type, title?) — type: success | error | warning | info
+   همیشه فقط یک toast هم‌زمان نمایش داده می‌شود؛ toast تازه جای قبلی را
+   می‌گیرد نه اینکه رویش انباشته شود.
+   ═══════════════════════════════════════════════════════════ */
+const Toast = {
+  _wrap: null, _timer: null,
+  _ICON: {
+    success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
+    error:   '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    info:    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+  },
+  _TITLE: { success: 'موفقیت', error: 'خطا', warning: 'هشدار', info: 'اطلاع‌رسانی' },
+  _DURATION: 4500,
+  show(message, type, title) {
+    type = (type && this._ICON[type]) ? type : 'success';
+    if (!this._wrap) this._wrap = document.getElementById('toastWrap');
+    if (!this._wrap) return;
+    clearTimeout(this._timer);
+    // یک toast هم‌زمان: پیام قبلی (اگر بود) بلافاصله جای خود را به تازه می‌دهد.
+    this._wrap.innerHTML = '';
+    const t = document.createElement('div');
+    t.className = 'toast-msg ' + type;
+    t.innerHTML =
+      '<span class="toast-msg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + this._ICON[type] + '</svg></span>'
+      + '<div class="toast-msg-body"><strong class="toast-msg-title"></strong><span class="toast-msg-text"></span></div>'
+      + '<button type="button" class="toast-msg-close" aria-label="بستن"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + '<span class="toast-msg-progress" style="animation-duration:' + this._DURATION + 'ms"></span>';
+    t.querySelector('.toast-msg-title').textContent = title || this._TITLE[type];
+    t.querySelector('.toast-msg-text').textContent  = message;
+    const dismiss = () => { t.classList.add('hide'); setTimeout(() => t.remove(), 250); };
+    t.querySelector('.toast-msg-close').addEventListener('click', () => { clearTimeout(this._timer); dismiss(); });
+    this._wrap.appendChild(t);
+    this._timer = setTimeout(dismiss, this._DURATION);
+  },
+};
+window.Toast = Toast;
 
