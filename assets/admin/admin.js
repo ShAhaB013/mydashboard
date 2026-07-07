@@ -1288,6 +1288,8 @@ const SessionsManager = {
   async loadUser() {
     const box = document.getElementById('sessionsUserList');
     if (!box) return;
+    const killBtn = document.getElementById('sessTerminateUserBtn');
+    if (killBtn) killBtn.disabled = true;
     box.innerHTML = SKELETON_TABLE_ROW.repeat(2);
     const res = await Api.call('list_sessions', { user_id: this._curUser });
     if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت نشست‌ها</div>'; return; }
@@ -1295,6 +1297,10 @@ const SessionsManager = {
     box.innerHTML = list.length
       ? list.map(s => this._row(s, false)).join('')
       : '<div class="blocks-empty">این کاربر نشست فعالی ندارد.</div>';
+    // اگر تنها نشست باقی‌مانده، نشست فعلی خود ادمین باشد، «خروج از همه دستگاه‌ها»
+    // چیزی برای پایان‌دادن ندارد (سرور آن را استثنا می‌کند تا ادمین از پنل بیرون نیفتد).
+    const onlyOwnCurrent = list.length === 1 && list[0].is_current;
+    if (killBtn) killBtn.disabled = !list.length || onlyOwnCurrent;
   },
 
   _row(s, showName) {

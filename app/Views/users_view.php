@@ -367,7 +367,7 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-danger btn-sm" data-act="sessTerminateUser">
+      <button class="btn btn-danger btn-sm" id="sessTerminateUserBtn" data-act="sessTerminateUser" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 17.36"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
         خروج از همه دستگاه‌ها
       </button>
