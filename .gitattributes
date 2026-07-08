@@ -1,0 +1,5 @@
+# این فایل‌ها را PHP (JsonStore) با line-ending یونیکس (LF) می‌نویسد؛
+# اگر core.autocrlf=true آن‌ها را CRLF چک‌اوت کند، هر بار که PHP دوباره
+# بنویسدشان به‌عنوان «modified» (فقط تفاوت LF/CRLF، بدون تغییر محتوا) دیده می‌شوند.
+data/icons.json text eol=lf
+data/decos.json text eol=lf
