@@ -46,16 +46,17 @@ class NotificationController
 
     // ── Admin CRUD ──────────────────────────────────────────
 
+    /**
+     * لیست ادمین. دو مسیر ورودی موازی:
+     *   - page=N (OFFSET سنتی) → برای کلیک روی شماره‌ی صفحه یا «برو به صفحه»
+     *   - cursor=...&dir=next|prev (keyset) → برای فلش Prev/Next مجاور، سریع در هر عمقی
+     * پاسخ همیشه هر دو نوع متادیتا را برمی‌گرداند تا UI از هرکدام لازم بود استفاده کند.
+     */
     public function list(): void
     {
-        $page    = $this->request->inputInt('page', 1);
-        $perPage = $this->request->inputInt('per_page', 10);
+        $perPage = max(1, min(50, $this->request->inputInt('per_page', 10)));
         $search  = $this->request->input('search');
 
-        $page    = max(1, $page);
-        $perPage = max(1, min(50, $perPage));
-
-        // ── فیلترهای جستجوی پیشرفته (تاریخ + وضعیت) ──
         $status = $this->request->input('status');
         if (!in_array($status, ['active', 'expired'], true)) {
             $status = '';
@@ -66,8 +67,25 @@ class NotificationController
             'status'    => $status,
         ];
 
-        $total = $this->model->countForAdmin($search, $filters);
-        $rows  = $this->model->allForAdminPaginated($page, $perPage, $search, $filters);
+        $rawCursor = $this->request->input('cursor');
+        $dir       = $this->request->input('dir') === 'prev' ? 'prev' : 'next';
+
+        $total     = $this->model->countForAdmin($search, $filters);
+        $pageCount = (int) max(1, (int) ceil($total / $perPage));
+
+        if ($rawCursor !== '') {
+            $cursor = Cursor::decode($rawCursor);
+            $rows   = $this->model->allForAdminKeyset($cursor, $dir, $perPage, $search, $filters);
+            // allForAdminKeyset تا perPage+1 ردیف برمی‌گرداند (کپِ has_more داخلی که دیگر
+            // اینجا لازم نیست چون has_next/has_prev با peek جداگانه محاسبه می‌شود). ردیف
+            // اضافه در dir=next انتهای آرایه است؛ در dir=prev (که برگردانده‌شده نمایش داده
+            // می‌شود) ابتدای آرایه است — پس برش جهت‌دار لازم است.
+            $rows = $dir === 'prev' ? array_slice($rows, -$perPage) : array_slice($rows, 0, $perPage);
+            $page = null;
+        } else {
+            $page = max(1, $this->request->inputInt('page', 1));
+            $rows = $this->model->allForAdminPaginated($page, $perPage, $search, $filters);
+        }
 
         // دریافت همه badgeها در یک کوئری به‌جای N کوئری جداگانه
         $ids       = array_map(static fn($r) => (int) $r['id'], $rows);
@@ -79,15 +97,34 @@ class NotificationController
             $result[] = NotificationModel::toFrontend($row, $badgesMap[$id] ?? []);
         }
 
-        $pageCount = (int) max(1, (int) ceil($total / $perPage));
+        // has_next/has_prev با یک «نگاه» سبک (LIMIT 1) در هر جهت از لبه‌های صفحه‌ی
+        // فعلی — واضح‌تر و کم‌خطرتر از استنتاج از نتیجه‌ی کوئری اصلی است؛ این
+        // endpoint فقط ادمین/کم‌تکرار است، پس هزینه‌ی دو کوئری کوچک اضافه ناچیز است.
+        $nextCursor = $prevCursor = null;
+        if (!empty($rows)) {
+            $first = $rows[0];
+            $last  = $rows[count($rows) - 1];
+
+            $prevCursorObj = Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id']));
+            $hasPrev = !empty($this->model->allForAdminKeyset($prevCursorObj, 'prev', 1, $search, $filters));
+            if ($hasPrev) $prevCursor = Cursor::encode($first['created_at'], (int) $first['id']);
+
+            $nextCursorObj = Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id']));
+            $hasNext = !empty($this->model->allForAdminKeyset($nextCursorObj, 'next', 1, $search, $filters));
+            if ($hasNext) $nextCursor = Cursor::encode($last['created_at'], (int) $last['id']);
+        }
 
         Response::ok([
             'notifications' => $result,
             'pagination'    => [
-                'page'       => $page,
-                'per_page'   => $perPage,
-                'total'      => $total,
-                'page_count' => $pageCount,
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total'       => $total,
+                'page_count'  => $pageCount,
+                'has_next'    => $nextCursor !== null,
+                'has_prev'    => $prevCursor !== null,
+                'next_cursor' => $nextCursor,
+                'prev_cursor' => $prevCursor,
             ],
         ]);
     }

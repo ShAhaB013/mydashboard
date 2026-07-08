@@ -337,6 +337,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 
 /* ── افکت ripple (موج کلیک، سبک تلگرام) — همه آیتم‌های تعاملی به‌جز کارت‌ها — مشترک با style.css ── */
 .hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn, .access-tool-label,
+.pagination-btn, .pagination-goto-spin,
 .deco-opt, .nm-adv-toggle, .notif-row, .section-box-head, .modal-close,
 .user-adv-toggle, .user-search-clear, .toast-close {
   position:relative; overflow:hidden;
@@ -488,19 +489,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .tool-pagination[hidden] { display:none; }
 .pg-info { font-size:12px; color:var(--text-3); }
 .pg-controls { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-.pg-btn {
-  font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
-  min-width:36px; height:36px; padding:0 12px; cursor:pointer;
-  display:inline-flex; align-items:center; justify-content:center;
-  background:var(--bg-card); color:var(--text-2);
-  border:1.5px solid var(--border); border-radius:var(--radius);
-  transition:background var(--t),color var(--t),border-color var(--t);
-}
-.pg-btn svg { width:14px; height:14px; flex-shrink:0; }
-.pg-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
-.pg-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); cursor:default; }
-.pg-btn:disabled { opacity:.4; cursor:not-allowed; pointer-events:none; }
-.pg-ellipsis { color:var(--text-3); padding:0 2px; }
+/* دکمه‌های صفحه‌بندی: کامپوننت مشترک .pagination-btn/.pagination-ellipsis در assets/css/pagination.css */
 .tool-row-icon {
   width:38px; height:38px; border-radius:var(--radius-xs); flex-shrink:0;
   display:flex; align-items:center; justify-content:center;

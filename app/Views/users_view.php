@@ -18,6 +18,7 @@
   </script>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
+  <link rel="stylesheet" href="/assets/css/pagination.css?v=<?= asset_v(__DIR__ . '/../../assets/css/pagination.css') ?>">
   <style>
     /* ── نوار جستجو/فیلتر/تعداد در هر صفحه (هماهنگ با بخش مدیریت اعلان‌ها) ── */
     .user-list-controls { display:flex; gap:10px; align-items:stretch; margin-bottom:16px; }

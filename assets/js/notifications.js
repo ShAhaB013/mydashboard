@@ -321,6 +321,17 @@
       Actions.register({
         npOpen:     (el) => NP.open(parseInt(el.dataset.id, 10)),
         submitForm: (el) => el.form && el.form.submit(),
+        notifGotoStep: (el) => {
+          const dir = parseInt(el.dataset.dir, 10);
+          const inp = document.getElementById('notifGotoInput');
+          if (!inp) return;
+          const max = parseInt(inp.max, 10) || 1;
+          const cur = parseInt(inp.value, 10);
+          const base = Number.isFinite(cur) ? cur : 1;
+          inp.value = Math.min(Math.max(1, base + dir), max);
+          const form = document.getElementById('notifGotoForm');
+          if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+        },
       });
     }
 

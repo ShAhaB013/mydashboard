@@ -142,7 +142,7 @@
   // هم‌زمان اجرا می‌شوند و افزودن ریپل روی آن باعث تداخل و لگ می‌شد.
   const SEL = '.hdr-btn, .user-menu-btn, .btn, .btn-icon, .chip,'
     + ' .auth-btn, .user-menu-item, .notif-drop-item, .login-submit-btn,'
-    + ' .profile-submit-btn, .login-tab, .npag-btn, .notif-view-btn, .notif-row,'
+    + ' .profile-submit-btn, .login-tab, .pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-row,'
     + ' .notif-search-btn, .notif-adv-toggle, .notif-adv-apply, .cselect-option,'
     + ' .pg-btn, .access-tool-label, .deco-opt, .nm-adv-toggle, .section-box-head,'
     + ' .notif-drop-view-all, .notif-detail-view-all, .notif-detail-close-btn,'

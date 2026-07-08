@@ -1,0 +1,132 @@
+/* ═══════════════════════════════════════════════════════════
+   pagination.css — کامپوننت مشترک صفحه‌بندی (شماره صفحه + Prev/Next + Go to Page)
+   جایگزین سه پیاده‌سازی جدا (.pg-btn در admin.css، .page-btn در
+   notifications-admin.css، .npag-btn در notifications.css) که با کامنت
+   «هم‌راستا نگه داریم» به‌صورت دستی sync می‌شدند.
+   این فایل هم در پنل ادمین (admin.css) و هم در سایت اصلی (style.css) لود
+   می‌شود؛ چون این دو مجموعه‌ی متغیر CSS نام‌گذاری متفاوتی دارند
+   (--accent در ادمین در برابر --color-accent در سایت)، هر مقدار با
+   fallback زنجیره‌ای نوشته شده تا در هر دو زمینه درست کار کند.
+   ═══════════════════════════════════════════════════════════ */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 22px;
+}
+
+.pagination-btn {
+  font-family: 'DashboardFont', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card, var(--color-bg-card));
+  color: var(--text-2, var(--color-text-secondary));
+  border: 1.5px solid var(--border, var(--color-border));
+  border-radius: var(--radius, var(--radius-sm));
+  transition: background var(--t, var(--transition)), color var(--t, var(--transition)), border-color var(--t, var(--transition));
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+.pagination-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.pagination-btn:hover:not([aria-disabled="true"]):not(.active) {
+  border-color: var(--accent, var(--color-accent));
+  color: var(--accent, var(--color-accent));
+  background: var(--accent-bg, var(--color-accent-bg));
+}
+.pagination-btn.active {
+  background: var(--accent, var(--color-accent));
+  color: #fff;
+  border-color: var(--accent, var(--color-accent));
+  cursor: default;
+}
+.pagination-btn[aria-disabled="true"] { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+.pagination-ellipsis { color: var(--text-3, var(--color-text-muted)); padding: 0 2px; }
+
+.pagination-info { font-size: 12px; color: var(--text-3, var(--color-text-muted)); }
+
+/* ── «برو به صفحه» ─────────────────────────────────────────
+   بدون دکمه‌ی «برو»: عدد صفحه تایپ می‌شود و Enter مستقیم ناوبری می‌کند؛
+   دکمه‌های بالا/پایین سفارشی (به‌جای spinner بومی مرورگر که در فایرفاکس/
+   کروم ظاهر متفاوت و ناهماهنگ با UI پروژه دارد) هم بلافاصله ناوبری می‌کنند. */
+.pagination-goto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: 8px;
+}
+.pagination-goto-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-3, var(--color-text-muted));
+  font-family: 'DashboardFont', sans-serif;
+}
+.pagination-goto-field {
+  position: relative;
+  display: inline-flex;
+}
+.pagination-goto-input {
+  width: 66px;
+  height: 34px;
+  padding-block: 0;
+  padding-inline-start: 8px;
+  padding-inline-end: 28px;
+  font-family: 'DashboardFont', sans-serif;
+  font-size: 13px;
+  text-align: center;
+  background: var(--bg-card, var(--color-bg-card));
+  color: var(--text, var(--color-text-primary));
+  border: 1.5px solid var(--border, var(--color-border));
+  border-radius: var(--radius, var(--radius-sm));
+  transition: border-color var(--t, var(--transition));
+  -moz-appearance: textfield;
+}
+.pagination-goto-input:focus { outline: none; border-color: var(--accent, var(--color-accent)); }
+.pagination-goto-input::-webkit-inner-spin-button,
+.pagination-goto-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.pagination-goto-stepper {
+  position: absolute;
+  inset-inline-end: 5px;
+  top: 3px;
+  bottom: 3px;
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.pagination-goto-spin {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-3, var(--color-text-muted));
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  transition: background var(--t, var(--transition)), color var(--t, var(--transition));
+  position: relative;
+  overflow: hidden;
+}
+.pagination-goto-spin svg { width: 9px; height: 9px; pointer-events: none; }
+.pagination-goto-spin:hover {
+  color: var(--accent, var(--color-accent));
+  background: var(--accent-bg, var(--color-accent-bg));
+}

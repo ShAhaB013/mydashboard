@@ -365,19 +365,7 @@
       flex-wrap:wrap; gap:6px; margin:20px 0 8px;
     }
     .notif-pagination.hidden { display:none; }
-    .page-btn {
-      min-width:36px; height:36px; padding:0 10px;
-      display:inline-flex; align-items:center; justify-content:center;
-      background:var(--bg-card); border:1px solid var(--border);
-      border-radius:var(--radius); color:var(--text-2);
-      font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
-      cursor:pointer; transition:all var(--t); user-select:none;
-    }
-    .page-btn:hover:not(:disabled):not(.active) { border-color:#484f58; color:var(--text); }
-    .page-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; cursor:default; }
-    .page-btn:disabled { opacity:.4; cursor:not-allowed; }
-    .page-btn svg { width:16px; height:16px; }
-    .page-ellipsis { min-width:24px; text-align:center; color:var(--text-3); font-size:13px; user-select:none; }
+    /* دکمه‌های صفحه‌بندی: کامپوننت مشترک .pagination-btn/.pagination-ellipsis در assets/css/pagination.css */
     .notif-page-info { text-align:center; font-size:12px; color:var(--text-3); margin-bottom:8px; }
 
     @media(max-width:680px) { .notif-row-meta { display:none; } }

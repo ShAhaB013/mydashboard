@@ -8,10 +8,11 @@
 //
 // نگاشتِ رویداد → attribute (جدا برای هر نوع تا کلیک روی چک‌باکس با
 // رویدادِ change دوباره شلیک نشود):
-//   click  → data-act
-//   change → data-change
-//   input  → data-input
-//   submit → data-submit
+//   click   → data-act
+//   change  → data-change
+//   input   → data-input
+//   submit  → data-submit
+//   keydown → data-keydown (هندلر خودش باید e.key را چک کند)
 //
 // هر عنصر یک اکشن دارد؛ دیسپچر نزدیک‌ترین [data-*] را می‌یابد و هندلرِ
 // ثبت‌شده را با (el, event) صدا می‌زند. چون شنونده روی document است،
@@ -20,7 +21,7 @@
 window.Actions = (function () {
   const reg = {};
 
-  const MAP = { click: 'act', change: 'change', input: 'input', submit: 'submit' };
+  const MAP = { click: 'act', change: 'change', input: 'input', submit: 'submit', keydown: 'keydown' };
 
   Object.keys(MAP).forEach(function (type) {
     const attr = MAP[type];

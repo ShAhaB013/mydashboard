@@ -17,8 +17,15 @@ $userId     = $isLoggedIn ? UserSession::id() : 0;
 $csrfToken = $isLoggedIn ? UserSession::ensureCsrfToken() : '';
 
 // ── پارامترهای صفحه‌بندی و جستجو ─────────────────────────
+// دو مسیر موازی: page=N (OFFSET سنتی، برای شماره‌ی صفحه/برو-به-صفحه) یا
+// after=/before= (keyset، برای فلش Prev/Next مجاور — سریع در هر عمقی).
 $search  = trim($_GET['q']    ?? '');
 $page    = max(1, (int) ($_GET['page'] ?? 1));
+$afterCursor  = Cursor::decode(trim($_GET['after']  ?? ''));
+$beforeCursor = Cursor::decode(trim($_GET['before'] ?? ''));
+$useKeyset    = ($afterCursor !== null || $beforeCursor !== null || isset($_GET['after']) || isset($_GET['before']));
+$keysetDir    = $beforeCursor !== null || isset($_GET['before']) ? 'prev' : 'next';
+$keysetCursor = $keysetDir === 'prev' ? $beforeCursor : $afterCursor;
 
 // تعداد آیتم در هر صفحه — قابل تنظیم توسط کاربر و ماندگار (مهمان + لاگین‌کرده)
 // اولویت: انتخاب جاری در URL → کوکی ذخیره‌شده → پیش‌فرض
@@ -80,19 +87,55 @@ if (!function_exists('notif_page_range')) {
     }
 }
 
-// ── واکشی داده (بر اساس وضعیت لاگین) ────────────────────
+// ── واکشی داده (بر اساس وضعیت لاگین + مسیر صفحه‌بندی) ────
 $nm = new NotificationModel();
 
-if ($isLoggedIn) {
-    $total = $nm->historyCountForUser($userId, $search, $filters);
-    $pages = max(1, (int) ceil($total / $perPage));
-    $page  = min($page, $pages);
-    $items = $nm->historyForUser($userId, $page, $perPage, $search, $filters);
+$total = $isLoggedIn
+    ? $nm->historyCountForUser($userId, $search, $filters)
+    : $nm->historyCountForGuest($search, $filters);
+$pages = max(1, (int) ceil($total / $perPage));
+
+$nextCursor = $prevCursor = null;
+
+if ($useKeyset) {
+    $items = $isLoggedIn
+        ? $nm->historyForUserKeyset($userId, $keysetCursor, $keysetDir, $perPage, $search, $filters)
+        : $nm->historyForGuestKeyset($keysetCursor, $keysetDir, $perPage, $search, $filters);
+
+    $hasMore = count($items) > $perPage;
+    $items   = $keysetDir === 'prev' ? array_slice($items, -$perPage) : array_slice($items, 0, $perPage);
+
+    if (!empty($items)) {
+        $first = $items[0];
+        $last  = $items[count($items) - 1];
+        // نگاه سبک (LIMIT 1) به هر دو طرف برای تعیین وجود صفحه‌ی بعد/قبل —
+        // واضح‌تر از استنتاج صرف از جهت درخواست جاری.
+        $peekPrev = $isLoggedIn
+            ? $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters)
+            : $nm->historyForGuestKeyset(Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters);
+        $peekNext = $isLoggedIn
+            ? $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id'])), 'next', 1, $search, $filters)
+            : $nm->historyForGuestKeyset(Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id'])), 'next', 1, $search, $filters);
+        if (!empty($peekPrev)) $prevCursor = Cursor::encode($first['created_at'], (int) $first['id']);
+        if (!empty($peekNext)) $nextCursor = Cursor::encode($last['created_at'], (int) $last['id']);
+    }
+    // برای سازگاری با بخش‌های دیگر قالب که هنوز بر اساس $page متن می‌سازند
+    // (مثلا شماره‌ی صفحه‌ی نزدیک)، یک تخمین صرفا نمایشی نگه می‌داریم؛ منبع
+    // حقیقت ناوبری واقعی همان cursor هاست.
+    $page = min($page, $pages);
 } else {
-    $total = $nm->historyCountForGuest($search, $filters);
-    $pages = max(1, (int) ceil($total / $perPage));
     $page  = min($page, $pages);
-    $items = $nm->historyForGuest($page, $perPage, $search, $filters);
+    $items = $isLoggedIn
+        ? $nm->historyForUser($userId, $page, $perPage, $search, $filters)
+        : $nm->historyForGuest($page, $perPage, $search, $filters);
+    if ($page > 1) {
+        $f = $items[0] ?? null;
+        if ($f) $prevCursor = Cursor::encode($f['created_at'], (int) $f['id']);
+    }
+    if ($page < $pages) {
+        $l = $items[count($items) - 1] ?? null;
+        if ($l) $nextCursor = Cursor::encode($l['created_at'], (int) $l['id']);
+    }
 }
 
 // badge های هر اعلان
@@ -165,6 +208,7 @@ foreach ($items as $item) {
   }
   </script>
   <link rel="stylesheet" href="/assets/css/notifications.css?v=<?= $vNotifCss ?>">
+  <link rel="stylesheet" href="/assets/css/pagination.css?v=<?= asset_v(__DIR__ . '/assets/css/pagination.css') ?>">
 </head>
 <body class="notif-page-wrap">
 
@@ -349,39 +393,63 @@ foreach ($items as $item) {
 
       </div>
 
-      <!-- صفحه‌بندی -->
+      <!-- صفحه‌بندی: فلش‌های Prev/Next مجاور از cursor (keyset، سریع در هر عمقی) استفاده
+           می‌کنند؛ شماره‌های صفحه و «برو به صفحه» از page=N (OFFSET) استفاده می‌کنند. -->
       <?php if ($pages > 1):
         $qStr = ($search ? '&q=' . urlencode($search) : '') . '&pp=' . $perPage
               . ($fDateFrom ? '&df=' . urlencode($fDateFrom) : '')
               . ($fDateTo   ? '&dt=' . urlencode($fDateTo)   : '')
               . ($fStatus   ? '&st=' . urlencode($fStatus)   : '');
       ?>
-        <nav class="notif-pagination" aria-label="صفحه‌بندی">
-          <?php if ($page > 1): ?>
-            <a class="npag-btn" href="/notifications?page=<?= $page - 1 . $qStr ?>" aria-label="صفحه قبل">
+        <nav class="pagination" aria-label="صفحه‌بندی">
+          <?php if ($prevCursor !== null): ?>
+            <a class="pagination-btn" href="/notifications?before=<?= urlencode($prevCursor) . $qStr ?>" aria-label="صفحه قبل">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
           <?php else: ?>
-            <span class="npag-btn disabled"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <span class="pagination-btn" aria-disabled="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span>
           <?php endif; ?>
 
           <?php foreach (notif_page_range($page, $pages) as $i): ?>
             <?php if ($i === '...'): ?>
-              <span class="npag-dots">…</span>
-            <?php elseif ($i === $page): ?>
-              <span class="npag-btn active" aria-current="page"><?= $i ?></span>
+              <span class="pagination-ellipsis">…</span>
+            <?php elseif ($i === $page && !$useKeyset): ?>
+              <span class="pagination-btn active" aria-current="page"><?= $i ?></span>
             <?php else: ?>
-              <a class="npag-btn" href="/notifications?page=<?= $i . $qStr ?>"><?= $i ?></a>
+              <a class="pagination-btn" href="/notifications?page=<?= $i . $qStr ?>"><?= $i ?></a>
             <?php endif; ?>
           <?php endforeach; ?>
 
-          <?php if ($page < $pages): ?>
-            <a class="npag-btn" href="/notifications?page=<?= $page + 1 . $qStr ?>" aria-label="صفحه بعد">
+          <?php if ($nextCursor !== null): ?>
+            <a class="pagination-btn" href="/notifications?after=<?= urlencode($nextCursor) . $qStr ?>" aria-label="صفحه بعد">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
             </a>
           <?php else: ?>
-            <span class="npag-btn disabled"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span>
+            <span class="pagination-btn" aria-disabled="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span>
           <?php endif; ?>
+
+          <form class="pagination-goto" method="get" action="/notifications" id="notifGotoForm">
+            <?php if ($search !== ''): ?><input type="hidden" name="q" value="<?= htmlspecialchars($search) ?>"><?php endif; ?>
+            <input type="hidden" name="pp" value="<?= (int) $perPage ?>">
+            <?php if ($fDateFrom !== ''): ?><input type="hidden" name="df" value="<?= htmlspecialchars($fDateFrom) ?>"><?php endif; ?>
+            <?php if ($fDateTo   !== ''): ?><input type="hidden" name="dt" value="<?= htmlspecialchars($fDateTo) ?>"><?php endif; ?>
+            <?php if ($fStatus   !== ''): ?><input type="hidden" name="st" value="<?= htmlspecialchars($fStatus) ?>"><?php endif; ?>
+            <label class="pagination-goto-label" for="notifGotoInput">برو به صفحه</label>
+            <span class="pagination-goto-field">
+              <input type="number" name="page" id="notifGotoInput" min="1" max="<?= (int) $pages ?>"
+                value="<?= !$useKeyset ? (int) $page : '' ?>" class="pagination-goto-input" aria-label="شماره صفحه">
+              <span class="pagination-goto-stepper">
+                <button type="button" class="pagination-goto-spin" tabindex="-1" aria-label="افزایش شماره صفحه"
+                  data-act="notifGotoStep" data-dir="1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+                <button type="button" class="pagination-goto-spin" tabindex="-1" aria-label="کاهش شماره صفحه"
+                  data-act="notifGotoStep" data-dir="-1">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+              </span>
+            </span>
+          </form>
         </nav>
       <?php endif; ?>
 

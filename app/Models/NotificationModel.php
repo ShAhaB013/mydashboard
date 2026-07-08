@@ -12,6 +12,9 @@ class NotificationModel
     // به LIKE سقوط می‌کنند چون FULLTEXT اصلاً آن‌ها را توکنایز نکرده است)
     private const FTS_MIN_TOKEN = 3;
 
+    // سقف فید محدود زنگوله (bell) — رکوردهای قدیمی‌تر از صفحه‌ی تاریخچه در دسترس می‌مانند
+    private const BELL_CAP = 100;
+
     // ── Visibility Queries ──────────────────────────────────
 
     /**
@@ -29,42 +32,102 @@ class NotificationModel
              FROM notifications n
              WHERE n.is_public = 1
              ORDER BY n.created_at DESC
-             LIMIT 500',
+             LIMIT ' . self::BELL_CAP,
             [':now' => $now]
         )->fetchAll();
     }
 
     /**
-     * اعلان‌های قابل نمایش برای کاربر لاگین‌کرده (فید فعال)
+     * زیرکوئری UNION سه‌شاخه‌ی «اعلان‌های قابل‌دسترسِ» یک کاربر
+     * (public ∪ target_all_users ∪ badge-matched) — به‌جای یک JOIN سه‌جدولی
+     * + شرط OR که هیچ ترکیبی از ایندکس نمی‌تواند بهینه‌اش کند (index merge
+     * فقط برای OR روی یک جدول کار می‌کند)، هر شاخه با ایندکس اختصاصی خودش
+     * (idx_pub_created / idx_target_created / badge join) اسکن می‌شود.
+     * UNION (نه UNION ALL) خودش ردیف‌های تکراری بین شاخه‌ها را حذف می‌کند
+     * چون ستون‌های انتخابی برای یک ردیف مشترک عینا یکسان‌اند.
+     *
+     * @param string $cols ستون‌های انتخابی (n.* یا فقط زیرمجموعه‌ی لازم)
+     * @param string $uidParam نام پارامتر PDO برای user_id (باید بین فراخوان‌ها یکتا باشد)
+     * @param int|null $limitPerBranch اگر ست شود، هر شاخه جداگانه LIMIT می‌خورد (فید محدود زنگوله)
+     */
+    private function accessibleUnionSql(string $cols, string $uidParam, ?int $limitPerBranch = null): string
+    {
+        $tail = $limitPerBranch !== null
+            ? ' ORDER BY n.created_at DESC, n.id DESC LIMIT ' . $limitPerBranch
+            : '';
+        return "(SELECT {$cols} FROM notifications n WHERE n.is_public = 1{$tail})
+                 UNION
+                 (SELECT {$cols} FROM notifications n WHERE n.target_all_users = 1{$tail})
+                 UNION
+                 (SELECT {$cols} FROM notifications n
+                    JOIN notification_badges nb ON nb.notification_id = n.id
+                    JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :{$uidParam}
+                  {$tail})";
+    }
+
+    /**
+     * اعلان‌های قابل نمایش برای کاربر لاگین‌کرده (فید محدود زنگوله)
      * شامل: عمومی + همه کاربران + badge مطابق دسترسی کاربر
      *
-     * منطق نمایش: یا اعلان فعال است، یا منقضی‌شده ولی این کاربر آن را
-     * نخوانده — تا badge تا زمان خواندن باقی بماند و کاربر بتواند آن را
-     * در پنل bell باز کند.
+     * برای مقیاس بزرگ به آخرین BELL_CAP مورد محدود می‌شود (هر شاخه جداگانه
+     * تا BELL_CAP کاندید می‌دهد، سپس با اولویت ناخوانده‌ها مرتب و دوباره
+     * به BELL_CAP برش می‌خورد) — دسترسی به رکوردهای قدیمی‌تر از این پنجره
+     * از صفحه‌ی تاریخچه (/notifications، historyForUser) تامین می‌شود، نه از اینجا.
      */
     public function allActiveForUser(int $userId): array
     {
-        $now = time();
+        $now   = time();
+        $union = $this->accessibleUnionSql('n.*', 'uid1', self::BELL_CAP);
         return DB::run(
-            'SELECT DISTINCT n.*,
-                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= n.updated_at THEN 1 ELSE 0 END AS is_read,
-                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at <  n.updated_at THEN 1 ELSE 0 END AS is_edited,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
-             FROM notifications n
-             LEFT JOIN notification_badges nb ON nb.notification_id = n.id
-             LEFT JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid2
-             LEFT JOIN notification_reads   r  ON r.notification_id = n.id AND r.user_id = :uid3
-             WHERE (
-                     (n.expires_at = 0 OR n.expires_at > :now2)
-                     OR (r.notification_id IS NULL OR r.read_at < n.updated_at)
-                   )
-               AND (
-                     n.is_public        = 1
-                     OR n.target_all_users = 1
-                     OR ca.user_id      IS NOT NULL
-                   )
-             ORDER BY n.created_at DESC',
-            [':uid2' => $userId, ':uid3' => $userId, ':now' => $now, ':now2' => $now]
+            "SELECT u.*,
+                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read,
+                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at <  u.updated_at THEN 1 ELSE 0 END AS is_edited,
+                    CASE WHEN u.expires_at > 0 AND u.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
+             FROM ({$union}) u
+             LEFT JOIN notification_reads r ON r.notification_id = u.id AND r.user_id = :uid2
+             WHERE NOT (
+               u.expires_at > 0 AND u.expires_at <= :now2
+               AND r.notification_id IS NOT NULL AND r.read_at >= u.updated_at
+             )
+             ORDER BY is_read ASC, u.created_at DESC, u.id DESC
+             LIMIT " . self::BELL_CAP,
+            [':uid1' => $userId, ':uid2' => $userId, ':now' => $now, ':now2' => $now]
+        )->fetchAll();
+    }
+
+    /**
+     * نسخه‌ی سبک (فقط id/created_at) فید مهمان — برای محاسبه‌ی ارزان‌قیمتِ ETag
+     * پیش از اجرای کوئری کامل + serialize (که فقط وقتی چیزی واقعا عوض شده لازم است).
+     */
+    public function guestFingerprint(): array
+    {
+        return DB::run(
+            'SELECT id, created_at FROM notifications WHERE is_public = 1 ORDER BY created_at DESC LIMIT ' . self::BELL_CAP
+        )->fetchAll();
+    }
+
+    /**
+     * نسخه‌ی سبک (id/updated_at/is_read) فید کاربر — همان منطق انتخاب/کپ/مرتب‌سازی
+     * allActiveForUser را با کمترین ستون‌ها تکرار می‌کند تا فینگرپرینت واقعا هر تغییری
+     * (اعلان جدید/ویرایش‌شده، خروج از پنجره‌ی BELL_CAP، یا تغییر read-state خودِ کاربر)
+     * را ببیند — بر خلاف یک امضای تقریبی مثل MAX(updated_at)+COUNT(*) که read-state را نمی‌بیند.
+     */
+    public function activeUserFingerprint(int $userId): array
+    {
+        $now   = time();
+        $union = $this->accessibleUnionSql('n.id, n.created_at, n.updated_at, n.expires_at', 'uid1', self::BELL_CAP);
+        return DB::run(
+            "SELECT u.id, u.updated_at,
+                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read
+             FROM ({$union}) u
+             LEFT JOIN notification_reads r ON r.notification_id = u.id AND r.user_id = :uid2
+             WHERE NOT (
+               u.expires_at > 0 AND u.expires_at <= :now
+               AND r.notification_id IS NOT NULL AND r.read_at >= u.updated_at
+             )
+             ORDER BY is_read ASC, u.created_at DESC, u.id DESC
+             LIMIT " . self::BELL_CAP,
+            [':uid1' => $userId, ':uid2' => $userId, ':now' => $now]
         )->fetchAll();
     }
 
@@ -79,20 +142,25 @@ class NotificationModel
      * توجه: این یعنی معنای جستجو برای عبارت‌های بلند از «substring دلخواه»
      * به «تطبیق کلمه/پیشوند کلمه» تغییر می‌کند.
      */
-    private function buildSearchClause(string $search, array &$params): string
+    /**
+     * $suffix: چون با ATTR_EMULATE_PREPARES=false نمی‌توان یک نام پارامتر را در یک
+     * کوئری تکرار کرد، فراخوان‌هایی که این شرط را چندبار در یک کوئری (مثلا سه شاخه‌ی
+     * UNION) به کار می‌برند باید suffix متفاوت بدهند تا نام‌های :ftq/:like و... یکتا بمانند.
+     */
+    private function buildSearchClause(string $search, array &$params, string $alias = 'n', string $suffix = ''): string
     {
         $search = trim($search);
         if ($search === '') return '';
 
         if (mb_strlen($search) >= self::FTS_MIN_TOKEN) {
-            $params[':ftq'] = $this->buildBooleanQuery($search);
-            return ' AND MATCH(n.title, n.body) AGAINST(:ftq IN BOOLEAN MODE)';
+            $params[":ftq{$suffix}"] = $this->buildBooleanQuery($search);
+            return " AND MATCH({$alias}.title, {$alias}.body) AGAINST(:ftq{$suffix} IN BOOLEAN MODE)";
         }
 
         $like = '%' . $search . '%';
-        $params[':like']  = $like;
-        $params[':like2'] = $like;
-        return ' AND (n.title LIKE :like OR n.body LIKE :like2)';
+        $params[":like{$suffix}"]  = $like;
+        $params[":like2{$suffix}"] = $like;
+        return " AND ({$alias}.title LIKE :like{$suffix} OR {$alias}.body LIKE :like2{$suffix})";
     }
 
     /**
@@ -114,7 +182,7 @@ class NotificationModel
      * پارامترها به آرایه $params اضافه می‌شوند و رشته SQL برگردانده می‌شود.
      * $filters: ['date_from'=>'Y-m-d','date_to'=>'Y-m-d','status'=>'active|expired']
      */
-    private function buildHistoryFilters(array $filters, array &$params): string
+    private function buildHistoryFilters(array $filters, array &$params, string $alias = 'n', string $suffix = ''): string
     {
         $sql = '';
         $df  = trim((string)($filters['date_from'] ?? ''));
@@ -122,21 +190,158 @@ class NotificationModel
         $st  = trim((string)($filters['status']    ?? ''));
 
         if ($df !== '' && preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $df)) {
-            $sql .= ' AND n.created_at >= :df';
-            $params[':df'] = $df . ' 00:00:00';
+            $sql .= " AND {$alias}.created_at >= :df{$suffix}";
+            $params[":df{$suffix}"] = $df . ' 00:00:00';
         }
         if ($dt !== '' && preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $dt)) {
-            $sql .= ' AND n.created_at <= :dt';
-            $params[':dt'] = $dt . ' 23:59:59';
+            $sql .= " AND {$alias}.created_at <= :dt{$suffix}";
+            $params[":dt{$suffix}"] = $dt . ' 23:59:59';
         }
         if ($st === 'expired') {
-            $sql .= ' AND n.expires_at > 0 AND n.expires_at <= :st_now';
-            $params[':st_now'] = time();
+            $sql .= " AND {$alias}.expires_at > 0 AND {$alias}.expires_at <= :st_now{$suffix}";
+            $params[":st_now{$suffix}"] = time();
         } elseif ($st === 'active') {
-            $sql .= ' AND (n.expires_at = 0 OR n.expires_at > :st_now)';
-            $params[':st_now'] = time();
+            $sql .= " AND ({$alias}.expires_at = 0 OR {$alias}.expires_at > :st_now{$suffix})";
+            $params[":st_now{$suffix}"] = time();
         }
         return $sql;
+    }
+
+    /**
+     * تاریخچه‌ی مهمان با پیمایش keyset (فلش Prev/Next مجاور — سریع در هر عمقی،
+     * بر خلاف historyForGuest که OFFSET سنتی دارد و برای «رفتن به صفحه‌ی N» است).
+     * @param array{created_at:string,id:int}|null $cursor
+     * @param string $dir 'next' (قدیمی‌تر) یا 'prev' (جدیدتر)
+     * @return array ممکن است تا perPage+1 ردیف داشته باشد (ردیف اضافه = نشانه‌ی «صفحه‌ی بعد/قبل هست»؛ caller آن را جدا می‌کند)
+     */
+    public function historyForGuestKeyset(?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
+    {
+        $perPage = max(1, min(100, $perPage));
+        $cap     = $perPage + 1;
+        $now     = time();
+        $desc    = $dir !== 'prev';
+
+        $params    = [':now' => $now];
+        $searchSql = $this->buildSearchClause($search, $params);
+        $filterSql = $this->buildHistoryFilters($filters, $params);
+
+        $cursorSql = '';
+        if ($cursor !== null) {
+            $cmp = $desc ? '<' : '>';
+            $params[':cc'] = $cursor['created_at'];
+            $params[':ci'] = $cursor['id'];
+            $cursorSql = " AND (n.created_at, n.id) {$cmp} (:cc, :ci)";
+        }
+        $order = $desc ? 'ORDER BY n.created_at DESC, n.id DESC' : 'ORDER BY n.created_at ASC, n.id ASC';
+
+        $rows = DB::run(
+            "SELECT n.*,
+                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
+             FROM notifications n
+             WHERE n.is_public = 1{$cursorSql}{$searchSql}{$filterSql}
+             {$order}
+             LIMIT {$cap}",
+            $params
+        )->fetchAll();
+
+        return $desc ? $rows : array_reverse($rows);
+    }
+
+    /**
+     * تاریخچه‌ی کاربر با پیمایش keyset — همان استدلال کپ-هر-شاخه‌ی historyForUser
+     * (ردیف در جایگاه p از یک شاخه‌ی مرتب‌شده فقط اگر p<=cap می‌تواند در نتیجه‌ی
+     * سراسری باشد) با اضافه‌شدن شرط cursor به هر شاخه.
+     */
+    public function historyForUserKeyset(int $userId, ?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
+    {
+        $perPage = max(1, min(100, $perPage));
+        $cap     = $perPage + 1;
+        $now     = time();
+        $desc    = $dir !== 'prev';
+
+        $params = [':uid1' => $userId, ':uid2' => $userId, ':now' => $now];
+        $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
+        $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
+        $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
+        $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
+        $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
+        $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
+
+        $c1 = $c2 = $c3 = '';
+        if ($cursor !== null) {
+            $cmp = $desc ? '<' : '>';
+            $params[':cc1'] = $cursor['created_at']; $params[':ci1'] = $cursor['id'];
+            $params[':cc2'] = $cursor['created_at']; $params[':ci2'] = $cursor['id'];
+            $params[':cc3'] = $cursor['created_at']; $params[':ci3'] = $cursor['id'];
+            $c1 = " AND (n.created_at, n.id) {$cmp} (:cc1, :ci1)";
+            $c2 = " AND (n.created_at, n.id) {$cmp} (:cc2, :ci2)";
+            $c3 = " AND (n.created_at, n.id) {$cmp} (:cc3, :ci3)";
+        }
+
+        $order = $desc
+            ? "ORDER BY n.created_at DESC, n.id DESC LIMIT {$cap}"
+            : "ORDER BY n.created_at ASC, n.id ASC LIMIT {$cap}";
+
+        $union = "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$c1}{$s1}{$f1} {$order})
+                   UNION
+                   (SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$c2}{$s2}{$f2} {$order})
+                   UNION
+                   (SELECT n.* FROM notifications n
+                      JOIN notification_badges nb ON nb.notification_id = n.id
+                      JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid1
+                    WHERE 1=1{$c3}{$s3}{$f3} {$order})";
+
+        $outerOrder = $desc ? 'ORDER BY u.created_at DESC, u.id DESC' : 'ORDER BY u.created_at ASC, u.id ASC';
+
+        $rows = DB::run(
+            "SELECT u.*,
+                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read,
+                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at <  u.updated_at THEN 1 ELSE 0 END AS is_edited,
+                    CASE WHEN u.expires_at > 0 AND u.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
+             FROM ({$union}) u
+             LEFT JOIN notification_reads r ON r.notification_id = u.id AND r.user_id = :uid2
+             {$outerOrder}
+             LIMIT {$cap}",
+            $params
+        )->fetchAll();
+
+        return $desc ? $rows : array_reverse($rows);
+    }
+
+    /**
+     * لیست ادمین با پیمایش keyset (معادل allForAdminPaginated برای فلش Prev/Next مجاور)
+     */
+    public function allForAdminKeyset(?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
+    {
+        $perPage = max(1, min(100, $perPage));
+        $cap     = $perPage + 1;
+        $now     = time();
+        $desc    = $dir !== 'prev';
+
+        $params    = [':now' => $now];
+        $searchSql = $this->buildSearchClause($search, $params);
+        $filterSql = $this->buildHistoryFilters($filters, $params);
+
+        $cursorSql = '';
+        if ($cursor !== null) {
+            $cmp = $desc ? '<' : '>';
+            $params[':cc'] = $cursor['created_at'];
+            $params[':ci'] = $cursor['id'];
+            $cursorSql = " AND (n.created_at, n.id) {$cmp} (:cc, :ci)";
+        }
+        $order = $desc ? 'ORDER BY n.created_at DESC, n.id DESC' : 'ORDER BY n.created_at ASC, n.id ASC';
+
+        $rows = DB::run(
+            "SELECT n.*,
+                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
+             FROM notifications n
+             WHERE 1=1{$cursorSql}{$searchSql}{$filterSql}
+             {$order}
+             LIMIT {$cap}",
+            $params
+        )->fetchAll();
+
+        return $desc ? $rows : array_reverse($rows);
     }
 
     /**
@@ -191,39 +396,56 @@ class NotificationModel
      * تاریخچه اعلان‌ها برای کاربر (شامل منقضی‌شده‌ها) با صفحه‌بندی
      * جهت صفحه notifications.php
      */
+    /**
+     * تاریخچه صفحه‌بندی‌شده برای کاربر لاگین‌کرده.
+     *
+     * برخلاف allActiveForUser (که فید محدود زنگوله است)، این متد باید بتواند به
+     * هر عمقی از تاریخچه برسد؛ پس UNION را بدون کپ کلی نمی‌سازیم. اما محاسبه‌ی
+     * «۱۰ ردیف صفحه‌ی اول» با ساخت کل مجموعه‌ی قابل‌دسترس (که می‌تواند ده‌ها هزار
+     * ردیف باشد) و بعد LIMIT زدن، در مقیاس بزرگ به‌شدت کند است (اندازه‌گیری شد:
+     * ~1.7 ثانیه روی ۱۰۰هزار ردیف). راه‌حل: هر شاخه‌ی UNION را با فیلتر/جستجوی
+     * خودش، ORDER BY created_at DESC و LIMIT (offset+perPage) کپ می‌کنیم — چون
+     * یک ردیف در جایگاه p از یک لیستِ مرتب‌شده‌ی نزولی نمی‌تواند در top-(offset+perPage)
+     * سراسری (اجتماع چند لیست مرتب) باشد مگر p <= offset+perPage. این کپ فقط تا
+     * عمقی که واقعا لازم است (OFFSET صفحه‌ی درخواستی) بزرگ می‌شود؛ برای پیمایش
+     * عمیق (شماره صفحه‌ی خیلی بزرگ) مسیر کرسر/keyset (فاز ۳) استفاده می‌شود که
+     * اصلا به این کپ وابسته نیست.
+     */
     public function historyForUser(int $userId, int $page, int $perPage, string $search = '', array $filters = []): array
     {
         $page    = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset  = ($page - 1) * $perPage;
+        $now     = time();
+        $cap     = $offset + $perPage;
 
-        $params = [
-            ':now2' => time(),
-            ':uid2' => $userId,
-            ':uid3' => $userId,
-        ];
-        $searchSql = $this->buildSearchClause($search, $params);
-        $filterSql = $this->buildHistoryFilters($filters, $params);
+        $params = [':uid1' => $userId, ':uid2' => $userId, ':now' => $now];
+        $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
+        $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
+        $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
+        $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
+        $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
+        $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
+        $order = "ORDER BY n.created_at DESC, n.id DESC LIMIT {$cap}";
 
-        $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
+        $union = "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$s1}{$f1} {$order})
+                   UNION
+                   (SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$s2}{$f2} {$order})
+                   UNION
+                   (SELECT n.* FROM notifications n
+                      JOIN notification_badges nb ON nb.notification_id = n.id
+                      JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid1
+                    WHERE 1=1{$s3}{$f3} {$order})";
 
         return DB::run(
-            'SELECT DISTINCT n.*,
-                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= n.updated_at THEN 1 ELSE 0 END AS is_read,
-                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at <  n.updated_at THEN 1 ELSE 0 END AS is_edited,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now2 THEN 1 ELSE 0 END AS is_expired
-             FROM notifications n
-             LEFT JOIN notification_badges nb ON nb.notification_id = n.id
-             LEFT JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid2
-             LEFT JOIN notification_reads   r  ON r.notification_id = n.id AND r.user_id = :uid3
-             WHERE (
-                   n.is_public        = 1
-                   OR n.target_all_users = 1
-                   OR ca.user_id      IS NOT NULL
-               )
-             ' . $searchSql . $filterSql . '
-             ORDER BY n.created_at DESC, n.id DESC
-             ' . $limitSql,
+            "SELECT u.*,
+                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read,
+                    CASE WHEN r.notification_id IS NOT NULL AND r.read_at <  u.updated_at THEN 1 ELSE 0 END AS is_edited,
+                    CASE WHEN u.expires_at > 0 AND u.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
+             FROM ({$union}) u
+             LEFT JOIN notification_reads r ON r.notification_id = u.id AND r.user_id = :uid2
+             ORDER BY u.created_at DESC, u.id DESC
+             LIMIT {$perPage} OFFSET {$offset}",
             $params
         )->fetchAll();
     }
@@ -233,21 +455,14 @@ class NotificationModel
      */
     public function historyCountForUser(int $userId, string $search = '', array $filters = []): int
     {
-        $params    = [':uid2' => $userId];
-        $searchSql = $this->buildSearchClause($search, $params);
-        $filterSql = $this->buildHistoryFilters($filters, $params);
+        // فقط ستون‌های لازم برای شمارش/فیلتر (نه n.* کامل) — COUNT سبک‌تر
+        $union  = $this->accessibleUnionSql('n.id, n.title, n.body, n.created_at, n.expires_at', 'uid1');
+        $params = [':uid1' => $userId];
+        $searchSql = $this->buildSearchClause($search, $params, 'u');
+        $filterSql = $this->buildHistoryFilters($filters, $params, 'u');
 
         return (int) DB::run(
-            'SELECT COUNT(DISTINCT n.id)
-             FROM notifications n
-             LEFT JOIN notification_badges nb ON nb.notification_id = n.id
-             LEFT JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid2
-             WHERE (
-                   n.is_public        = 1
-                   OR n.target_all_users = 1
-                   OR ca.user_id      IS NOT NULL
-               )
-             ' . $searchSql . $filterSql,
+            "SELECT COUNT(*) FROM ({$union}) u WHERE 1=1{$searchSql}{$filterSql}",
             $params
         )->fetchColumn();
     }
@@ -263,19 +478,14 @@ class NotificationModel
      */
     public function unreadCount(int $userId): int
     {
+        $union = $this->accessibleUnionSql('n.id, n.updated_at', 'uid1');
         return (int) DB::run(
-            'SELECT COUNT(DISTINCT n.id)
-             FROM notifications n
-             LEFT JOIN notification_badges nb ON nb.notification_id = n.id
-             LEFT JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid2
-             LEFT JOIN notification_reads   r  ON r.notification_id = n.id AND r.user_id = :uid3
-             WHERE (r.notification_id IS NULL OR r.read_at < n.updated_at)
-               AND (
-                   n.is_public        = 1
-                   OR n.target_all_users = 1
-                   OR ca.user_id      IS NOT NULL
-               )',
-            [':uid2' => $userId, ':uid3' => $userId]
+            "SELECT COUNT(*) FROM (
+                SELECT u.id FROM ({$union}) u
+                LEFT JOIN notification_reads r ON r.notification_id = u.id AND r.user_id = :uid2
+                WHERE r.notification_id IS NULL OR r.read_at < u.updated_at
+             ) t",
+            [':uid1' => $userId, ':uid2' => $userId]
         )->fetchColumn();
     }
 
@@ -300,39 +510,16 @@ class NotificationModel
      */
     public function markAllRead(int $userId): void
     {
+        $union = $this->accessibleUnionSql('n.id', 'uid2');
         DB::run(
-            'INSERT INTO notification_reads (user_id, notification_id)
-             SELECT DISTINCT :uid, n.id
-             FROM notifications n
-             LEFT JOIN notification_badges nb ON nb.notification_id = n.id
-             LEFT JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid2
-             WHERE (
-                   n.is_public        = 1
-                   OR n.target_all_users = 1
-                   OR ca.user_id      IS NOT NULL
-               )
-             ON DUPLICATE KEY UPDATE read_at = CURRENT_TIMESTAMP',
-            [':uid' => $userId, ':uid2' => $userId]
+            "INSERT INTO notification_reads (user_id, notification_id)
+             SELECT :uid1, u.id FROM ({$union}) u
+             ON DUPLICATE KEY UPDATE read_at = CURRENT_TIMESTAMP",
+            [':uid1' => $userId, ':uid2' => $userId]
         );
     }
 
     // ── Admin Queries ───────────────────────────────────────
-
-    /**
-     * همه اعلان‌ها برای پنل ادمین (با تعداد خوانده‌شده)
-     * توجه: برای دیتاست بزرگ از allForAdminPaginated استفاده کنید.
-     */
-    public function allForAdmin(): array
-    {
-        return DB::run(
-            'SELECT n.*,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
-             FROM notifications n
-             ORDER BY n.created_at DESC, n.id DESC
-             LIMIT 500',
-            [':now' => time()]
-        )->fetchAll();
-    }
 
     /**
      * اعلان‌های پنل ادمین با صفحه‌بندی واقعی سمت سرور و جستجوی اختیاری

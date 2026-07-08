@@ -304,7 +304,7 @@ header, main { position: relative; z-index: 1; }
    کارت‌های ابزار (.card) که عمدا ریپل ندارند. مشترک با admin.css. */
 .hdr-btn, .user-menu-btn, .chip, .auth-btn, .user-menu-item,
 .notif-drop-item, .login-submit-btn, .profile-submit-btn, .login-tab,
-.npag-btn, .notif-view-btn, .notif-row, .notif-search-btn,
+.pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-row, .notif-search-btn,
 .notif-adv-toggle, .notif-adv-apply,
 .notif-drop-view-all, .notif-detail-view-all, .notif-detail-close-btn,
 .notif-detail-close, .header-search-close, .clear-button,

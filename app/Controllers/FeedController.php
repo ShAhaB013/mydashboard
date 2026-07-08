@@ -10,34 +10,35 @@ declare(strict_types=1);
 class FeedController
 {
     // ── notifications: اعلان‌های فعال قابل نمایش برای کاربر/مهمان جاری ──
+    //
+    // ETag ارزان‌قیمت: چون این endpoint هر ۲۵ ثانیه توسط پنل زنگوله poll می‌شود
+    // (هم مهمان هم کاربر لاگین‌شده)، ابتدا فقط یک کوئری سبک (id/updated_at/is_read)
+    // اجرا و از آن ETag ساخته می‌شود؛ کوئری کامل + badges + serialize فقط وقتی
+    // اجرا می‌شود که این fingerprint با If-None-Match مطابقت نداشته باشد — یعنی
+    // در حالت پرتکرارِ «چیزی عوض نشده»، هزینه‌ی سنگین اصلا پرداخت نمی‌شود.
     public function notifications(): void
     {
         $nm         = new NotificationModel();
         $isLoggedIn = UserSession::check();
+        $uid        = $isLoggedIn ? UserSession::id() : 0;
 
         if ($isLoggedIn) {
-            $rows = $nm->allActiveForUser(UserSession::id());
-            // badgeها را به‌جای N کوئری مجزا، در یک کوئری دسته‌ای می‌گیریم (مثل bootstrap)
-            $ids      = array_map(fn($r) => (int) $r['id'], $rows);
-            $badgeMap = $nm->getBadgesForIds($ids);
-            $result   = [];
-            foreach ($rows as $row) {
-                $badges   = $badgeMap[(int) $row['id']] ?? [];
-                $result[] = NotificationModel::toFrontend($row, $badges);
-            }
-            $tag = 'notif-u' . UserSession::id();
+            $fp          = $nm->activeUserFingerprint($uid);
+            $tag         = 'notif-u' . $uid;
+            $fingerprint = implode('|', array_map(
+                static fn($r) => $r['id'] . ':' . $r['updated_at'] . ':' . $r['is_read'],
+                $fp
+            ));
         } else {
-            $rows   = $nm->allForGuest();
-            $result = [];
-            foreach ($rows as $row) {
-                $result[] = NotificationModel::toFrontend($row, []);
-            }
-            $tag = 'notif-guest';
+            $fp          = $nm->guestFingerprint();
+            $tag         = 'notif-guest';
+            $fingerprint = implode('|', array_map(
+                static fn($r) => $r['id'] . ':' . $r['created_at'],
+                $fp
+            ));
         }
 
-        // ETag/۳۰۴ برای هر دو حالت: poll و ناوبری اگر اعلانی عوض نشده باشد، ۳۰۴ می‌گیرند نه کل لیست
-        $body       = json_encode(['ok' => true, 'notifications' => $result], JSON_UNESCAPED_UNICODE);
-        $etag       = '"' . $tag . '-' . md5($body) . '"';
+        $etag       = '"' . $tag . '-' . md5($fingerprint) . '"';
         $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
 
         header($isLoggedIn
@@ -49,7 +50,27 @@ class FeedController
             http_response_code(304);
             exit;
         }
-        echo $body;
+
+        // فقط این‌جا (fingerprint مغایر) کوئری کامل + badges + serialize اجرا می‌شود
+        if ($isLoggedIn) {
+            $rows = $nm->allActiveForUser($uid);
+            // badgeها را به‌جای N کوئری مجزا، در یک کوئری دسته‌ای می‌گیریم (مثل bootstrap)
+            $ids      = array_map(fn($r) => (int) $r['id'], $rows);
+            $badgeMap = $nm->getBadgesForIds($ids);
+            $result   = [];
+            foreach ($rows as $row) {
+                $badges   = $badgeMap[(int) $row['id']] ?? [];
+                $result[] = NotificationModel::toFrontend($row, $badges);
+            }
+        } else {
+            $rows   = $nm->allForGuest();
+            $result = [];
+            foreach ($rows as $row) {
+                $result[] = NotificationModel::toFrontend($row, []);
+            }
+        }
+
+        echo json_encode(['ok' => true, 'notifications' => $result], JSON_UNESCAPED_UNICODE);
     }
 
     // ── unread_count: تعداد اعلان‌های خوانده‌نشده — فقط کاربران لاگین‌کرده ──

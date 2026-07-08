@@ -420,15 +420,33 @@ const UserManager = {
     }
 
     const items = [];
-    items.push(`<button class="pg-btn" ${cur === 1 ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur - 1}" aria-label="قبلی"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>`);
+    items.push(`<button class="pagination-btn" ${cur === 1 ? 'aria-disabled="true"' : ''} data-act="userGoToPage" data-page="${cur - 1}" aria-label="قبلی"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>`);
     this._pageRange(cur, pageCount).forEach(p => {
       if (p === '...') {
-        items.push(`<span class="pg-ellipsis">…</span>`);
+        items.push(`<span class="pagination-ellipsis">…</span>`);
       } else {
-        items.push(`<button class="pg-btn ${p === cur ? 'active' : ''}" data-act="userGoToPage" data-page="${p}">${p}</button>`);
+        items.push(`<button class="pagination-btn ${p === cur ? 'active' : ''}" data-act="userGoToPage" data-page="${p}">${p}</button>`);
       }
     });
-    items.push(`<button class="pg-btn" ${cur === pageCount ? 'disabled' : ''} data-act="userGoToPage" data-page="${cur + 1}" aria-label="بعدی"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>`);
+    items.push(`<button class="pagination-btn" ${cur === pageCount ? 'aria-disabled="true"' : ''} data-act="userGoToPage" data-page="${cur + 1}" aria-label="بعدی"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>`);
+    items.push(`
+      <span class="pagination-goto">
+        <label class="pagination-goto-label" for="userGotoInput">برو به صفحه</label>
+        <span class="pagination-goto-field">
+          <input type="number" id="userGotoInput" class="pagination-goto-input" min="1" max="${pageCount}"
+            value="${cur}" aria-label="شماره صفحه" data-keydown="userGoToInputKey">
+          <span class="pagination-goto-stepper">
+            <button type="button" class="pagination-goto-spin" tabindex="-1" aria-label="افزایش شماره صفحه"
+              data-act="userGoToStep" data-dir="1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+            <button type="button" class="pagination-goto-spin" tabindex="-1" aria-label="کاهش شماره صفحه"
+              data-act="userGoToStep" data-dir="-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </span>
+        </span>
+      </span>`);
 
     pag.innerHTML = items.join('');
     pag.classList.remove('hidden');
@@ -450,6 +468,30 @@ const UserManager = {
     p = Math.min(Math.max(1, p), this._pageCount);
     if (p === this._page) return;
     this.load(p).then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  },
+
+  goToInputValue() {
+    const inp = document.getElementById('userGotoInput');
+    if (!inp) return;
+    const n = parseInt(inp.value, 10);
+    if (!Number.isFinite(n) || n < 1) return;
+    this.goToPage(n);
+  },
+
+  goToInputKey(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    this.goToInputValue();
+  },
+
+  goToStep(dir) {
+    const inp = document.getElementById('userGotoInput');
+    if (!inp) return;
+    const cur = parseInt(inp.value, 10);
+    const base = Number.isFinite(cur) ? cur : this._page;
+    const n = base + dir;
+    inp.value = Math.min(Math.max(1, n), this._pageCount);
+    this.goToInputValue();
   },
 
   // ── جستجو (با debounce) ───────────────────────────────
@@ -1589,6 +1631,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════
 (function () {
   const SEL = '.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn,'
+    + ' .pagination-btn, .pagination-goto-spin,'
     + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close,'
     + ' .user-adv-toggle, .user-search-clear, .toast-close, .pass-gen';
   document.addEventListener('pointerdown', function (e) {
@@ -1670,6 +1713,8 @@ if (window.Actions) {
     userApplyFilters:   () => UserManager.applyFilters(),
     userResetFilters:   () => UserManager.resetFilters(),
     userGoToPage:       (el) => UserManager.goToPage(parseInt(el.dataset.page, 10)),
+    userGoToStep:       (el) => UserManager.goToStep(parseInt(el.dataset.dir, 10)),
+    userGoToInputKey:   (el, e) => UserManager.goToInputKey(e),
     togglePass:         (el) => togglePass(el.dataset.target, el),
     genUserPassword:    (el) => genUserPassword(el),
     closeModal:         (el) => closeModal(el.dataset.modal),

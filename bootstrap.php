@@ -36,6 +36,7 @@ spl_autoload_register(function (string $class): void {
             'Mailer'                 => $core . 'Mailer.php',
             'ResendThrottle'         => $core . 'ResendThrottle.php',
             'Crypto'                 => $core . 'Crypto.php',
+            'Cursor'                 => $core . 'Cursor.php',
             // ── Models ────────────────────────────────────
             'ToolModel'              => $mdl . 'ToolModel.php',
             'IconModel'              => $mdl . 'IconModel.php',

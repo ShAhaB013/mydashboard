@@ -353,6 +353,8 @@ const NM = {
   _fStatus:       '',
   _total:         0,
   _pageCount:     1,
+  _nextCursor:    null,
+  _prevCursor:    null,
   _loading:       false,
   _searchTimer:   null,
 
@@ -399,9 +401,11 @@ const NM = {
 
     this._notifications = res.notifications || [];
     const pg = res.pagination || {};
-    this._total     = pg.total      ?? this._notifications.length;
-    this._pageCount  = pg.page_count ?? 1;
-    this._page       = pg.page       ?? this._page;
+    this._total       = pg.total       ?? this._notifications.length;
+    this._pageCount    = pg.page_count  ?? 1;
+    this._page         = pg.page        ?? this._page;
+    this._nextCursor   = pg.next_cursor ?? null;
+    this._prevCursor    = pg.prev_cursor ?? null;
 
     // اگر صفحه فعلی خالی شد (مثلا بعد از حذف آخرین آیتم صفحه)، یک صفحه عقب برو
     if (!this._notifications.length && this._page > 1) {
@@ -409,6 +413,37 @@ const NM = {
     }
 
     this._render();
+  },
+
+  /** پیمایش فلش Prev/Next مجاور با cursor (keyset) — سریع در هر عمقی، برخلاف load(page) که OFFSET دارد */
+  async loadCursor(cursor, dir) {
+    if (this._loading || !cursor) return;
+    this._loading = true;
+    this._renderSkeleton();
+
+    const res = await apiCall('list_notifications', {
+      cursor,
+      dir,
+      per_page:  this._perPage,
+      search:    this._search,
+      date_from: this._fDateFrom,
+      date_to:   this._fDateTo,
+      status:    this._fStatus,
+    });
+
+    this._loading = false;
+    if (!res.ok) { Toast.show(res.msg || 'خطا در بارگذاری', 'error'); return; }
+
+    this._notifications = res.notifications || [];
+    const pg = res.pagination || {};
+    this._total       = pg.total       ?? this._notifications.length;
+    this._pageCount    = pg.page_count  ?? 1;
+    this._page         = null; // در مسیر cursor شماره‌ی صفحه‌ی دقیق مشخص نیست
+    this._nextCursor   = pg.next_cursor ?? null;
+    this._prevCursor    = pg.prev_cursor ?? null;
+
+    this._render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
   _render() {
@@ -440,13 +475,15 @@ const NM = {
     this._renderPagination();
   },
 
-  // ── Pagination (سمت سرور) ─────────────────────────────
+  // ── Pagination (سمت سرور، هیبرید cursor+OFFSET) ────────
+  // فلش Prev/Next مجاور از cursor استفاده می‌کند (سریع در هر عمقی)؛ شماره‌ی
+  // صفحه و «برو به صفحه» از page=N (OFFSET) — طبق تصمیم هیبریدِ پروژه.
   _renderPagination() {
     const pag  = document.getElementById('notifPagination');
     const info = document.getElementById('notifPageInfo');
     const total     = this._total;
     const pageCount = this._pageCount;
-    const cur       = this._page;
+    const cur       = this._page; // ممکن است بعد از loadCursor() نامعلوم (null) باشد
     const shown     = this._notifications.length;
 
     if (total === 0) {
@@ -456,10 +493,11 @@ const NM = {
       return;
     }
 
-    const start = (cur - 1) * this._perPage;
-    info.textContent = `نمایش ${start + 1} تا ${start + shown} از ${total} اعلان`;
+    info.textContent = cur
+      ? `نمایش ${(cur - 1) * this._perPage + 1} تا ${(cur - 1) * this._perPage + shown} از ${total} اعلان`
+      : `${shown} از ${total} اعلان`;
 
-    if (pageCount <= 1) {
+    if (pageCount <= 1 && !this._nextCursor && !this._prevCursor) {
       pag.classList.add('hidden');
       pag.innerHTML = '';
       return;
@@ -467,24 +505,44 @@ const NM = {
 
     const items = [];
 
-    // دکمه قبلی
-    items.push(`<button class="page-btn" ${cur === 1 ? 'disabled' : ''} data-act="nmGoToPage" data-page="${cur - 1}" title="قبلی">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-    </button>`);
+    items.push(this._prevCursor
+      ? `<button class="pagination-btn" data-act="nmGoToCursor" data-cursor="${this._escAttr(this._prevCursor)}" data-dir="prev" aria-label="قبلی">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+         </button>`
+      : `<span class="pagination-btn" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></span>`);
 
-    // بازه صفحات با ... برای تعداد زیاد
-    this._pageRange(cur, pageCount).forEach(p => {
+    this._pageRange(cur || 1, pageCount).forEach(p => {
       if (p === '...') {
-        items.push(`<span class="page-ellipsis">…</span>`);
+        items.push(`<span class="pagination-ellipsis">…</span>`);
       } else {
-        items.push(`<button class="page-btn ${p === cur ? 'active' : ''}" data-act="nmGoToPage" data-page="${p}">${p}</button>`);
+        items.push(`<button class="pagination-btn ${p === cur ? 'active' : ''}" data-act="nmGoToPage" data-page="${p}">${p}</button>`);
       }
     });
 
-    // دکمه بعدی
-    items.push(`<button class="page-btn" ${cur === pageCount ? 'disabled' : ''} data-act="nmGoToPage" data-page="${cur + 1}" title="بعدی">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>`);
+    items.push(this._nextCursor
+      ? `<button class="pagination-btn" data-act="nmGoToCursor" data-cursor="${this._escAttr(this._nextCursor)}" data-dir="next" aria-label="بعدی">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+         </button>`
+      : `<span class="pagination-btn" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></span>`);
+
+    items.push(`
+      <span class="pagination-goto">
+        <label class="pagination-goto-label" for="notifGotoInput">برو به صفحه</label>
+        <span class="pagination-goto-field">
+          <input type="number" id="notifGotoInput" class="pagination-goto-input" min="1" max="${pageCount}"
+            value="${cur || ''}" aria-label="شماره صفحه" data-keydown="nmGoToInputKey">
+          <span class="pagination-goto-stepper">
+            <button type="button" class="pagination-goto-spin" tabindex="-1" aria-label="افزایش شماره صفحه"
+              data-act="nmGoToStep" data-dir="1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+            <button type="button" class="pagination-goto-spin" tabindex="-1" aria-label="کاهش شماره صفحه"
+              data-act="nmGoToStep" data-dir="-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </span>
+        </span>
+      </span>`);
 
     pag.innerHTML = items.join('');
     pag.classList.remove('hidden');
@@ -511,6 +569,34 @@ const NM = {
     this.load(p).then(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+  },
+
+  goToCursor(cursor, dir) {
+    this.loadCursor(cursor, dir);
+  },
+
+  goToInputValue() {
+    const inp = document.getElementById('notifGotoInput');
+    if (!inp) return;
+    const n = parseInt(inp.value, 10);
+    if (!Number.isFinite(n) || n < 1) return;
+    this.goToPage(n);
+  },
+
+  goToInputKey(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    this.goToInputValue();
+  },
+
+  goToStep(dir) {
+    const inp = document.getElementById('notifGotoInput');
+    if (!inp) return;
+    const cur = parseInt(inp.value, 10);
+    const base = Number.isFinite(cur) ? cur : (this._page || 1);
+    const n = base + dir;
+    inp.value = Math.min(Math.max(1, n), this._pageCount);
+    this.goToInputValue();
   },
 
   // ── جستجو (با debounce) ───────────────────────────────
@@ -1144,6 +1230,9 @@ if (window.Actions) {
     nmCloseConfirm:   () => NM.cancelConfirm(),
     nmRunAsk:         () => NM._runAsk(),
     nmGoToPage:       (el) => NM.goToPage(parseInt(el.dataset.page, 10)),
+    nmGoToCursor:     (el) => NM.goToCursor(el.dataset.cursor, el.dataset.dir),
+    nmGoToStep:       (el) => NM.goToStep(parseInt(el.dataset.dir, 10)),
+    nmGoToInputKey:   (el, e) => NM.goToInputKey(e),
     nmOpenEdit:       (el) => NM.openEdit(parseInt(el.dataset.id, 10)),
     nmOpenDelete:     (el) => NM.openDelete(parseInt(el.dataset.id, 10), el.dataset.title),
   });
@@ -1236,7 +1325,8 @@ document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(
 // ── افکت ripple (موج کلیک) — این صفحه admin.js را لود نمی‌کند پس هندلر اینجا تکرار می‌شود ──
 (function () {
   const SEL = '.btn, .hdr-btn, .btn-icon, .notif-row, .nm-adv-toggle,'
-    + ' .cselect-option, .pg-btn, .nm-pag-btn, .modal-close, .notif-search-clear, .toast-close';
+    + ' .cselect-option, .pg-btn, .nm-pag-btn, .pagination-btn, .pagination-goto-spin,'
+    + ' .modal-close, .notif-search-clear, .toast-close';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;

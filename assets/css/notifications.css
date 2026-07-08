@@ -354,25 +354,7 @@
     }
     .notif-empty a:hover { background: var(--color-accent-bg-hover); }
 
-    /* ── Pagination ── */
-    .notif-pagination {
-      display: flex; align-items: center; justify-content: center;
-      gap: 6px; margin-top: 28px; flex-wrap: wrap;
-    }
-    .npag-btn {
-      font-family: 'DashboardFont', sans-serif;
-      font-size: 13px; font-weight: 600;
-      height: 36px; min-width: 36px; padding: 0 12px;
-      border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
-      background: var(--color-bg-card); color: var(--color-text-secondary);
-      cursor: pointer; text-decoration: none;
-      display: inline-flex; align-items: center; justify-content: center;
-      transition: background var(--transition), color var(--transition), border-color var(--transition);
-    }
-    .npag-btn:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
-    .npag-btn.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); cursor: default; }
-    .npag-btn.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
-    .npag-dots { font-size: 13px; color: var(--color-text-muted); padding: 0 4px; }
+    /* صفحه‌بندی: کامپوننت مشترک .pagination/.pagination-btn در assets/css/pagination.css */
 
     /* ── Search highlight (هماهنگ با تم) ── */
     mark {
