@@ -13,6 +13,7 @@ $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
 $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 $v_field = asset_v(__DIR__ . '/assets/js/field.js');
 $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
+$v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -185,6 +186,17 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
               </button>
             </div>
             <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
+            <!-- چک‌لیست زنده‌ی قوانین رمز عبور (هنگام focus/تایپ به‌روز می‌شود) -->
+            <div class="pass-rules" id="fpPassRules" aria-live="polite" hidden>
+              <div class="pass-rules-title">قوانین رمز عبور</div>
+              <ul class="pass-rules-list">
+                <li class="pass-rule" data-rule="len"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">بین ۱۰ تا ۶۴ کاراکتر</span></li>
+                <li class="pass-rule" data-rule="lower"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک حرف کوچک انگلیسی (a-z)</span></li>
+                <li class="pass-rule" data-rule="upper"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک حرف بزرگ انگلیسی (A-Z)</span></li>
+                <li class="pass-rule" data-rule="digit"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک عدد</span></li>
+                <li class="pass-rule" data-rule="special"><span class="pass-rule-ic" aria-hidden="true"></span><span class="pass-rule-txt">حداقل یک نماد (مانند ‎!@#$‎)</span></li>
+              </ul>
+            </div>
           </div>
           <div class="field" data-state="idle">
             <label class="field-label" for="fpConfirm">تکرار رمز عبور</label>
@@ -227,6 +239,7 @@ $v_loginjs = asset_v(__DIR__ . '/assets/js/login.js');
 
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>
+  <script src="/assets/js/password-policy.js?v=<?= $v_pwpolicy ?>"></script>
   <script src="/assets/js/login.js?v=<?= $v_loginjs ?>"></script>
 
 </body>

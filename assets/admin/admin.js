@@ -1185,38 +1185,11 @@ function togglePass(inputId, btn) {
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 }
 
-/* ── قوانین رمز عبور (منبع یگانه — هم‌راستا با PasswordPolicy سمت سرور) ── */
-const PW_RULES = [
-  { key: 'len',     test: v => v.length >= 10 && v.length <= 64 },
-  { key: 'lower',   test: v => /[a-z]/.test(v) },
-  { key: 'upper',   test: v => /[A-Z]/.test(v) },
-  { key: 'digit',   test: v => /[0-9]/.test(v) },
-  { key: 'special', test: v => /[^A-Za-z0-9]/.test(v) },
-];
+/* ── قوانین رمز عبور + تولید رمز تصادفی: از ماژول مشترک password-policy.js ── */
 const PW_POLICY_MSG = 'رمز عبور باید بین ۱۰ تا ۶۴ کاراکتر و شامل حروف کوچک و بزرگ انگلیسی، عدد و نماد باشد.';
-const RULE_OK_IC =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
-const RULE_PENDING_IC =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>';
-
-function pwMeetsPolicy(val) {
-  return !!val && PW_RULES.every(r => r.test(val));
-}
-
-/* به‌روزرسانی زنده‌ی چک‌لیستِ قوانینِ فیلد رمزِ مودالِ کاربر */
-function updatePassRules(val) {
-  const panel = document.getElementById('editPassRules');
-  if (!panel) return;
-  panel.hidden = false;
-  PW_RULES.forEach(r => {
-    const row = panel.querySelector('.pass-rule[data-rule="' + r.key + '"]');
-    if (!row) return;
-    const ok = r.test(val);
-    row.classList.toggle('is-ok', ok);
-    const ic = row.querySelector('.pass-rule-ic');
-    if (ic) ic.innerHTML = ok ? RULE_OK_IC : RULE_PENDING_IC;
-  });
-}
+function pwMeetsPolicy(val) { return PasswordPolicy.meets(val); }
+function updatePassRules(val) { PasswordPolicy.updateChecklist('editPassRules', val); }
+function genUserPassword(el) { PasswordPolicy.generate(el.dataset.target, null, 'editPassRules'); }
 
 // ═══════════════════════════════════════════════════════════
 // SecurityManager — انسداد ورود (Rate limit): مشاهده لاگ و رفع انسداد
@@ -1617,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', () => {
 (function () {
   const SEL = '.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn,'
     + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close,'
-    + ' .user-adv-toggle, .user-search-clear, .toast-close';
+    + ' .user-adv-toggle, .user-search-clear, .toast-close, .pass-gen';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
@@ -1698,6 +1671,7 @@ if (window.Actions) {
     userResetFilters:   () => UserManager.resetFilters(),
     userGoToPage:       (el) => UserManager.goToPage(parseInt(el.dataset.page, 10)),
     togglePass:         (el) => togglePass(el.dataset.target, el),
+    genUserPassword:    (el) => genUserPassword(el),
     closeModal:         (el) => closeModal(el.dataset.modal),
     // دسترسی
     accessOpen:         (el) => openAccessModal(+el.dataset.id, el.dataset.name),

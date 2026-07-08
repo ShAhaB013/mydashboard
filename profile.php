@@ -19,6 +19,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 $v_profilecss = asset_v(__DIR__ . '/assets/css/profile.css');
 $v_profilejs  = asset_v(__DIR__ . '/assets/js/profile.js');
 $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
+$v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -116,6 +117,9 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
           <div class="field-box" dir="ltr">
             <input type="password" id="newPassword" class="field-input" placeholder="رمز عبور جدید"
                    autocomplete="new-password" maxlength="64">
+            <button type="button" class="login-pass-gen" aria-label="تولید رمز تصادفی" title="تولید رمز تصادفی" data-act="genPassword" data-target="newPassword" data-confirm="confirmPassword">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-5.14-1.32a.5.5 0 0 1 0-.97L8.5 10.44A2 2 0 0 0 9.94 9l1.32-5.14a.5.5 0 0 1 .97 0L13.56 9A2 2 0 0 0 15 10.44l5.14 1.32a.5.5 0 0 1 0 .97L15 14.06a2 2 0 0 0-1.44 1.44l-1.32 5.14a.5.5 0 0 1-.97 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></svg>
+            </button>
             <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="newPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -208,6 +212,7 @@ $v_field      = asset_v(__DIR__ . '/assets/js/field.js');
   <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>
+  <script src="/assets/js/password-policy.js?v=<?= $v_pwpolicy ?>"></script>
   <script src="/assets/js/profile.js?v=<?= $v_profilejs ?>"></script>
 
 </body>

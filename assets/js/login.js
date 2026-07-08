@@ -44,6 +44,20 @@
       if (el) el.addEventListener('input', () => clearFieldError(id));
     });
 
+    /* ── چک‌لیست زنده‌ی قوانین رمز عبور (مرحله ۳ فراموشی رمز) ── */
+    (function () {
+      const fpPassword = document.getElementById('fpPassword');
+      if (!fpPassword) return;
+      fpPassword.addEventListener('focus', () => PasswordPolicy.updateChecklist('fpPassRules', fpPassword.value));
+      fpPassword.addEventListener('input', () => PasswordPolicy.updateChecklist('fpPassRules', fpPassword.value));
+      fpPassword.addEventListener('blur', () => {
+        if (!fpPassword.value) {
+          const panel = document.getElementById('fpPassRules');
+          if (panel) panel.hidden = true;
+        }
+      });
+    })();
+
     /* ── آیکن‌های چشم (نمایش/مخفی) ── */
     const EYE_SVG     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
     const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
@@ -57,35 +71,12 @@
       btn.innerHTML = willShow ? EYE_OFF_SVG : EYE_SVG;
     }
 
-    /* ── سیاست رمز عبور (هم‌راستا با PasswordPolicy سرور: ۱۰-۶۴ کاراکتر + کوچک/بزرگ/عدد/نماد) ── */
-    function pwMeetsPolicy(val) {
-      return !!val && val.length >= 10 && val.length <= 64
-        && /[a-z]/.test(val) && /[A-Z]/.test(val) && /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val);
-    }
-
-    /* ── تولید رمز تصادفی، قوی و یکتا (Web Crypto) ── */
+    /* ── سیاست رمز عبور + تولید رمز تصادفی: از ماژول مشترک password-policy.js ── */
+    function pwMeetsPolicy(val) { return PasswordPolicy.meets(val); }
     function generatePassword(passId, confirmId) {
-      const U = 'ABCDEFGHJKLMNPQRSTUVWXYZ';   // بدون I,O مبهم
-      const L = 'abcdefghijkmnopqrstuvwxyz';   // بدون l مبهم
-      const D = '23456789';                    // بدون 0,1 مبهم
-      const S = '!@#$%^&*-_=+?';
-      const ALL = U + L + D + S;
-      const rnd = (n) => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
-
-      const len = 14 + rnd(5); // طول ۱۴ تا ۱۸
-      const out = [U[rnd(U.length)], L[rnd(L.length)], D[rnd(D.length)], S[rnd(S.length)]]; // حداقل یکی از هر دسته
-      while (out.length < len) out.push(ALL[rnd(ALL.length)]);
-      for (let i = out.length - 1; i > 0; i--) { const j = rnd(i + 1); [out[i], out[j]] = [out[j], out[i]]; } // درهم‌ریزی
-      const pwd = out.join('');
-
+      PasswordPolicy.generate(passId, confirmId, 'fpPassRules');
       const p = document.getElementById(passId);
-      const c = confirmId ? document.getElementById(confirmId) : null;
-      p.value = pwd; if (c) c.value = pwd;
-      p.type = 'text'; // نمایش رمز تولیدشده تا کاربر ببیند/کپی کند
-      const eye = p.parentElement.querySelector('.login-pass-toggle');
-      if (eye) eye.innerHTML = EYE_OFF_SVG;
-      if (window.Field) Field.set(p, 'success', 'رمز مناسب است');
-      p.focus();
+      if (p && window.Field) Field.set(p, 'success', 'رمز مناسب است');
     }
 
     /* ══ ارسال فرم ورود ══ */

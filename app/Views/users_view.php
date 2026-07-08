@@ -289,8 +289,11 @@
         </div>
         <div class="field">
           <label id="editPassLabel">رمز عبور <span class="req">*</span></label>
-          <div class="pass-wrap">
+          <div class="pass-wrap has-gen">
             <input type="password" id="editUserPassword" placeholder="رمز عبور" autocomplete="new-password" maxlength="64">
+            <button type="button" class="pass-gen" aria-label="تولید رمز تصادفی" title="تولید رمز تصادفی" data-act="genUserPassword" data-target="editUserPassword">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-5.14-1.32a.5.5 0 0 1 0-.97L8.5 10.44A2 2 0 0 0 9.94 9l1.32-5.14a.5.5 0 0 1 .97 0L13.56 9A2 2 0 0 0 15 10.44l5.14 1.32a.5.5 0 0 1 0 .97L15 14.06a2 2 0 0 0-1.44 1.44l-1.32 5.14a.5.5 0 0 1-.97 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></svg>
+            </button>
             <button type="button" class="pass-toggle" aria-label="نمایش/مخفی رمز" data-act="togglePass" data-target="editUserPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -478,6 +481,7 @@
 </script>
 <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/../../assets/js/tooltip.js') ?>" defer></script>
 <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/../../assets/js/actions.js') ?>"></script>
+<script src="/assets/js/password-policy.js?v=<?= asset_v(__DIR__ . '/../../assets/js/password-policy.js') ?>"></script>
 <script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
 
 </body>

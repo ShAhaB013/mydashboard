@@ -313,60 +313,8 @@
       border: 1px solid rgba(239,68,68,.2);
     }
 
-    /* ── چک‌لیست زنده‌ی قوانین رمز عبور ── */
-    .pass-rules {
-      margin-top: 8px;
-      padding: 12px 14px;
-      background: var(--color-bg-primary);
-      border: 1.5px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      animation: passRulesIn .18s ease;
-    }
-    @keyframes passRulesIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .pass-rules-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--color-text-secondary);
-      margin-bottom: 8px;
-    }
-    .pass-rules-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .pass-rule {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12.5px;
-      color: var(--color-text-muted);
-      transition: color var(--transition);
-    }
-    .pass-rule-ic {
-      flex: none;
-      width: 18px;
-      height: 18px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      color: #ef4444;                 /* حالت رعایت‌نشده: قرمز */
-      background: rgba(239, 68, 68, .12);
-      transition: color var(--transition), background var(--transition);
-    }
-    .pass-rule-ic svg { width: 12px; height: 12px; }
-    /* حالت رعایت‌شده: سبز + متنِ روشن‌تر */
-    .pass-rule.is-ok            { color: var(--color-text-secondary); }
-    .pass-rule.is-ok .pass-rule-ic {
-      color: #0ea472;
-      background: rgba(14, 164, 114, .14);
-    }
+    /* چک‌لیست زنده‌ی قوانین رمز عبور: کلاس‌های .pass-rules/.pass-rule/... حالا
+       در style.css مشترک تعریف شده‌اند (استفاده در login.php/profile.php/admin) */
 
     /* ── دکمه متنی «ارسال مجدد» داخل hint ── */
     .profile-link-btn {

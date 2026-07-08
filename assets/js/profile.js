@@ -55,37 +55,13 @@
            </svg>`;
     }
 
-    /* ── قوانین رمز عبور (منبع یگانه سمت کلاینت — هم‌راستا با PasswordPolicy سرور) ── */
-    const PW_RULES = [
-      { key: 'len',     test: v => v.length >= 10 && v.length <= 64 },
-      { key: 'lower',   test: v => /[a-z]/.test(v) },
-      { key: 'upper',   test: v => /[A-Z]/.test(v) },
-      { key: 'digit',   test: v => /[0-9]/.test(v) },
-      { key: 'special', test: v => /[^A-Za-z0-9]/.test(v) },
-    ];
-    const RULE_OK_IC =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
-    const RULE_PENDING_IC =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>';
-
-    /* آیا رمز همه‌ی قوانین را برآورده می‌کند؟ */
-    function pwMeetsPolicy(val) {
-      return !!val && PW_RULES.every(r => r.test(val));
-    }
-
-    /* به‌روزرسانی زنده‌ی چک‌لیست هنگام تایپ */
-    function updatePassRules(val) {
-      const panel = document.getElementById('passRules');
-      if (!panel) return;
-      panel.hidden = false;
-      PW_RULES.forEach(r => {
-        const row = panel.querySelector(`.pass-rule[data-rule="${r.key}"]`);
-        if (!row) return;
-        const ok = r.test(val);
-        row.classList.toggle('is-ok', ok);
-        const ic = row.querySelector('.pass-rule-ic');
-        if (ic) ic.innerHTML = ok ? RULE_OK_IC : RULE_PENDING_IC;
-      });
+    /* ── قوانین رمز عبور + تولید رمز تصادفی: از ماژول مشترک password-policy.js ── */
+    function pwMeetsPolicy(val) { return PasswordPolicy.meets(val); }
+    function updatePassRules(val) { PasswordPolicy.updateChecklist('passRules', val); }
+    function genPassword(el) {
+      PasswordPolicy.generate(el.dataset.target, el.dataset.confirm, 'passRules');
+      const p = document.getElementById(el.dataset.target);
+      if (p && window.Field) Field.set(p, 'success', 'رمز مناسب است');
     }
 
     /* ── نمایش پیام ── */
@@ -303,6 +279,7 @@
     if (window.Actions) {
       Actions.register({
         togglePass:               (el) => togglePass(el.dataset.target, el),
+        genPassword:              (el) => genPassword(el),
         submitChangePassword:     () => submitChangePassword(),
         terminateMyOtherSessions: () => terminateMyOtherSessions(),
         terminateMySession:       (el) => terminateMySession(el.dataset.id),
