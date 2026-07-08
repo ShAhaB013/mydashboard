@@ -97,6 +97,15 @@ class Validator
         if (mb_strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return 'ایمیل معتبر نیست';
         }
+        $domain = substr(strrchr($email, '@'), 1);
+        if (!EmailDomainRules::isValidTld($domain)) {
+            return 'دامنه ایمیل معتبر نیست';
+        }
+        $suggestion = EmailDomainRules::suggestCorrection($domain);
+        if ($suggestion !== null) {
+            $user = substr($email, 0, strpos($email, '@'));
+            return "به نظر می‌رسد منظورتان {$user}@{$suggestion} بوده؛ لطفا ایمیل را بررسی کنید";
+        }
         return '';
     }
 }

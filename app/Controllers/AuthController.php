@@ -113,8 +113,9 @@ class AuthController
         }
         $body  = json_decode(file_get_contents('php://input'), true) ?? [];
         $email = trim($body['email'] ?? '');
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['ok' => false, 'field' => 'email', 'msg' => 'ایمیل معتبر نیست'], JSON_UNESCAPED_UNICODE);
+        $emailErr = $email === '' ? 'ایمیل معتبر نیست' : Validator::email($email);
+        if ($emailErr !== '') {
+            echo json_encode(['ok' => false, 'field' => 'email', 'msg' => $emailErr], JSON_UNESCAPED_UNICODE);
             return;
         }
 

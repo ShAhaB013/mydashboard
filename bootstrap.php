@@ -29,6 +29,7 @@ spl_autoload_register(function (string $class): void {
             'Router'                 => $core . 'Router.php',
             'PublicRouter'           => $core . 'PublicRouter.php',
             'Validator'              => $core . 'Validator.php',
+            'EmailDomainRules'       => $core . 'EmailDomainRules.php',
             'PasswordPolicy'         => $core . 'PasswordPolicy.php',
             'ImageProcessor'         => $core . 'ImageProcessor.php',
             'RateLimiter'            => $core . 'RateLimiter.php',
