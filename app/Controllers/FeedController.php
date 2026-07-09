@@ -73,17 +73,35 @@ class FeedController
         echo json_encode(['ok' => true, 'notifications' => $result], JSON_UNESCAPED_UNICODE);
     }
 
-    // ── unread_count: تعداد اعلان‌های خوانده‌نشده — فقط کاربران لاگین‌کرده ──
+    // ── unread_count: تعداد اعلان‌های خوانده‌نشده — با پشتیبانی ETag/304 ──
+    // (مثل notifications() بالا: چون این endpoint هر ۲۵ ثانیه poll می‌شود،
+    // خودِ عدد count به‌عنوان ETag کافی است — نیازی به فینگرپرینت جدا نیست)
     public function unreadCount(): void
     {
-        if (!UserSession::check()) {
-            echo json_encode(['ok' => true, 'count' => 0, 'logged_in' => false], JSON_UNESCAPED_UNICODE);
-            return;
+        $isLoggedIn = UserSession::check();
+        $count      = 0;
+        $tag        = 'notif-count-guest';
+
+        if ($isLoggedIn) {
+            $nm    = new NotificationModel();
+            $count = $nm->unreadCount(UserSession::id());
+            $tag   = 'notif-count-u' . UserSession::id();
         }
-        $nm    = new NotificationModel();
-        $count = $nm->unreadCount(UserSession::id());
-        header('Cache-Control: private, no-store');
-        echo json_encode(['ok' => true, 'count' => $count, 'logged_in' => true], JSON_UNESCAPED_UNICODE);
+
+        $etag       = '"' . $tag . '-' . $count . '"';
+        $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
+
+        header($isLoggedIn
+            ? 'Cache-Control: private, max-age=0, must-revalidate'
+            : 'Cache-Control: public, max-age=60');
+        header('ETag: ' . $etag);
+
+        if ($clientEtag === $etag) {
+            http_response_code(304);
+            exit;
+        }
+
+        echo json_encode(['ok' => true, 'count' => $count, 'logged_in' => $isLoggedIn], JSON_UNESCAPED_UNICODE);
     }
 
     // ── mark_read: علامت‌گذاری یک اعلان به‌عنوان خوانده‌شده ──

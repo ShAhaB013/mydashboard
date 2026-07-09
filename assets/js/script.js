@@ -1609,13 +1609,15 @@ const AdminTools = {
     const menu  = document.getElementById('tmBadgeMenu');
     const input = document.getElementById('tmBadge');
     if (!menu) return;
-    const q     = ((input && input.value) || '').trim().toLowerCase();
+    const rawQ  = ((input && input.value) || '').trim();
+    const q     = rawQ.toLowerCase();
     const list  = (this._badgeList || []).filter(b => !q || b.toLowerCase().includes(q));
     menu.innerHTML = '';
     if (!list.length) {
       const empty = document.createElement('div');
       empty.className = 'tm-combo-empty';
-      empty.textContent = q ? 'دسته‌بندی مطابقی یافت نشد' : 'دسته‌بندی‌ای ثبت نشده';
+      // این حالت خطا نیست: تایپ نامی که در لیست نبود یعنی یک دسته‌بندی تازه ساخته می‌شود.
+      empty.textContent = rawQ ? `دسته‌بندی «${rawQ}» به‌عنوان دسته جدید ثبت می‌شود` : 'دسته‌بندی‌ای ثبت نشده';
       menu.appendChild(empty);
       return;
     }

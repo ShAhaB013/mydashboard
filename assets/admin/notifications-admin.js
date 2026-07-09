@@ -757,6 +757,7 @@ const NM = {
   // ── Form ──────────────────────────────────────────────
   _resetForm() {
     document.getElementById('nf-title').value        = '';
+    this._updateTitleCounter();
     RTE.setHTML('');
     document.getElementById('nf-expires-date').value = '';
     if (window.ThemedDatePicker) ThemedDatePicker.refresh(document.getElementById('nf-expires-date'));
@@ -794,6 +795,7 @@ const NM = {
     this._resetForm();
 
     document.getElementById('nf-title').value       = n.title   || '';
+    this._updateTitleCounter();
     RTE.setHTML(n.body || '');
     document.getElementById('nf-public').checked    = !!n.is_public;
     document.getElementById('nf-all-users').checked = !!n.target_all_users;
@@ -855,6 +857,22 @@ const NM = {
     const mark = () => this._markDirty();
     modal.addEventListener('input',  mark);
     modal.addEventListener('change', mark);
+  },
+
+  // ── شمارنده زنده کاراکتر عنوان اعلان (مثل RTE._updateCounter) ──
+  _updateTitleCounter() {
+    const input = document.getElementById('nf-title');
+    const cEl   = document.getElementById('titleCount');
+    const wrap  = document.getElementById('titleCounter');
+    if (!input) return;
+    const len = input.value.length;
+    if (cEl)  cEl.textContent = len.toLocaleString('en-US');
+    if (wrap) wrap.classList.toggle('over', len > 200);
+  },
+  _initTitleCounter() {
+    const input = document.getElementById('nf-title');
+    if (!input) return;
+    input.addEventListener('input', () => this._updateTitleCounter());
   },
 
   closeForm(force = false) {
@@ -1320,7 +1338,7 @@ const CSelect = {
 };
 document.addEventListener('click', () => document.querySelectorAll('.cselect.open').forEach(w => w.classList.remove('open')));
 
-document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(); NM._initPerPage(); CSelect.enhanceAll(); NM.load(); });
+document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(); NM._initTitleCounter(); NM._initPerPage(); CSelect.enhanceAll(); NM.load(); });
 
 // ── افکت ripple (موج کلیک) — این صفحه admin.js را لود نمی‌کند پس هندلر اینجا تکرار می‌شود ──
 (function () {

@@ -148,6 +148,9 @@
       <div class="field">
         <label for="nf-title">عنوان <span class="req">*</span></label>
         <input type="text" id="nf-title" placeholder="عنوان اعلان" maxlength="200">
+        <div class="rte-counter" id="titleCounter">
+          <span class="rte-counter-nums" dir="ltr"><span id="titleCount">0</span> / 200</span> کاراکتر
+        </div>
       </div>
 
       <div class="field">
