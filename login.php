@@ -119,7 +119,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
-        <button type="button" class="login-forgot-link" id="forgotLink">فراموشی رمز عبور؟</button>
+        <button type="button" class="login-forgot-link" id="forgotLink">بازیابی رمز عبور</button>
 
         <p class="login-error" id="loginError" aria-live="polite"></p>
 

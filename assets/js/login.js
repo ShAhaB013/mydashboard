@@ -77,6 +77,10 @@
       PasswordPolicy.generate(passId, confirmId, 'fpPassRules');
       const p = document.getElementById(passId);
       if (p && window.Field) Field.set(p, 'success', 'رمز مناسب است');
+      // رمز تولیدشده در فیلد تکرار هم کپی می‌شود؛ پس باکس تکرار هم باید سبز شود
+      // (وگرنه با خطای قبلیِ «یکسان نیست» قرمز باقی می‌ماند).
+      const c = confirmId && document.getElementById(confirmId);
+      if (c && window.Field) Field.set(c, 'success', 'یکسان است');
     }
 
     /* ══ ارسال فرم ورود ══ */

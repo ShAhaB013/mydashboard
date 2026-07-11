@@ -10,6 +10,13 @@
     })();
     /* سوییچ تم بدون لگ + همگام بین تب‌ها در theme.js انجام می‌شود. */
 
+    /* تا کاربر مشغول ویرایش نام/نام‌خانوادگی است، پول دوره‌ای نباید مقدار
+       تایپ‌شده‌ی هنوز ذخیره‌نشده را رونویسی کند. */
+    let nameFieldsDirty = false;
+    /* آخرین مقدار تایید‌شده از سرور — برای تشخیص «بدون تغییر» هنگام ثبت. */
+    let originalFirstName = '';
+    let originalLastName  = '';
+
     /* ── نمایش اطلاعات کاربر ── */
     async function loadProfile() {
       try {
@@ -27,8 +34,18 @@
         document.getElementById('profileDisplayName').textContent = display;
         document.getElementById('profileEmail').textContent       = data.email || '—';
         document.getElementById('profileAdminBadge').hidden = !data.is_admin;
+        originalFirstName = data.first_name || '';
+        originalLastName  = data.last_name  || '';
+        if (!nameFieldsDirty) {
+          const fn = document.getElementById('firstName');
+          const ln = document.getElementById('lastName');
+          if (fn) fn.value = originalFirstName;
+          if (ln) ln.value = originalLastName;
+        }
         const head = document.getElementById('profileCardHead');
         if (head) head.classList.remove('is-loading');
+        const nameTab = document.getElementById('tabPanel-name');
+        if (nameTab) nameTab.classList.remove('is-loading');
 
       } catch {
         window.location.href = 'index.php';
@@ -61,41 +78,28 @@
       PasswordPolicy.generate(el.dataset.target, el.dataset.confirm, 'passRules');
       const p = document.getElementById(el.dataset.target);
       if (p && window.Field) Field.set(p, 'success', 'رمز مناسب است');
+      // رمز تولیدشده در فیلد تکرار هم کپی می‌شود؛ پس باکس تکرار هم باید سبز شود
+      // (وگرنه با خطای قبلیِ «یکسان نیست» قرمز باقی می‌ماند).
+      const c = el.dataset.confirm && document.getElementById(el.dataset.confirm);
+      if (c && window.Field) Field.set(c, 'success', 'یکسان است');
     }
 
-    /* ── نمایش پیام ── */
-    function showMsg(text, type = 'error') {
-      const wrap = document.getElementById('profileMsg');
-      const icon = document.getElementById('profileMsgIcon');
-      const txt  = document.getElementById('profileMsgText');
-
-      txt.textContent  = text;
-      wrap.className   = `profile-msg show ${type}`;
-      icon.innerHTML   = type === 'success'
-        ? '<polyline points="20 6 9 17 4 12"/>'
-        : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
-    }
-
-    function hideMsg() {
-      document.getElementById('profileMsg').className = 'profile-msg';
-    }
-
-    /* خطای اعتبارسنجی فقط زیر باکس همان فیلد (نه profile-msg) */
+    /* خطای اعتبارسنجی فقط زیر باکس همان فیلد (نه Toast) */
     function fieldErr(id, msg) {
       if (window.Field) Field.set(id, 'error', msg);
-      else showMsg(msg);
+      else if (window.Toast) Toast.show(msg, 'error');
+      const el = document.getElementById(id);
+      if (el) el.focus();
     }
 
     /* ── ارسال فرم ── */
     async function submitChangePassword() {
-      hideMsg();
-
       const currentPassword = document.getElementById('currentPassword').value;
       const newPassword     = document.getElementById('newPassword').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
       const btn             = document.getElementById('profileSubmitBtn');
 
-      // اعتبارسنجی فقط زیر باکس (field-msg) — بدون profile-msg
+      // اعتبارسنجی فقط زیر باکس همان فیلد (field-msg) — بازخورد نهایی از طریق Toast
       if (!currentPassword) { fieldErr('currentPassword', 'رمز عبور فعلی الزامی است'); return; }
       if (!newPassword)     { fieldErr('newPassword', 'رمز عبور جدید الزامی است'); return; }
       if (!confirmPassword) { fieldErr('confirmPassword', 'تکرار رمز عبور الزامی است'); return; }
@@ -114,7 +118,7 @@
         const data = await res.json();
 
         if (data.ok) {
-          showMsg('رمز عبور با موفقیت تغییر کرد', 'success');
+          if (window.Toast) Toast.show('رمز عبور با موفقیت تغییر کرد', 'success', 'ویرایش موفق');
           // پاک کردن فیلدها
           document.getElementById('currentPassword').value = '';
           document.getElementById('newPassword').value     = '';
@@ -122,11 +126,11 @@
           const rulesPanel = document.getElementById('passRules');
           if (rulesPanel) rulesPanel.hidden = true;
           if (window.Field) { Field.clear('currentPassword'); Field.clear('newPassword'); Field.clear('confirmPassword'); }
-        } else {
-          showMsg(data.msg || 'خطا در تغییر رمز');
+        } else if (window.Toast) {
+          Toast.show(data.msg || 'خطا در تغییر رمز', 'error');
         }
       } catch {
-        showMsg('خطا در ارتباط با سرور');
+        if (window.Toast) Toast.show('خطا در ارتباط با سرور', 'error');
       }
 
       btn.disabled = false;
@@ -138,11 +142,116 @@
       `;
     }
 
+    /* ── ارسال فرم نام و نام‌خانوادگی — بازخورد از طریق Toast مشترک پروژه ── */
+    async function submitUpdateName() {
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName  = document.getElementById('lastName').value.trim();
+      const btn       = document.getElementById('nameSubmitBtn');
+
+      if (!firstName) { fieldErr('firstName', 'نام الزامی است'); return; }
+      if (!lastName)  { fieldErr('lastName', 'نام‌خانوادگی الزامی است'); return; }
+
+      // بدون تغییر نسبت به مقدار فعلی → درخواستی به سرور ارسال نمی‌شود.
+      if (firstName === originalFirstName && lastName === originalLastName) {
+        if (window.Toast) Toast.show('تغییری برای ذخیره وجود ندارد', 'info');
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'در حال ویرایش...';
+
+      try {
+        const res  = await fetch(`${API_URL}?action=update_my_name`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
+          body:    JSON.stringify({ first_name: firstName, last_name: lastName }),
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          if (window.Toast) Toast.show('ویرایش با موفقیت انجام شد', 'success', 'ویرایش موفق');
+          nameFieldsDirty  = false;
+          originalFirstName = firstName;
+          originalLastName  = lastName;
+          if (window.Field) { Field.clear('firstName'); Field.clear('lastName'); }
+          document.getElementById('profileDisplayName').textContent = data.display_name || `${firstName} ${lastName}`;
+        } else if (data.field) {
+          fieldErr(data.field === 'first_name' ? 'firstName' : 'lastName', data.msg || 'خطا در ویرایش');
+        } else if (window.Toast) {
+          Toast.show(data.msg || 'خطا در ویرایش نام و نام‌خانوادگی', 'error');
+        }
+      } catch {
+        if (window.Toast) Toast.show('خطا در ارتباط با سرور', 'error');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        ویرایش نام و نام‌خانوادگی
+      `;
+    }
+
+    (function () {
+      const fn = document.getElementById('firstName');
+      const ln = document.getElementById('lastName');
+      // با شروع تایپ دوباره، وضعیت خطای قبلی (باکس قرمز) پاک می‌شود — هم‌الگو
+      // با فیلدهای تب تغییر رمز عبور.
+      const markDirty = (el) => {
+        nameFieldsDirty = true;
+        if (window.Field) Field.set(el, document.activeElement === el ? 'focus' : 'idle');
+      };
+      if (fn) fn.addEventListener('input', () => markDirty(fn));
+      if (ln) ln.addEventListener('input', () => markDirty(ln));
+    })();
+
+    /* ── تب‌ها ── */
+    const ProfileTabs = {
+      _order: ['name', 'password', 'sessions'],
+      init() {
+        const bar = document.getElementById('profileTabs');
+        if (!bar) return;
+        bar.querySelectorAll('.profile-tab').forEach(btn => {
+          btn.addEventListener('click', () => this.show(btn.dataset.tab));
+        });
+        this.show('name', false);
+        window.addEventListener('resize', () => this._moveIndicator(this._current || 'name'));
+      },
+      show(tab, animate = true) {
+        if (!this._order.includes(tab)) return;
+        this._current = tab;
+        this._order.forEach(t => {
+          const btn   = document.getElementById(`tabBtn-${t}`);
+          const panel = document.getElementById(`tabPanel-${t}`);
+          const active = t === tab;
+          if (btn)   { btn.classList.toggle('active', active); btn.setAttribute('aria-selected', String(active)); }
+          if (panel) panel.hidden = !active;
+        });
+        this._moveIndicator(tab, animate);
+      },
+      _moveIndicator(tab, animate = true) {
+        const bar = document.getElementById('profileTabs');
+        const ind = document.getElementById('profileTabIndicator');
+        const btn = document.getElementById(`tabBtn-${tab}`);
+        if (!bar || !ind || !btn) return;
+        const barRect = bar.getBoundingClientRect();
+        const btnRect = btn.getBoundingClientRect();
+        if (!animate) ind.style.transition = 'none';
+        ind.style.width     = btnRect.width + 'px';
+        ind.style.transform = `translateX(${btnRect.left - barRect.left}px)`;
+        if (!animate) requestAnimationFrame(() => { ind.style.transition = ''; });
+      },
+    };
+    ProfileTabs.init();
+
     /* ── Enter برای submit (وابسته به فیلد فعال) ── */
     document.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       const id = document.activeElement && document.activeElement.id;
       if (id === 'currentPassword' || id === 'newPassword' || id === 'confirmPassword') submitChangePassword();
+      if (id === 'firstName' || id === 'lastName') submitUpdateName();
     });
 
     /* ── اعتبارسنجی زنده فیلدها ── */
@@ -280,6 +389,7 @@
         togglePass:               (el) => togglePass(el.dataset.target, el),
         genPassword:              (el) => genPassword(el),
         submitChangePassword:     () => submitChangePassword(),
+        submitUpdateName:         () => submitUpdateName(),
         terminateMyOtherSessions: () => terminateMyOtherSessions(),
         terminateMySession:       (el) => terminateMySession(el.dataset.id),
       });

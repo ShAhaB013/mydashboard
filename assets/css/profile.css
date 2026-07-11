@@ -103,9 +103,9 @@
     }
     .profile-email { margin-top: 2px; }
 
-    /* ── اسکلت لودینگ هدر کارت حساب کاربری (آواتار/نام/ایمیل) ── */
-    .profile-card-head { --sk-base: rgba(100,116,139,.13); --sk-glow: rgba(255,255,255,.55); }
-    [data-theme="dark"] .profile-card-head { --sk-base: rgba(148,163,184,.12); --sk-glow: rgba(255,255,255,.06); }
+    /* ── اسکلت لودینگ (هدر کارت + فیلدهای تب مشخصات کاربری) — هر دو از یک fetch می‌آیند ── */
+    .profile-card { --sk-base: rgba(100,116,139,.13); --sk-glow: rgba(255,255,255,.55); }
+    [data-theme="dark"] .profile-card { --sk-base: rgba(148,163,184,.12); --sk-glow: rgba(255,255,255,.06); }
     .profile-card-head.is-loading .profile-avatar,
     .profile-card-head.is-loading #profileDisplayName,
     .profile-card-head.is-loading .profile-email {
@@ -147,12 +147,94 @@
       .profile-card-head.is-loading .profile-email { animation: shimmer 1.6s ease-in-out infinite; }
     }
 
+    /* ── اسکلت لودینگ فیلدهای نام/نام‌خانوادگی — همان fetchِ سرسیدی «me» است ── */
+    #tabPanel-name.is-loading .field-input {
+      color: transparent;
+      background: var(--sk-base);
+      border-color: transparent;
+      position: relative;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #tabPanel-name.is-loading .field-input::placeholder { color: transparent; }
+    #tabPanel-name.is-loading .field-box { position: relative; overflow: hidden; }
+    #tabPanel-name.is-loading .field-box::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(100%);
+      background: linear-gradient(90deg, transparent, var(--sk-glow), transparent);
+      animation: skSweep 1.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #tabPanel-name.is-loading .field-box::after { animation: none; }
+      #tabPanel-name.is-loading .field-input { animation: shimmer 1.6s ease-in-out infinite; }
+    }
+
     /* بدنه = تک‌ستونه؛ بخش‌ها وسط‌چین کارت قرار می‌گیرند (کارت تمام‌عرض هدر می‌ماند) */
     .profile-card-body {
       display: flex;
       flex-direction: column;
       align-items: center;
     }
+    /* ── نوار تب‌های صفحه پروفایل (نام/رمز/نشست‌ها) — هم‌الگو با تب‌های ورود ── */
+    .profile-tabs {
+      position: relative;
+      display: flex;
+      gap: 4px;
+      background: var(--color-bg-primary);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      width: 100%;
+      max-width: 600px;
+      margin: 22px auto 0;
+    }
+    .profile-tab {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      overflow: hidden;   /* میزبان افکت ripple */
+      font-family: 'DashboardFont', sans-serif;
+      font-size: 12.5px;
+      font-weight: 700;
+      height: 40px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+      border-radius: var(--radius-xs);
+      transition: color var(--transition);
+      white-space: nowrap;
+    }
+    .profile-tab svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .profile-tab.active { color: #fff; }
+    .profile-tab:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .profile-tab-indicator {
+      position: absolute;
+      z-index: 0;
+      top: 4px; bottom: 4px; left: 0;
+      background: var(--color-accent);
+      border-radius: var(--radius-xs);
+      box-shadow: 0 4px 12px var(--color-accent-bg-hover);
+      transition: transform .34s cubic-bezier(.34, 1.4, .5, 1), width .34s cubic-bezier(.34, 1.4, .5, 1);
+    }
+    .profile-tab-panel {
+      width: 100%;   /* بدون این، فرزند flex-column وسط‌چین (align-items:center) به
+                        عرض محتوایش جمع می‌شود و فیلدهای داخلش (نام/نام‌خانوادگی) کوچک دیده می‌شوند */
+    }
+    .profile-tab-panel[hidden] { display: none; }
+    .profile-tab-panel .profile-section { max-width: 600px; }
+    @media (max-width: 560px) {
+      .profile-tab { font-size: 0; gap: 0; }
+      .profile-tab svg { width: 18px; height: 18px; }
+    }
+
     /* هر بخش = ستون تک‌ستونه ۶۰۰px وسط‌چین: عنوان+توضیح بالا، فیلدها پایین (یکسان در همه عرض‌ها) */
     .profile-section {
       display: flex;
@@ -161,9 +243,7 @@
       padding: 26px 28px;
       width: 100%;
       max-width: 600px;
-    }
-    .profile-section:first-child {
-      border-bottom: 1px solid var(--color-border);
+      margin-inline: auto;   /* .profile-tab-panel والد حالا تمام‌عرض است؛ بدون این، بخش به‌جای وسط‌چین به راست (سمت start در RTL) می‌چسبد */
     }
     .profile-section-aside {
       display: flex;
@@ -305,30 +385,6 @@
     .profile-submit-btn:active  { transform: scale(.98); }
     .profile-submit-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
     .profile-submit-btn svg { width: 16px; height: 16px; }
-
-    /* ── پیام‌ها ── */
-    .profile-msg {
-      font-size: 13px;
-      border-radius: var(--radius-xs);
-      padding: 11px 14px;
-      display: none;
-      align-items: center;
-      gap: 9px;
-      animation: fadeIn .2s ease;
-    }
-    .profile-msg.show { display: flex; }
-    .profile-msg svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-    .profile-msg.success {
-      background: rgba(14,164,114,.1);
-      color: #0ea472;
-      border: 1px solid rgba(14,164,114,.25);
-    }
-    .profile-msg.error {
-      background: rgba(239,68,68,.08);
-      color: #ef4444;
-      border: 1px solid rgba(239,68,68,.2);
-    }
 
     /* چک‌لیست زنده‌ی قوانین رمز عبور: کلاس‌های .pass-rules/.pass-rule/... حالا
        در style.css مشترک تعریف شده‌اند (استفاده در login.php/profile.php/admin) */

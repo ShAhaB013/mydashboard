@@ -89,7 +89,70 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
       <!-- بدنه کارت -->
       <div class="profile-card-body">
 
-        <!-- ── تغییر رمز عبور ── -->
+        <!-- ── نوار تب‌ها ── -->
+        <div class="profile-tabs" id="profileTabs" role="tablist">
+          <span class="profile-tab-indicator" id="profileTabIndicator" aria-hidden="true"></span>
+          <button type="button" class="profile-tab active" role="tab" aria-selected="true"
+                  aria-controls="tabPanel-name" id="tabBtn-name" data-tab="name">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            مشخصات کاربری
+          </button>
+          <button type="button" class="profile-tab" role="tab" aria-selected="false"
+                  aria-controls="tabPanel-password" id="tabBtn-password" data-tab="password">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            تغییر رمز عبور
+          </button>
+          <button type="button" class="profile-tab" role="tab" aria-selected="false"
+                  aria-controls="tabPanel-sessions" id="tabBtn-sessions" data-tab="sessions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            نشست‌های فعال
+          </button>
+        </div>
+
+        <!-- ── تب: مشخصات کاربری ── -->
+        <div class="profile-tab-panel is-loading" id="tabPanel-name" role="tabpanel" aria-labelledby="tabBtn-name">
+        <section class="profile-section">
+          <div class="profile-section-aside">
+            <div class="profile-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              مشخصات کاربری
+            </div>
+            <p class="profile-section-desc">این نام صرفا در پروفایل نمایش داده می‌شود.</p>
+          </div>
+          <div class="profile-section-body">
+
+        <!-- نام -->
+        <div class="field" data-state="idle">
+          <label class="field-label" for="firstName">نام</label>
+          <div class="field-box">
+            <input type="text" id="firstName" class="field-input" placeholder="نام" maxlength="60" autocomplete="given-name">
+          </div>
+          <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
+        </div>
+
+        <!-- نام‌خانوادگی -->
+        <div class="field" data-state="idle">
+          <label class="field-label" for="lastName">نام‌خانوادگی</label>
+          <div class="field-box">
+            <input type="text" id="lastName" class="field-input" placeholder="نام‌خانوادگی" maxlength="60" autocomplete="family-name">
+          </div>
+          <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
+        </div>
+
+        <!-- دکمه ویرایش -->
+        <button class="profile-submit-btn" id="nameSubmitBtn" data-act="submitUpdateName">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          ویرایش نام و نام‌خانوادگی
+        </button>
+          </div>
+        </section>
+        </div>
+
+        <!-- ── تب: تغییر رمز عبور ── -->
+        <div class="profile-tab-panel" id="tabPanel-password" role="tabpanel" aria-labelledby="tabBtn-password" hidden>
         <section class="profile-section">
           <div class="profile-section-aside">
             <div class="profile-section-title">
@@ -162,12 +225,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
-        <!-- پیام خطا / موفقیت -->
-        <div class="profile-msg" id="profileMsg" role="alert" aria-live="polite">
-          <svg id="profileMsgIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg>
-          <span id="profileMsgText"></span>
-        </div>
-
         <!-- دکمه ذخیره -->
         <button class="profile-submit-btn" id="profileSubmitBtn" data-act="submitChangePassword">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -177,8 +234,10 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
         </button>
           </div>
         </section>
+        </div>
 
-        <!-- ── نشست‌های فعال (دستگاه‌ها) — مانند تلگرام ── -->
+        <!-- ── تب: نشست‌های فعال (دستگاه‌ها) — مانند تلگرام ── -->
+        <div class="profile-tab-panel" id="tabPanel-sessions" role="tabpanel" aria-labelledby="tabBtn-sessions" hidden>
         <section class="profile-section">
           <div class="profile-section-aside">
             <div class="profile-section-title">
@@ -208,11 +267,15 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
             </button>
           </div>
         </section>
+        </div>
 
       </div>
     </div>
 
   </main>
+
+  <!-- ظرف Toast صفحه پروفایل -->
+  <div class="toast-wrap" id="toastWrap" aria-live="assertive"></div>
 
   <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>

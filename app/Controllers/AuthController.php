@@ -321,4 +321,47 @@ class AuthController
         $userModel->changePassword($userId, $newPass);
         echo json_encode(['ok' => true, 'msg' => 'رمز عبور با موفقیت تغییر کرد'], JSON_UNESCAPED_UNICODE);
     }
+
+    // ── update_my_name ───────────────────────────────────────
+    // خودِ کاربرِ لاگین‌شده نام/نام‌خانوادگی خودش را ویرایش می‌کند
+    // (username/phone/email/role از این مسیر قابل تغییر نیستند).
+    public function updateMyName(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'msg' => 'Method Not Allowed']);
+            return;
+        }
+        if (!UserSession::check()) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'msg' => 'ابتدا وارد شوید']);
+            return;
+        }
+
+        $body      = json_decode(file_get_contents('php://input'), true) ?? [];
+        $firstName = trim((string) ($body['first_name'] ?? ''));
+        $lastName  = trim((string) ($body['last_name']  ?? ''));
+
+        if ($firstName === '' || $lastName === '') {
+            echo json_encode(['ok' => false, 'msg' => 'نام و نام خانوادگی الزامی است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (($err = Validator::name($firstName, 'نام')) !== '') {
+            echo json_encode(['ok' => false, 'field' => 'first_name', 'msg' => $err], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (($err = Validator::name($lastName, 'نام خانوادگی')) !== '') {
+            echo json_encode(['ok' => false, 'field' => 'last_name', 'msg' => $err], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $userModel = new UserModel();
+        $userModel->updateOwnName(UserSession::id(), $firstName, $lastName);
+
+        echo json_encode([
+            'ok'           => true,
+            'msg'          => 'نام و نام خانوادگی با موفقیت به‌روزرسانی شد',
+            'display_name' => trim($firstName . ' ' . $lastName),
+        ], JSON_UNESCAPED_UNICODE);
+    }
 }

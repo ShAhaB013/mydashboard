@@ -98,6 +98,8 @@ class UserSession
 
         $_SESSION['username']     = $row['username'];
         $_SESSION['display_name'] = $row['display_name'];
+        $_SESSION['first_name']   = $row['first_name'] ?? '';
+        $_SESSION['last_name']    = $row['last_name'] ?? '';
         $_SESSION['phone']        = $row['phone'] ?? '';
         $_SESSION['email']        = $row['email'] ?? '';
         $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';

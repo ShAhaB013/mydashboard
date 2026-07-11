@@ -216,6 +216,21 @@ class UserModel
         return true;
     }
 
+    /** خودِ کاربر نام/نام‌خانوادگی خودش را ویرایش می‌کند (بدون تغییر username/phone/email/role) */
+    public function updateOwnName(int $id, string $firstName, string $lastName): bool
+    {
+        DB::run(
+            'UPDATE users SET first_name = :f, last_name = :l, display_name = :d WHERE id = :id',
+            [
+                ':f'  => $firstName,
+                ':l'  => $lastName,
+                ':d'  => trim($firstName . ' ' . $lastName),
+                ':id' => $id,
+            ]
+        );
+        return true;
+    }
+
     /** تغییر رمز عبور */
     public function changePassword(int $id, string $newPassword): bool
     {

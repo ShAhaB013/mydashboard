@@ -26,6 +26,7 @@ class PublicRouter
         'verify_reset_code' => [AuthController::class, 'verifyResetCode'],
         'reset_password'    => [AuthController::class, 'resetPassword'],
         'change_password'   => [AuthController::class, 'changePassword'],
+        'update_my_name'    => [AuthController::class, 'updateMyName'],
 
         // ── اعلان‌های عمومی ───────────────────────────────────
         'notifications'     => [FeedController::class, 'notifications'],
