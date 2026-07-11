@@ -160,15 +160,12 @@ const Auth = {
       if (authBtn)      authBtn.style.display      = 'none';
       if (userMenuWrap) userMenuWrap.style.display  = 'flex';
 
-      const display   = this.displayName || this.username || '';
-      const firstChar = display ? [...display][0] : '؟';
+      const display = this.displayName || this.username || '';
 
-      const avatar = document.getElementById('userMenuAvatar');
       const name   = document.getElementById('userMenuName');
       const dName  = document.getElementById('dropdownDisplayName');
       const dUname = document.getElementById('dropdownUsername');
 
-      if (avatar) avatar.textContent = firstChar;
       if (name)   name.textContent   = display;
       if (dName)  dName.textContent  = display;
       if (dUname) dUname.textContent = this.email || this.username;
@@ -393,9 +390,14 @@ const NotifPanel = {
   async _poll() {
     try {
       if (Auth.loggedIn) {
-        // فقط شمارش را می‌گیریم (سبک)؛ اگر تغییر کرد، لیست را تازه می‌کنیم
-        const res  = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
-        const data = await res.json();
+        // شمارش (سبک) + وضعیت پروفایل، هر دو با هم — اگر ادمین یا خودِ کاربر
+        // نام/ایمیل/نقش را ویرایش کند، بدون نیاز به خروج/ورود مجدد یا رفرش
+        // دستی، تا ۲۵ ثانیه بعد در همین صفحه به‌روزرسانی می‌شود.
+        const [countRes, meRes] = await Promise.all([
+          fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' }),
+          fetch(`${API_URL}?action=me`, { cache: 'no-cache' }),
+        ]);
+        const data = await countRes.json();
         if (!data.ok) return;
 
         // نشست ممکن است بین دو poll منقضی شده باشد (چه به‌خاطر پایان یافتن TTL
@@ -407,6 +409,18 @@ const NotifPanel = {
           this.reset();
           location.reload();
           return;
+        }
+
+        const meData = await meRes.json();
+        if (meData.ok && meData.logged_in) {
+          const changed =
+            meData.display_name !== Auth.displayName ||
+            meData.username     !== Auth.username    ||
+            meData.email        !== Auth.email        ||
+            !!meData.is_admin   !== Auth.isAdmin;
+          if (changed) {
+            Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '');
+          }
         }
 
         const newCount = data.count || 0;

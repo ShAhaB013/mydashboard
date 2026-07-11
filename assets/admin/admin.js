@@ -319,28 +319,25 @@ const UserManager = {
     row.className = 'user-row';
     row.dataset.uid = u.id;
 
-    const name    = u.display_name || u.username || '';
-    const initial = esc((name || '?').slice(0, 1));
+    const name = u.display_name || u.username || '';
 
-    const rolePill = u.role === 'admin'
-      ? `<span class="user-role-pill admin" title="دسترسی به پنل مدیریت">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-             <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/>
-           </svg>
-           مدیر
+    const adminBadge = u.role === 'admin'
+      ? `<span class="user-admin-badge" title="مدیر سیستم">
+           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.6 1.9 3.2-.3 1 3 2.8 1.6-1 3.1 1 3.1-2.8 1.6-1 3-3.2-.3L12 21l-2.6-1.9-3.2.3-1-3-2.8-1.6 1-3.1-1-3.1L5.2 6l1-3 3.2.3z"/><path d="M9 12.2l2 2 4-4.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
          </span>`
       : '';
     const statusPill = `<span class="user-status-pill ${u.is_active ? 'active' : 'inactive'}">${u.is_active ? 'فعال' : 'غیرفعال'}</span>`;
     const sessDot = u.session_count ? `<span class="sess-count-dot">${(u.session_count).toLocaleString('en-US')}</span>` : '';
 
     row.innerHTML = `
-      <div class="user-row-avatar">${initial}</div>
+      <div class="user-row-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
       <div class="user-row-info">
-        <h3>${esc(name)}</h3>
+        <h3>${esc(name)}${adminBadge}</h3>
         <p style="direction:ltr;text-align:right;">${esc(u.email || u.phone || '—')}</p>
       </div>
       <div class="user-row-meta">
-        ${rolePill}
         ${statusPill}
       </div>
       <div class="user-row-actions">
@@ -1353,8 +1350,11 @@ const SessionsManager = {
     const meta  = showName
       ? `${agent} · <span dir="ltr">${ip}</span> · آخرین فعالیت: ${when}${remStr}`
       : `<span dir="ltr">${ip}</span> · آخرین فعالیت: ${when}${remStr}`;
-    const current = s.is_current ? '<span class="blk-badge blk-blocked">این دستگاه</span>' : '';
+    const current = s.is_current ? '<span class="blk-badge blk-current">دستگاه فعلی</span>' : '';
     const id = esc(s.id);
+    const killBtn = s.is_current
+      ? ''
+      : `<button class="btn btn-danger btn-sm" data-act="sessTerminate" data-id="${id}" data-current="false">پایان</button>`;
     return `
       <div class="blk-row">
         <div class="blk-info">
@@ -1363,7 +1363,7 @@ const SessionsManager = {
         </div>
         <div class="blk-side">
           ${current}
-          <button class="btn btn-danger btn-sm" data-act="sessTerminate" data-id="${id}" data-current="${s.is_current ? 'true' : 'false'}">پایان</button>
+          ${killBtn}
         </div>
       </div>`;
   },

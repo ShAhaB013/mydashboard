@@ -1715,7 +1715,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   outline-offset: 2px;
 }
 
-/* avatar دایره‌ای با اول حرف نام */
+/* avatar دایره‌ای با آیکون پیش‌فرض کاربر */
 .user-menu-avatar {
   width: 40px;
   height: 40px;
@@ -1723,16 +1723,13 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   background: var(--color-accent-bg);
   border: 1.5px solid var(--color-accent-border);
   color: var(--color-accent);
-  font-family: 'DashboardFont', sans-serif; /* بدون این، دکمه فونت پیش‌فرض Arial را می‌گیرد */
-  font-size: 15px;
-  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  line-height: 1;
   transition: background var(--transition), border-color var(--transition);
 }
+.user-menu-avatar svg { width: 19px; height: 19px; }
 
 .user-menu-name {
   max-width: 100px;

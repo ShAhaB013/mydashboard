@@ -76,7 +76,31 @@ class UserSession
             }
         }
 
+        self::refreshFromDb();
+
         return true;
+    }
+
+    /**
+     * همگام‌سازی فیلدهای نمایشی سشن (نام/نام‌خانوادگی/ایمیل/نقش) با آخرین مقدار
+     * دیتابیس. بدون این، وقتی ادمین یا خودِ کاربر پروفایل را ویرایش می‌کرد،
+     * تغییرات تا خروج و ورود مجدد روی صفحات اعمال نمی‌شد (چون این فیلدها فقط
+     * لحظه‌ی لاگین در session کش می‌شدند). یک‌بار در هر درخواست کافی است.
+     */
+    private static function refreshFromDb(): void
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+
+        $row = (new UserModel())->findById(self::id());
+        if ($row === null) return; // کاربر حذف شده — نشست تا انقضای TTL بدون تغییر باقی می‌ماند
+
+        $_SESSION['username']     = $row['username'];
+        $_SESSION['display_name'] = $row['display_name'];
+        $_SESSION['phone']        = $row['phone'] ?? '';
+        $_SESSION['email']        = $row['email'] ?? '';
+        $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
     }
 
     /**

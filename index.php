@@ -10,7 +10,6 @@ $username    = $isLoggedIn ? (string) ($_SESSION['username'] ?? '') : '';
 $email       = $isLoggedIn ? (string) ($_SESSION['email'] ?? '') : '';
 $isAdmin     = $isLoggedIn && UserSession::isAdmin();
 $menuName    = $displayName !== '' ? $displayName : $username;
-$avatarChar  = $menuName !== '' ? mb_substr($menuName, 0, 1, 'UTF-8') : '؟';
 
 // توکن CSRF برای هر کاربرِ لاگین‌شده — لازم برای درخواست‌های حالت‌تغییردهنده‌ی
 // api.php (logout / mark_read / mark_all_read) و نیز مدیریت اینلاینِ ادمین.
@@ -201,7 +200,9 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
               aria-haspopup="true"
               aria-expanded="false"
               aria-controls="userMenuDropdown">
-              <span class="user-menu-avatar" id="userMenuAvatar"><?= $isLoggedIn ? htmlspecialchars($avatarChar, ENT_QUOTES) : '' ?></span>
+              <span class="user-menu-avatar" id="userMenuAvatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
               <span class="user-menu-name"   id="userMenuName"><?= htmlspecialchars($menuName, ENT_QUOTES) ?></span>
               <svg class="user-menu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>

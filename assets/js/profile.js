@@ -26,8 +26,7 @@
 
         document.getElementById('profileDisplayName').textContent = display;
         document.getElementById('profileEmail').textContent       = data.email || '—';
-        document.getElementById('profileAvatar').textContent      =
-          display ? [...display][0] : '؟';
+        document.getElementById('profileAdminBadge').hidden = !data.is_admin;
         const head = document.getElementById('profileCardHead');
         if (head) head.classList.remove('is-loading');
 
@@ -289,3 +288,10 @@
     /* ── init ── */
     loadProfile();
     loadMySessions();
+
+    /* اگر ادمین یا خودِ کاربر (از تب دیگر) نام/ایمیل را ویرایش کند، بدون
+       نیاز به خروج/ورود مجدد، حداکثر تا ۲۵ ثانیه بعد در همین صفحه به‌روز می‌شود. */
+    setInterval(() => { if (!document.hidden) loadProfile(); }, 25000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadProfile();
+    });

@@ -268,6 +268,8 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .blk-badge { font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:3px 10px; white-space:nowrap; }
 .blk-blocked { background:rgba(248,81,73,.15); color:var(--danger); border:1px solid rgba(248,81,73,.3); }
 .blk-watch   { background:rgba(217,119,6,.12); color:#d97706; border:1px solid rgba(217,119,6,.3); }
+/* نشست دستگاه فعلی — هماهنگ با رنگ آبی صفحه پروفایل (نه قرمز، چون قابل پایان‌دادن نیست) */
+.blk-current { background:var(--accent-bg); color:var(--accent); border:1px solid rgba(var(--accent-rgb),.3); }
 @media (max-width:560px) {
   .blk-row { flex-direction:column; align-items:stretch; }
   .blk-side { justify-content:space-between; }
@@ -862,12 +864,16 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   background:var(--accent-bg); color:var(--accent);
   border:1.5px solid rgba(88,166,255,.25);
   display:flex; align-items:center; justify-content:center;
-  font-size:16px; font-weight:700;
 }
+.user-row-avatar svg { width:18px; height:18px; }
 
 .user-row-info { flex:1; min-width:0; }
-.user-row-info h3 { font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.user-row-info h3 { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; }
 .user-row-info p  { font-size:12px; color:var(--text-3); font-family:monospace; }
+
+/* نشان مدیر — تیک آبی هماهنگ با صفحه پروفایل/هدر */
+.user-admin-badge { display:inline-flex; flex-shrink:0; width:15px; height:15px; color:var(--accent); }
+.user-admin-badge svg { width:100%; height:100%; }
 
 .user-row-meta  { display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .user-row-actions { display:flex; gap:6px; flex-shrink:0; }
@@ -883,17 +889,6 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   background:var(--danger-bg); color:var(--danger);
   border:1px solid rgba(248,81,73,.2);
 }
-
-/* نشان سطح دسترسی ادمین */
-.user-role-pill {
-  font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:2px 9px;
-  display:inline-flex; align-items:center; gap:4px;
-}
-.user-role-pill.admin {
-  background:rgba(88,166,255,.12); color:var(--accent);
-  border:1px solid rgba(88,166,255,.30);
-}
-.user-role-pill svg { width:11px; height:11px; }
 
 /* دکمه toggle کاربر — وقتی غیرفعال است */
 .toggle-user-btn.is-inactive { color:var(--danger); border-color:rgba(248,81,73,.3); }

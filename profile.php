@@ -72,12 +72,17 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
       <!-- هدر کارت -->
       <div class="profile-card-head is-loading" id="profileCardHead">
-        <div class="profile-avatar" id="profileAvatar">؟</div>
+        <div class="profile-avatar" id="profileAvatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
         <div class="profile-card-head-info">
-          <h2 id="profileDisplayName">در حال بارگذاری...</h2>
-          <div class="profile-meta-row">
-            <span class="profile-meta-val profile-email" id="profileEmail" dir="ltr"></span>
+          <div class="profile-name-row">
+            <h2 id="profileDisplayName">در حال بارگذاری...</h2>
+            <span class="profile-admin-badge" id="profileAdminBadge" title="مدیر سیستم" hidden>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.6 1.9 3.2-.3 1 3 2.8 1.6-1 3.1 1 3.1-2.8 1.6-1 3-3.2-.3L12 21l-2.6-1.9-3.2.3-1-3-2.8-1.6 1-3.1-1-3.1L5.2 6l1-3 3.2.3z"/><path d="M9 12.2l2 2 4-4.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
           </div>
+          <span class="profile-meta-val profile-email" id="profileEmail" dir="ltr"></span>
         </div>
       </div>
 
