@@ -400,8 +400,14 @@
     loadMySessions();
 
     /* اگر ادمین یا خودِ کاربر (از تب دیگر) نام/ایمیل را ویرایش کند، بدون
-       نیاز به خروج/ورود مجدد، حداکثر تا ۲۵ ثانیه بعد در همین صفحه به‌روز می‌شود. */
-    setInterval(() => { if (!document.hidden) loadProfile(); }, 25000);
+       نیاز به خروج/ورود مجدد، حداکثر تا ~۳۰ ثانیه بعد در همین صفحه به‌روز می‌شود.
+       بازه با جیتر تصادفی (۲۵ تا ۳۰ ثانیه) تا pollهای تب‌های مختلف هم‌فاز نشوند. */
+    (function pollTick() {
+      setTimeout(() => {
+        if (!document.hidden) loadProfile();
+        pollTick();
+      }, 25000 + Math.floor(Math.random() * 5000));
+    })();
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) loadProfile();
     });

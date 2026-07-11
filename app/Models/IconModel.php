@@ -25,7 +25,10 @@ class IconModel
     {
         $icons       = $this->all();
         $icons[$key] = $svgPath;
-        return $this->db->save($icons);
+        $ok = $this->db->save($icons);
+        // assets داخل بدنه bootstrap مهمان حمل می‌شود — کش آن باید تازه شود
+        MicroCache::forget('boot-guest');
+        return $ok;
     }
 
     /** حذف آیکون */
@@ -33,7 +36,9 @@ class IconModel
     {
         $icons = $this->all();
         unset($icons[$key]);
-        return $this->db->save($icons);
+        $ok = $this->db->save($icons);
+        MicroCache::forget('boot-guest');
+        return $ok;
     }
 
     /** بررسی اینکه آیکون محافظت‌شده است */

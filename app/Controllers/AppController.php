@@ -20,8 +20,40 @@ class AppController
     // me + assets + tools + notifications + unread_count
     public function bootstrap(): void
     {
-        $config     = $this->config;
         $isLoggedIn = UserSession::check();
+
+        // ETag/۳۰۴ برای هر دو حالت: در ناوبری بین صفحات اگر داده عوض نشده باشد،
+        // به‌جای دانلود مجدد کل پاسخ (assets+tools) فقط یک ۳۰۴ برمی‌گردد.
+        if ($isLoggedIn) {
+            $body = $this->buildBootstrapBody(true);
+            $tag  = 'boot-u' . UserSession::id();
+            // وابسته به نشست: فقط برای همان مرورگر، با اجبار revalidate
+            header('Cache-Control: private, max-age=0, must-revalidate');
+        } else {
+            // مهمان: پاسخ بین همه بازدیدکنندگان یکسان است (بدون داده per-user؛
+            // read-state مهمان در localStorage کلاینت اعمال می‌شود) — میکروکش
+            // سرور N محاسبه همزمان را به ۱ تبدیل می‌کند و stale-while-revalidate
+            // موج درخواست پس از انقضای کش مرورگر/پروکسی را نرم می‌کند.
+            $body = MicroCache::remember('boot-guest', 30, fn(): string => $this->buildBootstrapBody(false));
+            $tag  = 'boot-guest';
+            header('Cache-Control: public, max-age=30, stale-while-revalidate=30');
+        }
+
+        $etag       = '"' . $tag . '-' . md5($body) . '"';
+        $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
+        header('ETag: ' . $etag);
+
+        if ($clientEtag === $etag) {
+            http_response_code(304);
+            exit;
+        }
+        echo $body;
+    }
+
+    /** ساخت بدنه bootstrap (me+assets+tools+unread) — برای مهمان از داخل میکروکش صدا می‌شود */
+    private function buildBootstrapBody(bool $isLoggedIn): string
+    {
+        $config = $this->config;
 
         // assets
         $iconsFile = $config['files']['icons'];
@@ -72,27 +104,7 @@ class AppController
             'unread' => $unread,
         ];
 
-        // ETag/۳۰۴ برای هر دو حالت: در ناوبری بین صفحات اگر داده عوض نشده باشد،
-        // به‌جای دانلود مجدد کل پاسخ (assets+tools) فقط یک ۳۰۴ برمی‌گردد.
-        $body       = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        $tag        = $isLoggedIn ? ('boot-u' . UserSession::id()) : 'boot-guest';
-        $etag       = '"' . $tag . '-' . md5($body) . '"';
-        $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
-
-        if ($isLoggedIn) {
-            // وابسته به نشست: فقط برای همان مرورگر، با اجبار revalidate
-            header('Cache-Control: private, max-age=0, must-revalidate');
-        } else {
-            // مهمان: قابل کش کوتاه‌مدت مشترک
-            header('Cache-Control: public, max-age=30');
-        }
-        header('ETag: ' . $etag);
-
-        if ($clientEtag === $etag) {
-            http_response_code(304);
-            exit;
-        }
-        echo $body;
+        return (string) json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
 
     // ── assets: آیکون‌ها + انیمیشن‌ها ─────────────────────────
@@ -117,7 +129,7 @@ class AppController
         $iconDb = new JsonStore($iconsFile);
         $decoDb = new JsonStore($decosFile);
 
-        header('Cache-Control: public, max-age=3600');
+        header('Cache-Control: public, max-age=3600, stale-while-revalidate=600');
         header('ETag: ' . $etag);
 
         echo json_encode([
@@ -130,30 +142,34 @@ class AppController
     // ── tools ─────────────────────────────────────────────────
     public function tools(): void
     {
-        $toolModel  = new ToolModel();
         $isLoggedIn = UserSession::check();
-        $isAdmin    = $isLoggedIn && (($_SESSION['role'] ?? 'user') === 'admin');
-
-        $rows = $isAdmin
-            ? $toolModel->all()
-            : ($isLoggedIn ? $toolModel->allForUser(UserSession::id()) : $toolModel->allPublic());
-
-        $body = json_encode([
-            'ok'    => true,
-            'tools' => ToolModel::toFrontend($rows),
-        ], JSON_UNESCAPED_UNICODE);
 
         if ($isLoggedIn) {
+            $toolModel = new ToolModel();
+            $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
+            $rows      = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
+            $body      = json_encode([
+                'ok'    => true,
+                'tools' => ToolModel::toFrontend($rows),
+            ], JSON_UNESCAPED_UNICODE);
             header('Cache-Control: private, no-store');
         } else {
+            // مهمان: ابزارهای عمومی برای همه یکسان‌اند — میکروکش ضد-stampede
+            $body = MicroCache::remember('tools-guest', 30, static function (): string {
+                return (string) json_encode([
+                    'ok'    => true,
+                    'tools' => ToolModel::toFrontend((new ToolModel())->allPublic()),
+                ], JSON_UNESCAPED_UNICODE);
+            });
+
             $etag       = '"tools-' . md5($body) . '"';
             $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
+            header('Cache-Control: public, max-age=30, stale-while-revalidate=30');
+            header('ETag: ' . $etag);
             if ($clientEtag === $etag) {
                 http_response_code(304);
                 exit;
             }
-            header('Cache-Control: public, max-age=30');
-            header('ETag: ' . $etag);
         }
 
         echo $body;

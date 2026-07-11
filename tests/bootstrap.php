@@ -38,6 +38,7 @@ spl_autoload_register(function (string $class): void {
             'ResendThrottle'         => $core . 'ResendThrottle.php',
             'Crypto'                 => $core . 'Crypto.php',
             'Cursor'                 => $core . 'Cursor.php',
+            'MicroCache'             => $core . 'MicroCache.php',
             'ToolModel'              => $mdl . 'ToolModel.php',
             'IconModel'              => $mdl . 'IconModel.php',
             'DecoModel'              => $mdl . 'DecoModel.php',

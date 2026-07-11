@@ -620,6 +620,16 @@ class NotificationModel
     // ── Admin Write Operations ──────────────────────────────
 
     /**
+     * حذف میکروکش فید مهمان — در انتهای هر عملیات نوشتن ادمین صدا می‌شود
+     * تا اعلان جدید/ویرایش‌شده بلافاصله (بدون انتظار TTL) به مهمان‌ها برسد.
+     * (تغییر read-state کاربران روی فید مهمان اثری ندارد و invalidate نمی‌خواهد)
+     */
+    private static function flushGuestCache(): void
+    {
+        MicroCache::forget('notif-guest');
+    }
+
+    /**
      * ایجاد اعلان جدید — برگرداندن ID ایجادشده
      */
     public function create(array $data): int
@@ -644,6 +654,7 @@ class NotificationModel
             $this->setBadges($id, $data['badges']);
         }
 
+        self::flushGuestCache();
         return $id;
     }
 
@@ -697,6 +708,7 @@ class NotificationModel
         // بازنویسی badge های هدف
         $this->setBadges($id, $data['badges'] ?? []);
 
+        self::flushGuestCache();
         return true;
     }
 
@@ -706,6 +718,7 @@ class NotificationModel
     public function delete(int $id): bool
     {
         DB::run('DELETE FROM notifications WHERE id = :id', [':id' => $id]);
+        self::flushGuestCache();
         return true;
     }
 
@@ -718,6 +731,7 @@ class NotificationModel
             'UPDATE notifications SET image_path = NULL, thumbnail_path = NULL WHERE id = :id',
             [':id' => $id]
         );
+        self::flushGuestCache();
     }
 
     // ── Badge Management ────────────────────────────────────

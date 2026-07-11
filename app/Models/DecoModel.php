@@ -29,7 +29,10 @@ class DecoModel
     {
         $decos       = $this->all();
         $decos[$key] = $svg;
-        return $this->db->save($decos);
+        $ok = $this->db->save($decos);
+        // assets داخل بدنه bootstrap مهمان حمل می‌شود — کش آن باید تازه شود
+        MicroCache::forget('boot-guest');
+        return $ok;
     }
 
     /** حذف انیمیشن و بازگرداندن ابزارهای وابسته به generic */
@@ -38,6 +41,7 @@ class DecoModel
         $decos = $this->all();
         unset($decos[$key]);
         $this->db->save($decos);
+        MicroCache::forget('boot-guest');
 
         // ابزارهایی که از این انیمیشن استفاده می‌کردند را به generic برگردان
         $tools    = $toolModel->all();

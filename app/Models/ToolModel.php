@@ -104,6 +104,17 @@ class ToolModel
 
     // ── Write operations ────────────────────────────────────
 
+    /**
+     * حذف میکروکش پاسخ‌های مهمان که به جدول tools وابسته‌اند —
+     * در انتهای هر عملیات نوشتن صدا می‌شود تا تغییر ادمین بلافاصله
+     * (بدون انتظار برای انقضای TTL) به بازدیدکنندگان برسد.
+     */
+    private static function flushGuestCache(): void
+    {
+        MicroCache::forget('tools-guest');
+        MicroCache::forget('boot-guest');
+    }
+
     /** افزودن ابزار جدید */
     public function create(array $data): bool
     {
@@ -126,6 +137,7 @@ class ToolModel
                 ':sort_order'   => $maxOrder + 1,
             ]
         );
+        self::flushGuestCache();
         return true;
     }
 
@@ -156,6 +168,7 @@ class ToolModel
                 ':id'           => $tool['id'],
             ]
         );
+        self::flushGuestCache();
         return true;
     }
 
@@ -183,6 +196,7 @@ class ToolModel
                 ':id'           => $id,
             ]
         );
+        self::flushGuestCache();
         return true;
     }
 
@@ -193,6 +207,7 @@ class ToolModel
         if (!$tool) return false;
 
         DB::run('DELETE FROM tools WHERE id = :id', [':id' => $tool['id']]);
+        self::flushGuestCache();
         return true;
     }
 
@@ -203,6 +218,7 @@ class ToolModel
             'UPDATE tools SET is_public = 1 - is_public WHERE id = :id',
             [':id' => $id]
         );
+        self::flushGuestCache();
         return true;
     }
 
@@ -222,6 +238,7 @@ class ToolModel
             if (!$tool) return false;
             $stmt->execute([':ord' => $newPos, ':id' => $tool['id']]);
         }
+        self::flushGuestCache();
         return true;
     }
 
@@ -244,6 +261,7 @@ class ToolModel
         foreach ($ids as $pos => $id) {
             $stmt->execute([':o' => $pos, ':id' => $id]);
         }
+        self::flushGuestCache();
         return true;
     }
 
@@ -251,6 +269,7 @@ class ToolModel
     public function deleteById(int $id): bool
     {
         DB::run('DELETE FROM tools WHERE id = :id', [':id' => $id]);
+        self::flushGuestCache();
         return true;
     }
 
@@ -268,6 +287,7 @@ class ToolModel
                 $stmt->execute([':deco' => $t['deco'] ?? 'generic', ':id' => $t['id']]);
             }
         }
+        self::flushGuestCache();
         return true;
     }
 

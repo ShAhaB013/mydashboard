@@ -11,6 +11,19 @@ class Fixtures
 {
     public const PREFIX = 'zztest_';
 
+    /**
+     * پاک‌سازی میکروکش پاسخ‌های مهمان — چون Fixtures مستقیم در DB می‌نویسد
+     * (بدون عبور از مدل‌ها که خودشان invalidate می‌کنند)، بعد از هر نوشتن
+     * صدا می‌شود تا تست‌های فید/ابزار مهمان نسخه‌ی stale نگیرند.
+     * (سرور تست php -S روی همین ماشین است؛ sys_get_temp_dir مشترک است)
+     */
+    private static function flushGuestMicroCache(): void
+    {
+        MicroCache::forget('notif-guest');
+        MicroCache::forget('tools-guest');
+        MicroCache::forget('boot-guest');
+    }
+
     public static function uniq(string $suffix = ''): string
     {
         return self::PREFIX . bin2hex(random_bytes(4)) . ($suffix !== '' ? '_' . $suffix : '');
@@ -35,6 +48,7 @@ class Fixtures
              VALUES (:title,:description,:path,:badge,:icon_key,:deco,:accent_color,:is_public,:sort_order)',
             $data
         );
+        self::flushGuestMicroCache();
         return (int) DB::get()->lastInsertId();
     }
 
@@ -84,6 +98,7 @@ class Fixtures
         $params  = array_intersect_key($data, array_flip($cols));
 
         DB::run("INSERT INTO notifications ({$colList}) VALUES ({$phList})", $params);
+        self::flushGuestMicroCache();
         return (int) DB::get()->lastInsertId();
     }
 
@@ -96,6 +111,7 @@ class Fixtures
             DB::run('DELETE FROM tools WHERE id = :id', [':id' => $row['id']]);
             $n++;
         }
+        self::flushGuestMicroCache();
         return $n;
     }
 
@@ -130,6 +146,7 @@ class Fixtures
             DB::run('DELETE FROM notifications WHERE id = :id', [':id' => $id]);
             $n++;
         }
+        self::flushGuestMicroCache();
         return $n;
     }
 

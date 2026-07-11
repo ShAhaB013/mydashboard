@@ -333,7 +333,8 @@ const NotifPanel = {
   _page:          1,
   _PER_PAGE:      6,
   _pollTimer:     null,
-  _POLL_MS:       25000,   // فاصله poll: هر ۲۵ ثانیه
+  _POLL_MS:        25000,  // حداقل فاصله poll: ۲۵ ثانیه
+  _POLL_JITTER_MS: 5000,   // جیتر تصادفی 0..5s روی هر چرخه (ضد هم‌فازشدن کلاینت‌ها)
   _loaded:        false,   // آیا لیست کامل (لود تنبل) آمده است؟
   _loading:       false,   // گارد ضد فراخوانی هم‌زمان
 
@@ -376,27 +377,30 @@ const NotifPanel = {
   },
 
   // ── Polling بلادرنگ ──────────────────────────────────────
+  // زنجیره setTimeout با جیتر تصادفی (به‌جای setInterval ثابت) تا pollهای
+  // هزاران تب باز هم‌فاز نشوند و موج همزمان درخواست به سرور شکل نگیرد.
   startPolling() {
     this.stopPolling();
-    this._pollTimer = setInterval(() => {
-      if (!document.hidden) this._poll();
-    }, this._POLL_MS);
+    const tick = () => {
+      this._pollTimer = setTimeout(() => {
+        if (!document.hidden) this._poll();
+        tick();
+      }, this._POLL_MS + Math.floor(Math.random() * this._POLL_JITTER_MS));
+    };
+    tick();
   },
 
   stopPolling() {
-    if (this._pollTimer) { clearInterval(this._pollTimer); this._pollTimer = null; }
+    if (this._pollTimer) { clearTimeout(this._pollTimer); this._pollTimer = null; }
   },
 
   async _poll() {
     try {
       if (Auth.loggedIn) {
-        // شمارش (سبک) + وضعیت پروفایل، هر دو با هم — اگر ادمین یا خودِ کاربر
-        // نام/ایمیل/نقش را ویرایش کند، بدون نیاز به خروج/ورود مجدد یا رفرش
-        // دستی، تا ۲۵ ثانیه بعد در همین صفحه به‌روزرسانی می‌شود.
-        const [countRes, meRes] = await Promise.all([
-          fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' }),
-          fetch(`${API_URL}?action=me`, { cache: 'no-cache' }),
-        ]);
+        // شمارش + هویت (me) هر دو در یک پاسخ حمل می‌شوند — اگر ادمین یا خودِ
+        // کاربر نام/ایمیل/نقش را ویرایش کند، بدون نیاز به خروج/ورود مجدد یا
+        // رفرش دستی، تا ~۲۵ ثانیه بعد در همین صفحه به‌روزرسانی می‌شود.
+        const countRes = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
         const data = await countRes.json();
         if (!data.ok) return;
 
@@ -411,8 +415,8 @@ const NotifPanel = {
           return;
         }
 
-        const meData = await meRes.json();
-        if (meData.ok && meData.logged_in) {
+        const meData = data.me;
+        if (meData) {
           const changed =
             meData.display_name !== Auth.displayName ||
             meData.username     !== Auth.username    ||
