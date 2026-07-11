@@ -35,6 +35,9 @@ CLAUDE.md
 /tests/results/
 /tests/config.php
 
+# ─── مهاجرت‌های دیتابیس (فعلا فقط لوکال — نه ریپو، نه هاست) ────────
+/migrations/
+
 # ─── OS / editor cruft ─────────────────────────────────────────
 .DS_Store
 Thumbs.db
