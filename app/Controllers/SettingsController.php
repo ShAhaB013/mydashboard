@@ -24,32 +24,32 @@ class SettingsController
 
         $port = (int) $this->request->input('smtp_port', '587');
         if ($port < 1 || $port > 65535) {
-            Response::error('پورت SMTP نامعتبر است (۱ تا ۶۵۵۳۵)');
+            Response::error('پورت SMTP نامعتبر است (۱ تا ۶۵۵۳۵)', 'smtp_port');
             return;
         }
 
         $resend = (int) $this->request->input('resend_cooldown', '30');
         if ($resend < 10 || $resend > 600) {
-            Response::error('فاصله ارسال مجدد باید بین ۱۰ تا ۶۰۰ ثانیه باشد');
+            Response::error('فاصله ارسال مجدد باید بین ۱۰ تا ۶۰۰ ثانیه باشد', 'resend_cooldown');
             return;
         }
 
         $ttl = (int) $this->request->input('code_ttl', '600');
         if ($ttl < 60 || $ttl > 86400) {
-            Response::error('مدت اعتبار کد باید بین ۶۰ تا ۸۶۴۰۰ ثانیه باشد');
+            Response::error('مدت اعتبار کد باید بین ۶۰ تا ۸۶۴۰۰ ثانیه باشد', 'code_ttl');
             return;
         }
 
         $fromEmail = trim((string) $this->request->input('smtp_from_email'));
         if ($fromEmail !== '' && !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
-            Response::error('ایمیل فرستنده معتبر نیست');
+            Response::error('ایمیل فرستنده معتبر نیست', 'smtp_from_email');
             return;
         }
 
         $enabled = $this->request->input('smtp_enabled') ? '1' : '0';
         $host    = trim((string) $this->request->input('smtp_host'));
         if ($enabled === '1' && $host === '') {
-            Response::error('برای فعال‌سازی SMTP باید آدرس سرور (host) را وارد کنید');
+            Response::error('برای فعال‌سازی SMTP باید آدرس سرور (host) را وارد کنید', 'smtp_host');
             return;
         }
 
@@ -81,7 +81,7 @@ class SettingsController
     {
         $to = trim((string) $this->request->input('test_email'));
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-            Response::error('ایمیل مقصد آزمایش معتبر نیست');
+            Response::error('ایمیل مقصد آزمایش معتبر نیست', 'test_email');
             return;
         }
         if (!Mailer::isConfigured()) {

@@ -1102,23 +1102,19 @@ const NM = {
       }
     }
 
-    if (!title) { Toast.show('عنوان الزامی است', 'error'); return; }
-    if (!body)  { Toast.show('متن اعلان الزامی است', 'error'); return; }
+    if (!title) return this._failField('nf-title', 'عنوان الزامی است');
+    if (!body)  return this._failField('nf-body', 'متن اعلان الزامی است');
     if (RTE.plainLength() > RTE.MAX_CHARS) {
-      Toast.show(`متن اعلان نباید بیشتر از ${RTE.MAX_CHARS.toLocaleString('en-GB')} کاراکتر باشد`, 'error');
-      return;
+      return this._failField('nf-body', `متن اعلان نباید بیشتر از ${RTE.MAX_CHARS.toLocaleString('en-GB')} کاراکتر باشد`);
     }
     if (!isPublicChk && !allUsersChk && !badges.length) {
-      Toast.show('مخاطبان اعلان را مشخص کنید', 'error');
-      return;
+      return this._failField('nf-public', 'مخاطبان اعلان را مشخص کنید');
     }
     if (!expiresDate) {
-      Toast.show('تاریخ و ساعت انقضا را مشخص کنید', 'error');
-      return;
+      return this._failField('nf-expires-date', 'تاریخ و ساعت انقضا را مشخص کنید');
     }
     if (expiresLocalDt && expiresLocalDt.getTime() < Date.now()) {
-      Toast.show('تاریخ و ساعت انقضا نباید قبل از زمان حال باشد', 'error');
-      return;
+      return this._failField('nf-expires-date', 'تاریخ و ساعت انقضا نباید قبل از زمان حال باشد');
     }
 
     let imagePath = '';
@@ -1151,8 +1147,17 @@ const NM = {
       if (wasCreate) this._page = 1;
       await this.load();
     } else {
-      Toast.show(res.msg || 'خطا در ذخیره', 'error');
+      const fieldId = { title: 'nf-title', body: 'nf-body', expires_at: 'nf-expires-date' }[res.field];
+      if (fieldId) this._failField(fieldId, res.msg || 'خطا در ذخیره');
+      else Toast.show(res.msg || 'خطا در ذخیره', 'error');
     }
+  },
+
+  // Shows the error as a toast and moves focus to the offending field (or the RTE body editor).
+  _failField(fieldId, msg) {
+    Toast.show(msg, 'error');
+    const el = document.getElementById(fieldId);
+    if (el) el.focus();
   },
 
   // ── Confirm dialog (generic: delete / close form) ─────────────

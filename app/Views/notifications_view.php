@@ -151,7 +151,7 @@
       </div>
 
       <div class="field">
-        <label for="nf-body">متن</label>
+        <label for="nf-body">متن <span class="req">*</span></label>
 
         <div class="rte-toolbar" id="rteToolbar" role="toolbar" aria-label="ابزار قالب‌بندی متن">
           <button type="button" class="rte-btn" data-cmd="bold" title="پررنگ (Ctrl+B)"><b>B</b></button>
@@ -192,7 +192,7 @@
         </div>
 
         <div id="nf-body" class="notif-body rte-editor" contenteditable="true"
-             data-placeholder="متن اعلان (اختیاری) — می‌توانید پررنگ، رنگی، چپ/راست‌چین و … کنید"
+             data-placeholder="متن اعلان — می‌توانید پررنگ، رنگی، چپ/راست‌چین و … کنید"
              dir="rtl"></div>
 
         <div class="rte-counter" id="rteCounter">

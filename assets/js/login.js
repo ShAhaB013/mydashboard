@@ -108,6 +108,8 @@
         }
         (errFields || []).forEach(markFieldError);
         showToast(data.msg || 'خطایی رخ داد', 'error');
+        const first = errFields && errFields[0] && document.getElementById(errFields[0]);
+        if (first) first.focus();
       } catch (err) {
         showToast('خطا در ارتباط با سرور', 'error');
       }

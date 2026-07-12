@@ -669,7 +669,12 @@ const UserManager = {
       if (isAdd) this._page = 1;
       this.load();
     } else {
-      Toast.show(res.msg || 'خطا', 'error');
+      const fieldId = {
+        full_name: 'editFullName', username: 'editUsername', phone: 'editPhone',
+        email: 'editEmail', password: 'editUserPassword',
+      }[res.field];
+      if (fieldId) FieldErr.set(fieldId, res.msg || 'خطا');
+      else Toast.show(res.msg || 'خطا', 'error');
     }
   },
 
@@ -982,13 +987,15 @@ const IconEditor = {
   },
   async save() {
     const path = document.getElementById('iconEditorPath').value.trim();
-    if (!path) { Toast.show('SVG path نمی‌تواند خالی باشد', 'error'); return; }
+    if (!path) return FieldErr.set('iconEditorPath', 'SVG path نمی‌تواند خالی باشد');
     const res = await Api.call('save_icon', { key: State.selIconKey, path });
     if (res.ok) {
       ICONS_DATA[State.selIconKey] = path;
       this.buildGrid();
       IconPicker.build();
       Toast.show('آیکون ذخیره شد', 'success', 'ویرایش موفق');
+    } else if (res.field === 'path') {
+      FieldErr.set('iconEditorPath', res.msg);
     } else {
       Toast.show(res.msg, 'error');
     }
@@ -1023,8 +1030,8 @@ const IconEditor = {
   async add() {
     const key  = document.getElementById('newIconKey').value.trim();
     const path = document.getElementById('newIconPath').value.trim();
-    if (!key)  { Toast.show('نام آیکون الزامی است', 'error'); return; }
-    if (!path) { Toast.show('SVG path الزامی است', 'error');   return; }
+    if (!key)  return FieldErr.set('newIconKey', 'نام آیکون الزامی است');
+    if (!path) return FieldErr.set('newIconPath', 'SVG path الزامی است');
     const res = await Api.call('save_icon', { key, path });
     if (res.ok) {
       ICONS_DATA[key] = path;
@@ -1034,7 +1041,9 @@ const IconEditor = {
       IconPicker.build();
       Toast.show('آیکون اضافه شد', 'success', 'افزودن موفق');
     } else {
-      Toast.show(res.msg, 'error');
+      const fieldId = { key: 'newIconKey', path: 'newIconPath' }[res.field];
+      if (fieldId) FieldErr.set(fieldId, res.msg);
+      else Toast.show(res.msg, 'error');
     }
   },
 };
@@ -1078,13 +1087,15 @@ const DecoEditor = {
   },
   async save() {
     const svg = document.getElementById('decoEditorSVG').value.trim();
-    if (!svg) { Toast.show('SVG نمی‌تواند خالی باشد', 'error'); return; }
+    if (!svg) return FieldErr.set('decoEditorSVG', 'SVG نمی‌تواند خالی باشد');
     const res = await Api.call('save_deco', { key: State.selDecoKey, svg });
     if (res.ok) {
       DECOS_DATA[State.selDecoKey] = svg;
       DecoPicker.build();
       Toast.show('انیمیشن ذخیره شد', 'success', 'ویرایش موفق');
       Preview.update();
+    } else if (res.field === 'svg') {
+      FieldErr.set('decoEditorSVG', res.msg);
     } else {
       Toast.show(res.msg, 'error');
     }
@@ -1119,8 +1130,8 @@ const DecoEditor = {
   async add() {
     const key = document.getElementById('newDecoKey').value.trim();
     const svg = document.getElementById('newDecoSVG').value.trim();
-    if (!key) { Toast.show('نام انیمیشن الزامی است', 'error'); return; }
-    if (!svg) { Toast.show('SVG الزامی است', 'error');          return; }
+    if (!key) return FieldErr.set('newDecoKey', 'نام انیمیشن الزامی است');
+    if (!svg) return FieldErr.set('newDecoSVG', 'SVG الزامی است');
     const res = await Api.call('save_deco', { key, svg });
     if (res.ok) {
       DECOS_DATA[key] = svg;
@@ -1130,7 +1141,9 @@ const DecoEditor = {
       DecoPicker.build();
       Toast.show('انیمیشن اضافه شد', 'success', 'افزودن موفق');
     } else {
-      Toast.show(res.msg, 'error');
+      const fieldId = { key: 'newDecoKey', svg: 'newDecoSVG' }[res.field];
+      if (fieldId) FieldErr.set(fieldId, res.msg);
+      else Toast.show(res.msg, 'error');
     }
   },
 };
@@ -1453,7 +1466,12 @@ const SettingsManager = {
       Toast.show('تنظیمات ذخیره شد', 'success', 'ذخیره موفق');
       document.getElementById('setSmtpPass').value = ''; // clear the password field after saving
     } else {
-      Toast.show(res.msg || 'خطا در ذخیره تنظیمات', 'error');
+      const fieldId = {
+        smtp_port: 'setSmtpPort', resend_cooldown: 'setResendCooldown', code_ttl: 'setCodeTtl',
+        smtp_from_email: 'setSmtpFromEmail', smtp_host: 'setSmtpHost',
+      }[res.field];
+      if (fieldId) FieldErr.set(fieldId, res.msg || 'خطا در ذخیره تنظیمات');
+      else Toast.show(res.msg || 'خطا در ذخیره تنظیمات', 'error');
     }
   },
 
@@ -1466,6 +1484,7 @@ const SettingsManager = {
     const res = await Api.call('test_email', { test_email: to });
     if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
     if (res.ok) Toast.show(res.msg || 'ایمیل آزمایشی ارسال شد', 'success', 'ارسال موفق');
+    else if (res.field === 'test_email') FieldErr.set('setTestEmail', res.msg || 'ارسال ناموفق بود');
     else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
   },
 };

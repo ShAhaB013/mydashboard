@@ -134,12 +134,12 @@ class ToolController
     private function validateToolData(array $data): bool
     {
         if (empty($data['title'])) {
-            Response::error('عنوان الزامی است');
+            Response::error('عنوان الزامی است', 'title');
             return false;
         }
 
         if (!Validator::isValidPath($data['path'])) {
-            Response::error('مسیر نامعتبر است');
+            Response::error('مسیر نامعتبر است', 'path');
             return false;
         }
 

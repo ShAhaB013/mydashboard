@@ -124,6 +124,9 @@
           const rulesPanel = document.getElementById('passRules');
           if (rulesPanel) rulesPanel.hidden = true;
           if (window.Field) { Field.clear('currentPassword'); Field.clear('newPassword'); Field.clear('confirmPassword'); }
+        } else if (data.field) {
+          const idByField = { current_password: 'currentPassword', new_password: 'newPassword', confirm_password: 'confirmPassword' };
+          fieldErr(idByField[data.field] || 'currentPassword', data.msg || 'خطا در تغییر رمز');
         } else if (window.Toast) {
           Toast.show(data.msg || 'خطا در تغییر رمز', 'error');
         }

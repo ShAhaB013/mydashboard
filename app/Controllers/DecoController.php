@@ -23,12 +23,12 @@ class DecoController
         $svg = $this->request->input('svg');
 
         if (!Validator::isValidKey($key)) {
-            Response::error('نام انیمیشن نامعتبر است');
+            Response::error('نام انیمیشن نامعتبر است', 'key');
             return;
         }
 
         if (empty($svg)) {
-            Response::error('SVG الزامی است');
+            Response::error('SVG الزامی است', 'svg');
             return;
         }
 

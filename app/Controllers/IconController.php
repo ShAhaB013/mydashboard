@@ -25,12 +25,12 @@ class IconController
         $svgPath = $this->request->input('path');
 
         if (!Validator::isValidKey($key)) {
-            Response::error('نام آیکون نامعتبر است (فقط حروف انگلیسی و عدد)');
+            Response::error('نام آیکون نامعتبر است (فقط حروف انگلیسی و عدد)', 'key');
             return;
         }
 
         if (empty($svgPath)) {
-            Response::error('SVG path الزامی است');
+            Response::error('SVG path الزامی است', 'path');
             return;
         }
 

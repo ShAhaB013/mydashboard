@@ -11,10 +11,13 @@ class Response
         self::send(array_merge(['ok' => true], $extra));
     }
 
-    /** Error response */
-    public static function error(string $message): void
+    /** Error response. Pass $field (the input's name/id) when the error applies to one specific form field,
+     *  so the client can focus that field instead of just showing a toast. */
+    public static function error(string $message, ?string $field = null): void
     {
-        self::send(['ok' => false, 'msg' => $message]);
+        $data = ['ok' => false, 'msg' => $message];
+        if ($field !== null) $data['field'] = $field;
+        self::send($data);
     }
 
     /** Sends the JSON response and ends execution */

@@ -273,18 +273,21 @@ class NotificationController
         $badges    = $this->request->inputArray('badges');
 
         if (empty($title)) {
-            Response::error('عنوان اعلان الزامی است'); return null;
+            Response::error('عنوان اعلان الزامی است', 'title'); return null;
         }
         if (mb_strlen($title) > 200) {
-            Response::error('عنوان اعلان نباید بیشتر از ۲۰۰ کاراکتر باشد'); return null;
+            Response::error('عنوان اعلان نباید بیشتر از ۲۰۰ کاراکتر باشد', 'title'); return null;
         }
 
         // ── sanitize rich text (HTML) ──────────────────────────
         // Limit is based on the visible text length (tags excluded)
         $body      = $this->sanitizeBody((string) $body);
         $plainLen  = mb_strlen(trim(strip_tags($body)));
+        if ($plainLen === 0) {
+            Response::error('متن اعلان الزامی است', 'body'); return null;
+        }
         if ($plainLen > self::MAX_BODY_CHARS) {
-            Response::error('متن اعلان نباید بیشتر از ' . self::MAX_BODY_CHARS . ' کاراکتر باشد'); return null;
+            Response::error('متن اعلان نباید بیشتر از ' . self::MAX_BODY_CHARS . ' کاراکتر باشد', 'body'); return null;
         }
 
         // ── convert datetime-local to Unix timestamp ──────────
@@ -292,7 +295,7 @@ class NotificationController
         if ($expiresRaw !== '') {
             $ts = $this->parseDatetimeLocal($expiresRaw);
             if ($ts === false) {
-                Response::error('فرمت تاریخ انقضا نامعتبر است'); return null;
+                Response::error('فرمت تاریخ انقضا نامعتبر است', 'expires_at'); return null;
             }
             $expiresAt = $ts;
         }
@@ -306,7 +309,7 @@ class NotificationController
 
         return [
             'title'            => $title,
-            'body'             => $body !== '' ? $body : null,
+            'body'             => $body,
             'image_path'       => $imagePath !== '' ? $imagePath : null,
             'thumbnail_path'   => $thumbPath !== '' ? $thumbPath : null,
             'is_public'        => $isPublic,

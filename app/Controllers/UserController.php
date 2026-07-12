@@ -80,48 +80,48 @@ class UserController
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
 
         if ($fullName === '') {
-            Response::error('نام و نام خانوادگی الزامی است');
+            Response::error('نام و نام خانوادگی الزامی است', 'full_name');
             return;
         }
         if (($err = Validator::name($fullName, 'نام و نام خانوادگی')) !== '') {
-            Response::error($err);
+            Response::error($err, 'full_name');
             return;
         }
         [$firstName, $lastName] = UserModel::splitName($fullName);
 
         if (($err = Validator::username($username)) !== '') {
-            Response::error($err);
+            Response::error($err, 'username');
             return;
         }
         // Mobile number is optional; only validated if entered
         if ($phone !== '' && ($err = Validator::phone($phone)) !== '') {
-            Response::error($err);
+            Response::error($err, 'phone');
             return;
         }
         if ($email === '') {
-            Response::error('ایمیل الزامی است');
+            Response::error('ایمیل الزامی است', 'email');
             return;
         }
         if (($err = Validator::email($email)) !== '') {
-            Response::error($err);
+            Response::error($err, 'email');
             return;
         }
 
         if (!PasswordPolicy::isAcceptable($password)) {
-            Response::error(PasswordPolicy::errorMessage());
+            Response::error(PasswordPolicy::errorMessage(), 'password');
             return;
         }
 
         if ($this->model->usernameExists($username)) {
-            Response::error('این نام‌کاربری قبلا ثبت شده است');
+            Response::error('این نام‌کاربری قبلا ثبت شده است', 'username');
             return;
         }
         if ($phone !== '' && $this->model->phoneExists($phone)) {
-            Response::error('این شماره موبایل قبلا ثبت شده است');
+            Response::error('این شماره موبایل قبلا ثبت شده است', 'phone');
             return;
         }
         if ($this->model->emailExists($email)) {
-            Response::error('این ایمیل قبلا ثبت شده است');
+            Response::error('این ایمیل قبلا ثبت شده است', 'email');
             return;
         }
 
@@ -145,26 +145,26 @@ class UserController
         }
 
         if ($fullName === '') {
-            Response::error('نام و نام خانوادگی الزامی است');
+            Response::error('نام و نام خانوادگی الزامی است', 'full_name');
             return;
         }
         if (($err = Validator::name($fullName, 'نام و نام خانوادگی')) !== '') {
-            Response::error($err);
+            Response::error($err, 'full_name');
             return;
         }
         [$firstName, $lastName] = UserModel::splitName($fullName);
 
         // Mobile number is optional; only validated if entered
         if ($phone !== '' && ($err = Validator::phone($phone)) !== '') {
-            Response::error($err);
+            Response::error($err, 'phone');
             return;
         }
         if ($email === '') {
-            Response::error('ایمیل الزامی است');
+            Response::error('ایمیل الزامی است', 'email');
             return;
         }
         if (($err = Validator::email($email)) !== '') {
-            Response::error($err);
+            Response::error($err, 'email');
             return;
         }
 
@@ -175,11 +175,11 @@ class UserController
         }
 
         if ($phone !== '' && $this->model->phoneExists($phone, $id)) {
-            Response::error('این شماره موبایل قبلا ثبت شده است');
+            Response::error('این شماره موبایل قبلا ثبت شده است', 'phone');
             return;
         }
         if ($this->model->emailExists($email, $id)) {
-            Response::error('این ایمیل قبلا ثبت شده است');
+            Response::error('این ایمیل قبلا ثبت شده است', 'email');
             return;
         }
 
@@ -196,7 +196,7 @@ class UserController
         // Password change is optional
         if ($password !== '') {
             if (!PasswordPolicy::isAcceptable($password)) {
-                Response::error(PasswordPolicy::errorMessage());
+                Response::error(PasswordPolicy::errorMessage(), 'password');
                 return;
             }
             $this->model->changePassword($id, $password);

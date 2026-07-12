@@ -290,20 +290,28 @@ class AuthController
         $newPass     = $body['new_password']     ?? '';
         $confirmPass = $body['confirm_password'] ?? '';
 
-        if (empty($currentPass) || empty($newPass) || empty($confirmPass)) {
-            echo json_encode(['ok' => false, 'msg' => 'همه فیلدها الزامی هستند']);
+        if (empty($currentPass)) {
+            echo json_encode(['ok' => false, 'field' => 'current_password', 'msg' => 'رمز عبور فعلی الزامی است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (empty($newPass)) {
+            echo json_encode(['ok' => false, 'field' => 'new_password', 'msg' => 'رمز عبور جدید الزامی است'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (empty($confirmPass)) {
+            echo json_encode(['ok' => false, 'field' => 'confirm_password', 'msg' => 'تکرار رمز عبور الزامی است'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($newPass !== $confirmPass) {
-            echo json_encode(['ok' => false, 'msg' => 'رمز عبور جدید و تکرار آن یکسان نیستند']);
+            echo json_encode(['ok' => false, 'field' => 'confirm_password', 'msg' => 'رمز عبور جدید و تکرار آن یکسان نیستند'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (!PasswordPolicy::isAcceptable($newPass)) {
-            echo json_encode(['ok' => false, 'msg' => PasswordPolicy::errorMessage()], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => false, 'field' => 'new_password', 'msg' => PasswordPolicy::errorMessage()], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($newPass === $currentPass) {
-            echo json_encode(['ok' => false, 'msg' => 'رمز عبور جدید نباید با رمز فعلی یکسان باشد']);
+            echo json_encode(['ok' => false, 'field' => 'new_password', 'msg' => 'رمز عبور جدید نباید با رمز فعلی یکسان باشد'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -314,7 +322,7 @@ class AuthController
         )->fetch();
 
         if (!$row || !password_verify($currentPass, $row['password_hash'])) {
-            echo json_encode(['ok' => false, 'msg' => 'رمز عبور فعلی اشتباه است']);
+            echo json_encode(['ok' => false, 'field' => 'current_password', 'msg' => 'رمز عبور فعلی اشتباه است'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
