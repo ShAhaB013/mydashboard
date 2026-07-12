@@ -1,2 +1,2 @@
-# داده‌های برنامه (JSON) فقط از سمتِ سرور خوانده می‌شوند، نه از طریقِ HTTP.
+# Application data (JSON) is only read server-side, never over HTTP.
 Require all denied

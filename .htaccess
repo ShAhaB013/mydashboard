@@ -1,42 +1,42 @@
 Header set X-Robots-Tag "noindex, nofollow"
 
-# جلوگیری از فهرست‌شدنِ (Directory Listing) پوشه‌ها
+# Prevent directory listing
 Options -Indexes
 
 
-# ─── URLهای تمیز (بدونِ پسوندِ .php) ──────────────────────────────
-# روشِ استاندارد: ۳۰۱ خارجی برای حذفِ .php (جلوگیری از duplicate content)
-# + سرو کردنِ داخلیِ نسخهٔ بدونِ پسوند. api.php دست‌نخورده می‌ماند چون
-# به‌صورت برنامه‌ای با ?action= صدا زده می‌شود (نباید ۳۰۱ بخورد).
+# ─── Clean URLs (without .php extension) ──────────────────────────────
+# Standard approach: external 301 to strip .php (avoids duplicate content)
+# + internal serving of the extensionless version. api.php is left untouched
+# since it's called programmatically with ?action= (must not get a 301).
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # ─── اجبارِ HTTPS ─────────────────────────────────────────────
-  # هر درخواستِ HTTP به نسخه‌ی HTTPS ریدایرکت می‌شود (۳۰۱). شرطِ
-  # X-Forwarded-Proto برای سازگاری با پایانه‌دهنده‌ی TLS (LiteSpeed/پراکسی).
+  # ─── Force HTTPS ─────────────────────────────────────────────
+  # Every HTTP request is redirected to the HTTPS version (301). The
+  # X-Forwarded-Proto condition is for compatibility with TLS terminators (LiteSpeed/proxy).
   RewriteCond %{HTTPS} off
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
-  # /admin و /admin/ → admin.php (نقطه ورود پنل مدیریت)
-  # پوشه‌ی بک‌اند حالا app/ نام دارد (نه admin/) و کاملا deny است. این قانونِ
-  # صریح URLِ /admin را به فایلِ admin.php می‌برد و کوئری مثل ?page=users را با
-  # QSA حفظ می‌کند (ریدایرکت 301 پایین، admin.php را مستثنا کرده است).
+  # /admin and /admin/ → admin.php (admin panel entry point)
+  # The backend folder is now named app/ (not admin/) and is fully denied. This
+  # rule explicitly maps the /admin URL to admin.php and preserves query strings
+  # like ?page=users via QSA (the 301 redirect below excludes admin.php).
   RewriteRule ^admin/?$ admin.php [L,QSA]
 
-  # index.php (با/بدون کوئری) → /
+  # index.php (with/without query) → /
   RewriteCond %{THE_REQUEST} \s/+index\.php[?\s] [NC]
   RewriteRule ^ / [R=301,L]
 
-  # foo.php → /foo  (به‌جز api.php و admin.php)
-  # admin.php و api.php به‌صورت برنامه‌ای با ?api= / ?action= صدا زده می‌شوند
-  # (POSTهای JSON). ریدایرکتِ 301 آن‌ها را خراب می‌کند (POST→GET + حذفِ بدنه)
-  # و باعث «خطا در ارتباط با سرور» در پنل می‌شود؛ پس هر دو مستثنا می‌مانند.
+  # foo.php → /foo  (except api.php and admin.php)
+  # admin.php and api.php are called programmatically with ?api= / ?action=
+  # (JSON POSTs). A 301 redirect would break them (POST→GET + body dropped)
+  # causing "server connection error" in the panel; so both are excluded.
   RewriteCond %{THE_REQUEST} !\s/+(api|admin)\.php [NC]
   RewriteCond %{THE_REQUEST} \s/+([^.\s?/]+)\.php[?\s] [NC]
   RewriteRule ^ /%1 [R=301,L,NE]
 
-  # /foo → foo.php  (فقط اگر foo.php واقعاً وجود داشته باشد)
+  # /foo → foo.php  (only if foo.php actually exists)
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME}\.php -f
   RewriteRule ^(.+?)/?$ $1.php [L]
@@ -48,7 +48,7 @@ Options -Indexes
   AddOutputFilterByType DEFLATE application/javascript application/x-javascript text/javascript
   AddOutputFilterByType DEFLATE application/json
   AddOutputFilterByType DEFLATE image/svg+xml
-  # مرورگرهای قدیمی باگ‌دار
+  # Buggy old browsers
   BrowserMatch ^Mozilla/4 gzip-only-text/html
   BrowserMatch ^Mozilla/4\.0[678] no-gzip
   Header append Vary Accept-Encoding
@@ -87,23 +87,23 @@ Options -Indexes
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
-  # HSTS: پس از اجبارِ HTTPS، مرورگر را وادار به استفاده‌ی همیشگی از HTTPS می‌کند.
+  # HSTS: after forcing HTTPS, this makes the browser always use HTTPS.
   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
 
-  # محدودسازی APIهای حساس مرورگر که این اپ استفاده نمی‌کند.
+  # Restrict sensitive browser APIs this app doesn't use.
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
 
-  # نکته: هدرِ CSP اینجا ست نمی‌شود؛ چون به nonceِ per-request نیاز دارد از PHP
-  # ارسال می‌شود (bootstrap.php → csp_nonce()). مهاجرت به enforcing در همان‌جا.
+  # Note: the CSP header isn't set here because it needs a per-request nonce,
+  # so it's sent from PHP instead (bootstrap.php → csp_nonce()). Migrate to enforcing there.
 </IfModule>
 
-# فایل‌های حساس: dotfileها، دامپِ دیتابیس، آرشیو/بکاپ، پیکربندی، لاگ ...
+# Sensitive files: dotfiles, database dumps, archives/backups, config, logs ...
 <FilesMatch "(^\.|\.(sql|md|json|log|ini|zip|tar|gz|tgz|rar|7z|bak|old|swp|env|lock|sqlite|db|conf|dist)$)">
   Require all denied
 </FilesMatch>
 
-# فایل‌های PHP که نقطه‌ی ورودِ تولید نیستند: include‌های مشترک + پیکربندی +
-# روترِ سرورِ توسعه (dev-router.php فقط برای php -S است و روی هاست نباید سرو شود)
+# PHP files that are not production entry points: shared includes + config +
+# the dev server router (dev-router.php is only for php -S and must not be served on hosting)
 <FilesMatch "^(dash_config|bootstrap|version|dev-router)\.php$">
   Require all denied
 </FilesMatch>

@@ -1,4 +1,4 @@
-# دسترسیِ مستقیمِ وب به کلاس‌ها و قالب‌های اپلیکیشن (app/) بسته است.
-# این فایل‌ها فقط از طریقِ include در نقاط ورود (admin.php / api.php) بارگذاری
-# می‌شوند، نه مستقیم. (پوشه‌ی assets با .htaccess خودش دوباره مجاز شده است.)
+# Direct web access to application classes and templates (app/) is blocked.
+# These files are only loaded via include in the entry points (admin.php / api.php),
+# never directly. (The assets folder re-allows access with its own .htaccess.)
 Require all denied
