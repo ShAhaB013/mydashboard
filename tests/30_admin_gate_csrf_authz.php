@@ -44,12 +44,12 @@ Assert::test('admin.php?api=list_tools ادمین با CSRF صحیح → 200', f
 });
 
 Assert::test('توکن CSRF نشست دیگر (ادمین دوم) قابل replay روی این نشست نیست', function () use ($BASE, $ACC) {
-    // نشست ۱: کاربر عادی لاگین می‌کند و CSRF خودش را می‌گیرد
+    // session 1: regular user logs in and gets its own CSRF token
     $httpUser = new HttpClient($BASE);
     $httpUser->loginAs($ACC['user']['username'], $ACC['user']['password']);
     $userToken = $httpUser->csrfToken();
 
-    // نشست ۲: ادمین لاگین می‌کند اما توکن نشست کاربر عادی را روی خودش می‌گذارد
+    // session 2: admin logs in but sets the regular user's session token on itself
     $httpAdmin = new HttpClient($BASE);
     $httpAdmin->loginAs($ACC['admin']['username'], $ACC['admin']['password'], '/admin.php');
     $httpAdmin->setCsrfToken($userToken);
@@ -63,8 +63,8 @@ Assert::test('bypass متد HTTP: GET با کوئری روی action جهش‌ز�
     $title = Fixtures::uniq('methodbypass');
     $token = $http->csrfToken() ?? '';
     $res = $http->get('/admin.php?api=add&title=' . urlencode($title) . '&path=' . urlencode('/' . $title), ['X-CSRF-Token: ' . $token]);
-    // یافته شناخته‌شده: Request::input فقط از php://input (JSON body) می‌خواند، نه از $_GET.
-    // پس با GET و فقط querystring، بدنه خالی است و 'عنوان الزامی است' برمی‌گردد — یعنی از این مسیر مشخص سوءاستفاده نمی‌شود.
+    // known finding: Request::input only reads from php://input (JSON body), not $_GET.
+    // so with GET and only a querystring, the body is empty and 'title required' comes back — meaning this specific route can't be abused this way.
     $created = Fixtures::findToolByTitle($title);
     Assert::true($created === null, 'GET با querystring نباید بتواند ابزار جدید بسازد (Request فقط JSON body را می‌خواند)');
     if ($created !== null) DB::run('DELETE FROM tools WHERE id=:id', [':id' => $created['id']]);
@@ -76,13 +76,13 @@ Assert::test('تازگی مجوز ادمین: تنزل نقش در DB حین ن�
     $res1 = $http->get('/admin.php?api=list_tools');
     Assert::jsonOk($res1, 'ابتدا دسترسی ادمین باید کار کند');
 
-    // دستکاری مستقیم DB (bypass اپلیکیشن) — تنزل نقش به user
+    // direct DB manipulation (bypassing the application) — demote role to user
     DB::run("UPDATE users SET role='user' WHERE username=:u", [':u' => $ACC['admin']['username']]);
     try {
         $res2 = $http->get('/admin.php?api=list_tools');
         Assert::statusEq($res2, 403, 'بعد از تنزل نقش در DB، همان کوکی نشست باید بلافاصله 403 بگیرد (چک تازه از DB، نه session cache)');
     } finally {
-        // بازگرداندن نقش ادمین برای بقیه‌ی تست‌ها
+        // restore admin role for the rest of the tests
         DB::run("UPDATE users SET role='admin' WHERE username=:u", [':u' => $ACC['admin']['username']]);
     }
 });

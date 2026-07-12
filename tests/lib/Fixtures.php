@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Fixtures — کمک‌کننده‌های PDO مستقیم برای ساخت/پاک‌سازی ردیف‌های تستی
-// همه‌ی داده‌های تولیدی این فایل با پیشوند zztest_ مشخص می‌شوند تا
-// sweep نهایی (run_all.php) بتواند به‌سادگی شناسایی و حذف‌شان کند.
+// Fixtures — direct PDO helpers for creating/cleaning up test rows
+// All data produced by this file is tagged with the zztest_ prefix so the
+// final sweep (run_all.php) can easily identify and remove it.
 // ═══════════════════════════════════════════════════════════
 
 class Fixtures
@@ -12,10 +12,10 @@ class Fixtures
     public const PREFIX = 'zztest_';
 
     /**
-     * پاک‌سازی میکروکش پاسخ‌های مهمان — چون Fixtures مستقیم در DB می‌نویسد
-     * (بدون عبور از مدل‌ها که خودشان invalidate می‌کنند)، بعد از هر نوشتن
-     * صدا می‌شود تا تست‌های فید/ابزار مهمان نسخه‌ی stale نگیرند.
-     * (سرور تست php -S روی همین ماشین است؛ sys_get_temp_dir مشترک است)
+     * Flush the guest response micro-cache — since Fixtures writes directly to the DB
+     * (bypassing the models, which invalidate the cache themselves), this is called after
+     * every write so guest feed/tool tests don't see a stale version.
+     * (the test server's php -S runs on this same machine; sys_get_temp_dir is shared)
      */
     private static function flushGuestMicroCache(): void
     {
@@ -87,8 +87,8 @@ class Fixtures
             'expires_at'        => 0,
         ], $overrides);
 
-        // created_at/updated_at اختیاری‌اند (پیش‌فرض DB = CURRENT_TIMESTAMP)؛ فقط وقتی صریحا
-        // داده شوند وارد کوئری می‌شوند تا فراخوان‌های موجود بدون تغییر کار کنند.
+        // created_at/updated_at are optional (DB default = CURRENT_TIMESTAMP); they're only added
+        // to the query when explicitly passed, so existing callers keep working unchanged.
         $cols = ['title', 'body', 'image_path', 'thumbnail_path', 'is_public', 'target_all_users', 'expires_at'];
         foreach (['created_at', 'updated_at'] as $c) {
             if (array_key_exists($c, $overrides)) $cols[] = $c;
@@ -161,7 +161,7 @@ class Fixtures
 
     public static function deleteSyntheticRateLimits(): int
     {
-        // رنج TEST-NET-3 (RFC 5737) — هرگز یک IP واقعی کلاینت نیست
+        // TEST-NET-3 range (RFC 5737) — never a real client IP
         $n = DB::run("DELETE FROM login_rate_limit WHERE ip LIKE '203.0.113.%'")->rowCount();
         return $n;
     }

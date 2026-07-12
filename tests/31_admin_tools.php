@@ -77,8 +77,8 @@ Assert::test('reorder → sort_order یکتا و پیوسته برای ids ار�
     $id2 = Fixtures::createTool(['sort_order' => 2]);
     $id3 = Fixtures::createTool(['sort_order' => 3]);
 
-    // reorderByIds لیست کامل و دقیق همه‌ی id های موجود در tools را می‌خواهد
-    // (نه فقط زیرمجموعه‌ی تستی) — سه ابزار تستی را به ابتدای لیست فعلی منتقل می‌کنیم.
+    // reorderByIds requires the exact, complete list of every id in tools
+    // (not just the test subset) — we move the three test tools to the front of the current list.
     $allIds = array_map(fn($r) => (int) $r['id'], DB::run('SELECT id FROM tools ORDER BY sort_order')->fetchAll());
     $rest   = array_values(array_diff($allIds, [$id1, $id2, $id3]));
     $newOrder = array_merge([$id3, $id1, $id2], $rest);

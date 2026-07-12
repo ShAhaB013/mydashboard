@@ -42,7 +42,7 @@ Assert::test('کاربر A نمی‌تواند نشست کاربر B را با �
     $httpA->loginAs($userA, $passA);
     $httpA->postJson('/api.php?action=terminate_my_session', ['session_id' => $sessionIdB]);
 
-    // نشست B هنوز باید فعال باشد (terminateOwned فقط اگر user_id مالک باشد حذف می‌کند)
+    // session B must still be active (terminateOwned only deletes if user_id is the owner)
     $resB2 = $httpB->get('/api.php?action=my_sessions');
     Assert::jsonOk($resB2, 'نشست B باید بعد از تلاش A هنوز معتبر باشد (my_sessions موفق)');
 });

@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// Request — پارس کردن ورودی‌های HTTP
+// Request — parses HTTP inputs
 // ═══════════════════════════════════════════════════════════
 
 class Request
@@ -15,44 +15,44 @@ class Request
         $this->query = $_GET;
     }
 
-    /** دریافت پارامتر از query string */
+    /** Gets a parameter from the query string */
     public function query(string $key, string $default = ''): string
     {
         return trim($this->query[$key] ?? $default);
     }
 
-    /** دریافت فیلد از body */
+    /** Gets a field from the body */
     public function input(string $key, string $default = ''): string
     {
         return trim($this->body[$key] ?? $default);
     }
 
-    /** دریافت فیلد عددی از body */
+    /** Gets a numeric field from the body */
     public function inputInt(string $key, int $default = -1): int
     {
         return isset($this->body[$key]) ? intval($this->body[$key]) : $default;
     }
 
-    /** دریافت آرایه از body */
+    /** Gets an array from the body */
     public function inputArray(string $key): array
     {
         $value = $this->body[$key] ?? [];
         return is_array($value) ? $value : [];
     }
 
-    /** متد HTTP درخواست */
+    /** The request's HTTP method */
     public function method(): string
     {
         return $_SERVER['REQUEST_METHOD'] ?? 'GET';
     }
 
-    /** آیا درخواست POST است؟ */
+    /** Is this a POST request? */
     public function isPost(): bool
     {
         return $this->method() === 'POST';
     }
 
-    /** دریافت فیلد POST فرم */
+    /** Gets a form POST field */
     public function post(string $key, string $default = ''): string
     {
         return trim($_POST[$key] ?? $default);

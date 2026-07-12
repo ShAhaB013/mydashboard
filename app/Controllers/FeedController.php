@@ -2,20 +2,20 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// FeedController — اعلان‌های عمومی کاربر/مهمان (مسیر api.php)
+// FeedController — general user/guest notifications (api.php route)
 //   notifications / unread_count / mark_read / mark_all_read
-// (منطق عینا از api.php منتقل شده؛ caching/ETag/304 حفظ شده‌اند)
+// (logic moved verbatim from api.php; caching/ETag/304 preserved)
 // ═══════════════════════════════════════════════════════════
 
 class FeedController
 {
-    // ── notifications: اعلان‌های فعال قابل نمایش برای کاربر/مهمان جاری ──
+    // ── notifications: active notifications visible to the current user/guest ──
     //
-    // ETag ارزان‌قیمت: چون این endpoint هر ۲۵ ثانیه توسط پنل زنگوله poll می‌شود
-    // (هم مهمان هم کاربر لاگین‌شده)، ابتدا فقط یک کوئری سبک (id/updated_at/is_read)
-    // اجرا و از آن ETag ساخته می‌شود؛ کوئری کامل + badges + serialize فقط وقتی
-    // اجرا می‌شود که این fingerprint با If-None-Match مطابقت نداشته باشد — یعنی
-    // در حالت پرتکرارِ «چیزی عوض نشده»، هزینه‌ی سنگین اصلا پرداخت نمی‌شود.
+    // Cheap ETag: since this endpoint is polled every 25 seconds by the bell panel
+    // (both guest and logged-in users), only a lightweight query (id/updated_at/is_read)
+    // runs first and an ETag is built from it; the full query + badges + serialize only
+    // runs when this fingerprint doesn't match If-None-Match — meaning in the frequent
+    // "nothing changed" case, the heavy cost is never paid at all.
     public function notifications(): void
     {
         $isLoggedIn = UserSession::check();
@@ -25,10 +25,10 @@ class FeedController
             return;
         }
 
-        // مهمان: پاسخ بین همه بازدیدکنندگان یکسان است (read-state مهمان در
-        // localStorage کلاینت اعمال می‌شود، نه سرور) — کل بدنه در میکروکش
-        // ضد-stampede نگه داشته می‌شود تا N poll همزمان فقط ۱ بار کوئری بزند.
-        // TTL کوتاه‌تر از بازه polling (~۲۵s) تا تاخیر دیده‌شدن اعلان جدید محسوس نشود.
+        // Guest: the response is identical across all visitors (the guest's read-state
+        // is applied client-side in localStorage, not on the server) — the whole body is
+        // kept in an anti-stampede micro-cache so N concurrent polls only query once.
+        // TTL is shorter than the polling interval (~25s) so the delay in seeing new notifications isn't noticeable.
         $body = MicroCache::remember('notif-guest', 20, static function (): string {
             $nm     = new NotificationModel();
             $result = [];
@@ -52,8 +52,8 @@ class FeedController
         echo $body;
     }
 
-    // فید کاربر لاگین‌شده — per-user است و وارد میکروکش مشترک نمی‌شود؛
-    // همان الگوی «fingerprint ارزان → 304» هزینه مسیر پرتکرار را حذف می‌کند.
+    // Logged-in user's feed — it's per-user and doesn't enter the shared micro-cache;
+    // the same "cheap fingerprint → 304" pattern removes the cost of the frequent path.
     private function notificationsForUser(int $uid): void
     {
         $nm          = new NotificationModel();
@@ -74,9 +74,9 @@ class FeedController
             exit;
         }
 
-        // فقط این‌جا (fingerprint مغایر) کوئری کامل + badges + serialize اجرا می‌شود
+        // Only here (fingerprint mismatch) does the full query + badges + serialize run
         $rows = $nm->allActiveForUser($uid);
-        // badgeها را به‌جای N کوئری مجزا، در یک کوئری دسته‌ای می‌گیریم (مثل bootstrap)
+        // Fetch badges in one batched query instead of N separate queries (like bootstrap)
         $ids      = array_map(fn($r) => (int) $r['id'], $rows);
         $badgeMap = $nm->getBadgesForIds($ids);
         $result   = [];
@@ -88,13 +88,13 @@ class FeedController
         echo json_encode(['ok' => true, 'notifications' => $result], JSON_UNESCAPED_UNICODE);
     }
 
-    // ── unread_count: تعداد اعلان‌های خوانده‌نشده — با پشتیبانی ETag/304 ──
-    // (مثل notifications() بالا: چون این endpoint هر ~۲۵ ثانیه poll می‌شود،
-    // عدد count + هش فیلدهای هویتی به‌عنوان ETag کافی است)
+    // ── unread_count: count of unread notifications — with ETag/304 support ──
+    // (like notifications() above: since this endpoint is polled every ~25 seconds,
+    // the count number + a hash of identity fields is enough as an ETag)
     //
-    // برای کاربر لاگین‌شده فیلدهای هویتی (me) هم در همین پاسخ حمل می‌شود تا
-    // چرخه‌ی poll به‌جای دو درخواست (unread_count + me) فقط یک درخواست بزند —
-    // در ترافیک بالا نرخ درخواست کاربران لاگین‌شده را نصف می‌کند.
+    // For a logged-in user, identity fields (me) are also carried in this same response so
+    // the poll cycle makes only one request instead of two (unread_count + me) —
+    // this halves the request rate for logged-in users under high traffic.
     public function unreadCount(): void
     {
         $isLoggedIn = UserSession::check();
@@ -117,8 +117,8 @@ class FeedController
             ];
         }
 
-        // ETag شامل هش هویت هم هست تا ویرایش نام/ایمیل/نقش (بدون تغییر count)
-        // پاسخ 304 نگیرد و به کلاینت برسد
+        // ETag also includes an identity hash so that editing name/email/role (without
+        // count changing) doesn't get a 304 response and actually reaches the client
         $meHash     = $me !== null ? '-' . substr(md5((string) json_encode($me)), 0, 12) : '';
         $etag       = '"' . $tag . '-' . $count . $meHash . '"';
         $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
@@ -140,7 +140,7 @@ class FeedController
         echo json_encode($resp, JSON_UNESCAPED_UNICODE);
     }
 
-    // ── mark_read: علامت‌گذاری یک اعلان به‌عنوان خوانده‌شده ──
+    // ── mark_read: mark a notification as read ──
     public function markRead(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -164,7 +164,7 @@ class FeedController
         echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
     }
 
-    // ── mark_all_read: علامت‌گذاری همه اعلان‌ها به‌عنوان خوانده‌شده ──
+    // ── mark_all_read: mark all notifications as read ──
     public function markAllRead(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

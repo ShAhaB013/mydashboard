@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════
-   datepicker.css — تقویم سفارشی میلادی، هماهنگ با تم پروژه
+   datepicker.css — custom Gregorian calendar, matching the project theme
    ───────────────────────────────────────────────────────────
-   با هر دو نام‌گذاری متغیر کار می‌کند: پنل ادمین (--accent/--bg-card/…)
-   و صفحات کاربر (--color-accent/--color-bg-card/…) از طریق fallback تو‌در‌تو.
-   مقدار همان <input type="date"> (yyyy-mm-dd) می‌ماند؛ فقط ظاهر/پنجره عوض می‌شود.
+   Works with both variable namings: admin panel (--accent/--bg-card/…)
+   and user pages (--color-accent/--color-bg-card/…) via nested fallbacks.
+   The value stays the same <input type="date"> (yyyy-mm-dd); only the appearance/popup changes.
    ═══════════════════════════════════════════════════════════ */
 .tdp { position: relative; width: 100%; min-width: 0; }
-/* input بومی مخفی می‌ماند ولی مقدارش معتبر است (ارسال فرم + خواندن JS) */
+/* The native input stays hidden but its value remains valid (form submission + JS reads it) */
 .tdp-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: 0; }
 
 .tdp-trigger {
@@ -29,10 +29,10 @@
 .tdp-ico { width: 16px; height: 16px; flex: 0 0 auto; color: var(--text-3, var(--color-text-muted, #94a3b8)); }
 
 .tdp-pop {
-  /* به body پورتال می‌شود و با JS (fixed) موقعیت می‌گیرد تا از مودال/صفحه بیرون نزند */
+  /* Portaled to body and positioned via JS (fixed) so it doesn't spill out of a modal/page */
   position: fixed; z-index: 4000;
   width: 264px; padding: 10px;
-  max-height: calc(100vh - 16px); overflow-y: auto;  /* ایمنی در viewportهای خیلی کوتاه */
+  max-height: calc(100vh - 16px); overflow-y: auto;  /* safety net on very short viewports */
   font-family: 'DashboardFont', sans-serif;
   background: var(--bg-card, var(--color-bg-card, #fff));
   border: 1px solid var(--border, var(--color-border, #e2e8f0));
@@ -75,7 +75,7 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
 .tdp-day.is-sel,
 .tdp-day.is-sel:hover { background: var(--accent, var(--color-accent, #3e7de7)); color: #fff; font-weight: 700; }
 
-/* نمای انتخاب ماه/سال (drill-down) */
+/* Month/year selection view (drill-down) */
 .tdp-grid-my { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 2px; }
 .tdp-cell {
   padding: 12px 0; border: none; background: none; cursor: pointer; border-radius: var(--radius-xs, 10px);
@@ -98,7 +98,7 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
 }
 .tdp-today:hover, .tdp-now:hover { border-color: var(--accent, var(--color-accent, #3e7de7)); color: var(--accent, var(--color-accent, #3e7de7)); }
 .tdp-clear:hover { border-color: #ef4444; color: #ef4444; }
-.tdp-now { /* هم‌استایل tdp-today (دکمه «اکنون» در ساعت) */
+.tdp-now { /* Same style as tdp-today (the "now" button in the time picker) */
   flex: 1; padding: 7px 0; border-radius: var(--radius-xs, 10px); cursor: pointer; font-size: 12.5px; font-weight: 600;
   font-family: 'DashboardFont', sans-serif;
   border: 1px solid var(--border, var(--color-border, #e2e8f0));
@@ -106,10 +106,10 @@ button.tdp-title:hover { background: var(--accent-bg, var(--color-accent-bg, rgb
   transition: border-color .15s ease, color .15s ease;
 }
 
-/* ── ساعت سفارشی (ستون ساعت + دقیقه) ── */
+/* ── Custom time picker (hour + minute columns) ── */
 .ttp-pop {
   position: fixed; z-index: 4000; width: 168px; padding: 8px;
-  max-height: calc(100vh - 16px); overflow-y: auto;  /* ایمنی در viewportهای خیلی کوتاه */
+  max-height: calc(100vh - 16px); overflow-y: auto;  /* safety net on very short viewports */
   font-family: 'DashboardFont', sans-serif;
   background: var(--bg-card, var(--color-bg-card, #fff));
   border: 1px solid var(--border, var(--color-border, #e2e8f0));

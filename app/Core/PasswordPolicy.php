@@ -2,24 +2,24 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// PasswordPolicy — منبع واحد حقیقت برای قوانین رمز عبور
-// قوانین صریح (همگی الزامی) — دقیقا با چک‌لیست زنده‌ی سمت کلاینت یکسان:
-//   • طول بین MIN_LENGTH و MAX_LENGTH
-//   • حداقل یک حرف کوچک انگلیسی
-//   • حداقل یک حرف بزرگ انگلیسی
-//   • حداقل یک عدد
-//   • حداقل یک نماد (غیر از حرف/عدد انگلیسی)
+// PasswordPolicy — single source of truth for password rules
+// Explicit rules (all mandatory) — must exactly match the client-side live checklist:
+//   - length between MIN_LENGTH and MAX_LENGTH
+//   - at least one lowercase English letter
+//   - at least one uppercase English letter
+//   - at least one digit
+//   - at least one symbol (not an English letter/digit)
 // ═══════════════════════════════════════════════════════════
 
 class PasswordPolicy
 {
-    /** حداقل طول مجاز (کف امنیتی) */
+    /** Minimum allowed length (security floor) */
     public const MIN_LENGTH = 10;
 
-    /** حداکثر طول مجاز (bcrypt هم عملا تا ~۷۲ بایت را لحاظ می‌کند) */
+    /** Maximum allowed length (bcrypt effectively only considers up to ~72 bytes anyway) */
     public const MAX_LENGTH = 64;
 
-    /** آیا رمز همه‌ی قوانین را برآورده می‌کند؟ (باید با نسخه JS یکسان بماند) */
+    /** Does the password satisfy all the rules? (must stay in sync with the JS version) */
     public static function isAcceptable(string $pw): bool
     {
         $len = mb_strlen($pw);
@@ -31,7 +31,7 @@ class PasswordPolicy
             && preg_match('/[^A-Za-z0-9]/', $pw);
     }
 
-    /** پیام خطای استاندارد برای رمز نامعتبر */
+    /** Standard error message for an invalid password */
     public static function errorMessage(): string
     {
         return 'رمز عبور باید بین ۱۰ تا ۶۴ کاراکتر و شامل حروف کوچک و بزرگ انگلیسی، عدد و نماد باشد.';

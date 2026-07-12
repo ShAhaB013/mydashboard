@@ -1,17 +1,17 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// bootstrap.php — راه‌اندازی مشترک برای نقاط ورود (admin.php / api.php / notifications.php)
-//   • یک نقشه autoload واحد (منبع یگانه؛ افزودن کلاس جدید فقط همین‌جا)
-//   • بارگذاری پیکربندی
-//   • اتصال DB
-//   • شروع نشست (همان realm کاربر: dash_user)
-// نقاط ورود API باید پیش از require این فایل، APP_API را تعریف کنند تا
-// خطای «DB در دسترس نیست» به‌صورت JSON پاسخ داده شود (نه متن ساده).
-// مقدار بازگشتی: آرایه پیکربندی ($config).
+// bootstrap.php — shared setup for entry points (admin.php / api.php / notifications.php)
+//   • one single autoload map (single source; add new classes only here)
+//   • load config
+//   • connect DB
+//   • start session (same user realm: dash_user)
+// API entry points must define APP_API before requiring this file so
+// a "DB unavailable" error is returned as JSON (not plain text).
+// Return value: config array ($config).
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);
 
-// ── Autoload (نقشه یگانه برای کل پروژه) ────────────────
+// ── Autoload (single map for the whole project) ─────────
 spl_autoload_register(function (string $class): void {
     static $map = null;
     if ($map === null) {
@@ -48,7 +48,7 @@ spl_autoload_register(function (string $class): void {
             'RateLimitModel'         => $mdl . 'RateLimitModel.php',
             'NotificationModel'      => $mdl . 'NotificationModel.php',
             'SessionModel'           => $mdl . 'SessionModel.php',
-            // ── Controllers (پنل ادمین) ───────────────────
+            // ── Controllers (admin panel) ──────────────────
             'ToolController'         => $ctl . 'ToolController.php',
             'IconController'         => $ctl . 'IconController.php',
             'DecoController'         => $ctl . 'DecoController.php',
@@ -57,7 +57,7 @@ spl_autoload_register(function (string $class): void {
             'NotificationController' => $ctl . 'NotificationController.php',
             'SessionController'      => $ctl . 'SessionController.php',
             'SettingsController'     => $ctl . 'SettingsController.php',
-            // ── Controllers (عمومی — api.php) ─────────────
+            // ── Controllers (public — api.php) ────────────
             'AppController'          => $ctl . 'AppController.php',
             'AuthController'         => $ctl . 'AuthController.php',
             'FeedController'         => $ctl . 'FeedController.php',
@@ -66,10 +66,10 @@ spl_autoload_register(function (string $class): void {
     if (isset($map[$class])) require_once $map[$class];
 });
 
-// ── پیکربندی (یک سطح بالاتر از webroot) ──────────────────
+// ── Config (one level above webroot) ─────────────────────
 $config = require dirname(__DIR__) . '/config.php';
 
-// ── اتصال DB (پاسخ خطا بسته به نوع نقطه ورود) ─────────
+// ── DB connection (error response depends on entry-point type) ──
 try {
     DB::connect($config['db']);
 } catch (Throwable $e) {
@@ -83,25 +83,25 @@ try {
     exit;
 }
 
-// ── کلید رمزنگاریِ مقادیر حساسِ قابل‌بازیابی در DB (مثل smtp_pass) ──
-// نبودِ این کلید در config.php باعث خطا نمی‌شود؛ فقط رمزنگاری غیرفعال
-// می‌ماند (Crypto به‌صورت passthrough عمل می‌کند).
+// ── Encryption key for recoverable sensitive values in the DB (e.g. smtp_pass) ──
+// Missing this key in config.php doesn't cause an error; encryption just
+// stays disabled (Crypto acts as a passthrough).
 Crypto::init((string) ($config['crypto']['key'] ?? ''));
 
-// ── نشست (همان realm کاربر) ──────────────────────────────
+// ── Session (same user realm) ─────────────────────────────
 UserSession::start();
 
-// ── CSP nonce (یکتا برای هر درخواست) + هدرِ CSP ──────────
-// nonceِ per-request که همه‌ی <script>های inline از csp_nonce() می‌خوانند تا
-// بتوان script-src را بدون 'unsafe-inline' نگه داشت. منبعِ یگانه‌ی هدرِ CSP هم
-// همین‌جاست (به‌جای .htaccess) چون nonce داینامیک است.
+// ── CSP nonce (unique per request) + CSP header ───────────
+// Per-request nonce that all inline <script>s read from csp_nonce() so
+// script-src can be kept without 'unsafe-inline'. The single source for the
+// CSP header is here too (instead of .htaccess) since the nonce is dynamic.
 $GLOBALS['csp_nonce'] = base64_encode(random_bytes(16));
 if (!function_exists('csp_nonce')) {
     function csp_nonce(): string { return (string) ($GLOBALS['csp_nonce'] ?? ''); }
 }
-// CSP اجباری (enforcing): همه‌ی هندلرهای inline به event-delegation منتقل و همه‌ی
-// <script>های inline nonce گرفته‌اند، پس script-src بدون 'unsafe-inline' امن است.
-// style-src فعلاً 'unsafe-inline' دارد (صفاتِ style پرشمار؛ مهاجرتِ جداگانه).
+// CSP is enforcing: all inline handlers were moved to event-delegation and all
+// inline <script>s have a nonce, so script-src is safe without 'unsafe-inline'.
+// style-src still has 'unsafe-inline' for now (many style attributes; separate migration).
 if (!headers_sent()) {
     header(
         "Content-Security-Policy: "

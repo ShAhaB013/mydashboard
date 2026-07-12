@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// AppController — endpointهای عمومی داده/نشست
+// AppController — public data/session endpoints
 //   bootstrap / assets / tools / me / logout
-// (منطق عینا از api.php منتقل شده؛ سرفصل‌های caching/ETag/304 حفظ شده‌اند)
+// (logic moved verbatim from api.php; caching/ETag/304 headers preserved)
 // ═══════════════════════════════════════════════════════════
 
 class AppController
@@ -16,24 +16,24 @@ class AppController
         $this->config = $config;
     }
 
-    // ── bootstrap: همه داده اولیه در یک درخواست ──────────────
+    // ── bootstrap: all initial data in a single request ──────────────
     // me + assets + tools + notifications + unread_count
     public function bootstrap(): void
     {
         $isLoggedIn = UserSession::check();
 
-        // ETag/۳۰۴ برای هر دو حالت: در ناوبری بین صفحات اگر داده عوض نشده باشد،
-        // به‌جای دانلود مجدد کل پاسخ (assets+tools) فقط یک ۳۰۴ برمی‌گردد.
+        // ETag/304 for both cases: when navigating between pages, if the data hasn't changed,
+        // only a 304 is returned instead of re-downloading the whole response (assets+tools).
         if ($isLoggedIn) {
             $body = $this->buildBootstrapBody(true);
             $tag  = 'boot-u' . UserSession::id();
-            // وابسته به نشست: فقط برای همان مرورگر، با اجبار revalidate
+            // Session-dependent: only for that same browser, forcing revalidation
             header('Cache-Control: private, max-age=0, must-revalidate');
         } else {
-            // مهمان: پاسخ بین همه بازدیدکنندگان یکسان است (بدون داده per-user؛
-            // read-state مهمان در localStorage کلاینت اعمال می‌شود) — میکروکش
-            // سرور N محاسبه همزمان را به ۱ تبدیل می‌کند و stale-while-revalidate
-            // موج درخواست پس از انقضای کش مرورگر/پروکسی را نرم می‌کند.
+            // Guest: the response is identical across all visitors (no per-user data;
+            // the guest's read-state is applied client-side from localStorage) — the server
+            // micro-cache collapses N concurrent computations into 1, and stale-while-revalidate
+            // smooths the request wave after the browser/proxy cache expires.
             $body = MicroCache::remember('boot-guest', 30, fn(): string => $this->buildBootstrapBody(false));
             $tag  = 'boot-guest';
             header('Cache-Control: public, max-age=30, stale-while-revalidate=30');
@@ -50,7 +50,7 @@ class AppController
         echo $body;
     }
 
-    /** ساخت بدنه bootstrap (me+assets+tools+unread) — برای مهمان از داخل میکروکش صدا می‌شود */
+    /** Build the bootstrap body (me+assets+tools+unread) — for guests this is called from inside the micro-cache */
     private function buildBootstrapBody(bool $isLoggedIn): string
     {
         $config = $this->config;
@@ -79,7 +79,7 @@ class AppController
             $me = ['ok' => true, 'logged_in' => false];
         }
 
-        // tools — ادمین همه ابزارها (شامل خصوصی) را می‌بیند تا بتواند روی همان داشبورد مدیریت کند
+        // tools — admin sees all tools (including private) so they can manage from the same dashboard
         $toolModel = new ToolModel();
         $isAdmin   = $isLoggedIn && (($_SESSION['role'] ?? 'user') === 'admin');
         $toolRows  = $isAdmin
@@ -87,11 +87,11 @@ class AppController
             : ($isLoggedIn ? $toolModel->allForUser(UserSession::id()) : $toolModel->allPublic());
         $tools = ['ok' => true, 'tools' => ToolModel::toFrontend($toolRows)];
 
-        // unread (سبک): لیست کامل اعلان‌ها دیگر در bootstrap حمل نمی‌شود تا کارت‌ها
-        // منتظر دانلود ~۱۰۵KB اعلان نمانند. لیست به‌صورت تنبل (action=notifications)
-        // پس از رندر کارت‌ها در پس‌زمینه لود می‌شود.
-        // کاربر لاگین‌شده: شمارش ناخوانده با یک کوئری سبک محاسبه می‌شود تا بج فوری بیاید.
-        // مهمان: شمارش سمت کلاینت (از localStorage) بعد از لود لیست محاسبه می‌شود.
+        // unread (light): the full notification list is no longer carried in bootstrap so the cards
+        // don't have to wait for a ~105KB notification download. The list is loaded lazily
+        // (action=notifications) in the background after the cards render.
+        // Logged-in user: unread count is computed with a lightweight query so the badge appears immediately.
+        // Guest: count is computed client-side (from localStorage) after the list loads.
         $unread = $isLoggedIn
             ? ['ok' => true, 'count' => (new NotificationModel())->unreadCount(UserSession::id())]
             : ['ok' => true, 'count' => 0];
@@ -107,7 +107,7 @@ class AppController
         return (string) json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
 
-    // ── assets: آیکون‌ها + انیمیشن‌ها ─────────────────────────
+    // ── assets: icons + animations ─────────────────────────
     public function assets(): void
     {
         $config    = $this->config;
@@ -154,7 +154,7 @@ class AppController
             ], JSON_UNESCAPED_UNICODE);
             header('Cache-Control: private, no-store');
         } else {
-            // مهمان: ابزارهای عمومی برای همه یکسان‌اند — میکروکش ضد-stampede
+            // Guest: public tools are identical for everyone — anti-stampede micro-cache
             $body = MicroCache::remember('tools-guest', 30, static function (): string {
                 return (string) json_encode([
                     'ok'    => true,
@@ -204,11 +204,11 @@ class AppController
     }
 
     // ═══════════════════════════════════════════════════════════
-    // نشست‌های فعال کاربر (خودش) — مانند «دستگاه‌های فعال» تلگرام.
-    // همه به نشست کاربر جاری محدود است (مالکیت سرور-تضمین).
+    // Active sessions of the user (themselves) — like Telegram's "Active Devices".
+    // Everything is scoped to the current user's session (server-enforced ownership).
     // ═══════════════════════════════════════════════════════════
 
-    /** فهرست نشست‌های فعال همین کاربر */
+    /** List of this user's active sessions */
     public function mySessions(): void
     {
         if (!$this->requireLogin()) return;
@@ -230,7 +230,7 @@ class AppController
         echo json_encode(['ok' => true, 'sessions' => $out], JSON_UNESCAPED_UNICODE);
     }
 
-    /** پایان‌دادن به یکی از نشست‌های همین کاربر (فقط نشست خودش) */
+    /** End one of this user's own sessions (only their own) */
     public function terminateMySession(): void
     {
         if (!$this->requirePost() || !$this->requireLogin()) return;
@@ -246,7 +246,7 @@ class AppController
         echo json_encode(['ok' => true, 'self' => $self], JSON_UNESCAPED_UNICODE);
     }
 
-    /** پایان همه نشست‌های دیگر همین کاربر (خروج از سایر دستگاه‌ها) */
+    /** End all of this user's other sessions (log out of other devices) */
     public function terminateMyOther(): void
     {
         if (!$this->requirePost() || !$this->requireLogin()) return;
@@ -255,7 +255,7 @@ class AppController
         echo json_encode(['ok' => true, 'count' => $n], JSON_UNESCAPED_UNICODE);
     }
 
-    // ── کمکی‌های گارد ──────────────────────────────────────────
+    // ── guard helpers ──────────────────────────────────────────
     private function requirePost(): bool
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

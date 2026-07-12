@@ -57,9 +57,9 @@ Assert::test('save_deco / delete_deco → چرخه کامل CRUD روی فایل
 
 Fixtures::deleteToolsByPrefix();
 
-// پاک‌سازی دفاعی: آیکون‌ها/دکوها روی فایل JSON ذخیره می‌شوند نه DB، پس sweep مبتنی
-// بر DB در Fixtures آن‌ها را نمی‌بیند — اگر یکی از تست‌های بالا قبل از cleanup خودش
-// exception بخورد، کلید zztest_ در فایل می‌ماند؛ این بخش هر بار همه را جارو می‌کند.
+// defensive cleanup: icons/decos are stored in a JSON file, not the DB, so Fixtures'
+// DB-based sweep doesn't see them — if one of the tests above throws before its own
+// cleanup, its zztest_ key stays in the file; this block sweeps them all every time.
 $iconsAll = $iconsStore->all();
 foreach (array_keys($iconsAll) as $k) if (str_starts_with($k, Fixtures::PREFIX)) unset($iconsAll[$k]);
 $iconsStore->save($iconsAll);

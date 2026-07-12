@@ -13,7 +13,7 @@ $oldId = Fixtures::createNotification([
     'created_at' => $threeYearsAgo,
 ]);
 
-// همچنین ۱۰۵ اعلان جدید برای اطمینان از اینکه رکورد قدیمی از پنجره‌ی BELL_CAP=100 بیرون می‌افتد
+// also 105 new notifications to ensure the old record falls outside the BELL_CAP=100 window
 $fillerIds = [];
 for ($i = 0; $i < 105; $i++) {
     $fillerIds[] = Fixtures::createNotification([

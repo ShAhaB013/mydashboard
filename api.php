@@ -1,7 +1,7 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// api.php — endpoint عمومی (نقطه ورود نازک)
-// مسیریابی به کنترلرهای عمومی از طریق PublicRouter (?action=…):
+// api.php — public endpoint (thin entry point)
+// Routes to public controllers via PublicRouter (?action=…):
 //   AppController : bootstrap / assets / tools / me / logout
 //   AuthController: login / change_password
 //   FeedController: notifications / unread_count / mark_read / mark_all_read
@@ -10,23 +10,23 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-// ── Bootstrap مشترک: autoload + config + DB + session ────
-// APP_API → خطای DB به‌صورت JSON پاسخ داده می‌شود.
+// ── Shared bootstrap: autoload + config + DB + session ────
+// APP_API → DB errors are returned as JSON.
 define('APP_API', true);
 
-// مرز مدیریت خطای سراسری: هر Throwable ناگرفته به‌جای لو دادنِ stack trace،
-// در لاگ سرور ثبت و به‌صورت JSON 500 تمیز به کلاینت پاسخ داده می‌شود.
+// Global error boundary: any uncaught Throwable, instead of leaking a
+// stack trace, is logged server-side and returned to the client as a clean JSON 500.
 try {
     $config = require __DIR__ . '/bootstrap.php';
 
-    // ── تایید CSRF (متدمحور — مقاوم در برابر drift) ──────────
-    // هر درخواستِ POSTِ یک کاربرِ لاگین‌شده نیازمند هدرِ معتبر X-CSRF-Token است.
-    // این مدلِ «default-deny برای POST» به‌جای allowlistِ دستی، تضمین می‌کند که
-    // هر actionِ حالت‌تغییردهنده‌ی جدید هم خودبه‌خود محافظت شود. استثناها:
-    //   • login: هنوز نشست/توکنی وجود ندارد (با rate-limit محافظت می‌شود).
-    //   • مهمان (بدون نشست): چیزی برای جعل وجود ندارد؛ handlerها خودشان 401 می‌دهند.
-    // endpointهای خواندنی (bootstrap/tools/notifications/…) با GET صدا زده می‌شوند و
-    // اصلا وارد این شرط نمی‌شوند.
+    // ── CSRF validation (method-based — resilient to drift) ──
+    // Every POST request from a logged-in user requires a valid X-CSRF-Token header.
+    // This "default-deny for POST" model, instead of a manual allowlist, guarantees
+    // that every new state-changing action is automatically protected too. Exceptions:
+    //   • login: no session/token exists yet (protected by rate-limiting instead).
+    //   • guest (no session): nothing to forge; handlers return 401 themselves.
+    // Read-only endpoints (bootstrap/tools/notifications/…) are called via GET and
+    // never enter this condition at all.
     $action = trim($_GET['action'] ?? '');
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action !== 'login' && UserSession::check()) {
         $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -41,7 +41,7 @@ try {
         }
     }
 
-    // ── مسیریابی ─────────────────────────────────────────────
+    // ── Routing ────────────────────────────────────────────────
     $router = new PublicRouter(
         new AppController($config),
         new AuthController(),

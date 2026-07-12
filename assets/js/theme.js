@@ -1,17 +1,17 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════
-   theme.js — مدیر تم مشترک (light / dark)
+   theme.js — shared theme manager (light / dark)
    ───────────────────────────────────────────────────────────
-   • محو نرم و بدون لگ: هنگام سوییچ، کلاس .theme-fade فقط ویژگی‌های
-     رنگی ارزان را ترنزیشن می‌دهد و بلافاصله بعد از پایان برداشته می‌شود.
-   • همگام بین تب‌ها: تغییر تم در یک تب، بقیه تب‌ها را هم آپدیت می‌کند.
-   • آپدیت <meta name="theme-color"> برای نوار آدرس موبایل.
-   • احترام به prefers-color-scheme وقتی کاربر انتخابی نکرده.
-   • خودکار به #themeToggle / .theme-toggle / [data-theme-toggle] وصل می‌شود.
-   • window.toggleTheme() برای سازگاری با onclick قدیمی فراهم است.
+   • Smooth, lag-free fade: on switch, the .theme-fade class only transitions
+     cheap color properties and is removed immediately once it's done.
+   • Synced across tabs: changing the theme in one tab updates the others too.
+   • Updates <meta name="theme-color"> for the mobile address bar.
+   • Respects prefers-color-scheme when the user hasn't made a choice.
+   • Auto-binds to #themeToggle / .theme-toggle / [data-theme-toggle].
+   • window.toggleTheme() is provided for compatibility with legacy onclick.
 
-   نکته: جلوگیری از FOUC (فلش لحظه‌ای) با اسکریپت inline کوچک داخل
-   <head> هر صفحه انجام می‌شود؛ این فایل با defer لود می‌شود.
+   Note: FOUC (flash of unstyled content) prevention is handled by a small
+   inline script in each page's <head>; this file loads with defer.
    ═══════════════════════════════════════════════════════════ */
 (function () {
   const KEY    = 'theme';
@@ -19,7 +19,7 @@
   const LIGHT  = 'light';
   const root   = document.documentElement;
 
-  /* رنگ نوار آدرس موبایل برای هر تم */
+  /* Mobile address bar color for each theme */
   const META_COLOR = { light: '#3e7de7', dark: '#0d1117' };
 
   function current() {
@@ -43,10 +43,10 @@
       .forEach(btn => btn.setAttribute('aria-label', label));
   }
 
-  /* مدت محو رنگ‌ها — با animation-duration در CSS هماهنگ است */
+  /* Color fade duration — kept in sync with animation-duration in CSS */
   const FADE_MS = 320;
 
-  /* تعویض واقعی تم (بدون انیمیشن) */
+  /* Actual theme swap (no animation) */
   function swap(theme) {
     if (theme === DARK) root.setAttribute('data-theme', DARK);
     else                root.removeAttribute('data-theme');
@@ -54,11 +54,12 @@
     updateToggleLabels(theme);
   }
 
-  /* اعمال تم با محو نرم و بدون لگ.
-     مسیر اصلی: View Transitions API — یک اسنپ‌شات از حالت قبل و بعد گرفته و
-     روی GPU کراس‌فید می‌شود؛ هیچ repaint هر-فریمی رخ نمی‌دهد، پس روی صفحات
-     سنگین (داشبورد با ده‌ها کارت + aurora + backdrop-blur) هم بدون لگ است.
-     فالبک: محو CSS با کلاس .theme-fade برای مرورگرهای بدون پشتیبانی. */
+  /* Applies the theme with a smooth, lag-free fade.
+     Primary path: View Transitions API — takes a snapshot of the before/after
+     state and cross-fades it on the GPU; no per-frame repaint happens, so it
+     stays lag-free even on heavy pages (a dashboard with dozens of cards +
+     aurora + backdrop-blur). Fallback: CSS fade via .theme-fade for browsers
+     without support. */
   function apply(theme, persist = true, broadcast = true) {
     if (persist) {
       try { localStorage.setItem(KEY, theme); } catch (e) {}
@@ -67,8 +68,8 @@
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (!reduce && typeof document.startViewTransition === 'function') {
-      /* زیر اسنپ‌شات، ترنزیشن‌های هر-المان خاموش شوند تا repaint موازی نداشته
-         باشیم؛ کراس‌فید را فقط View Transition انجام می‌دهد. */
+      /* Disable per-element transitions under the snapshot so we don't get a
+         parallel repaint; only the View Transition performs the cross-fade. */
       root.classList.add('theme-instant');
       const vt = document.startViewTransition(() => swap(theme));
       vt.finished.finally(() => root.classList.remove('theme-instant'));
@@ -78,25 +79,25 @@
 
     if (reduce) { swap(theme); void broadcast; return; }
 
-    /* فالبک: محو نرم CSS */
+    /* Fallback: smooth CSS fade */
     root.classList.add('theme-fade');
-    void root.offsetWidth; // قفل‌کردن رنگ مبدا
+    void root.offsetWidth; // lock in the starting color
     swap(theme);
     clearTimeout(apply._timer);
     apply._timer = setTimeout(() => root.classList.remove('theme-fade'), FADE_MS);
 
-    void broadcast; // localStorage خودش رویداد storage را برای تب‌های دیگر می‌فرستد
+    void broadcast; // localStorage itself fires the storage event for other tabs
   }
 
   function toggle() {
     apply(current() === DARK ? LIGHT : DARK);
   }
 
-  /* در دسترس برای onclick="toggleTheme()" در قالب‌های قدیمی */
+  /* Available for onclick="toggleTheme()" in legacy templates */
   window.toggleTheme = toggle;
   window.ThemeManager = { apply, toggle, current };
 
-  /* اتصال خودکار به دکمه‌ها (بدون نیاز به onclick) */
+  /* Auto-binds to buttons (no onclick needed) */
   function bind() {
     document
       .querySelectorAll('#themeToggle, .theme-toggle, [data-theme-toggle]')
@@ -115,14 +116,14 @@
     bind();
   }
 
-  /* همگام‌سازی بین تب‌ها */
+  /* Sync across tabs */
   window.addEventListener('storage', e => {
     if (e.key === KEY && (e.newValue === DARK || e.newValue === LIGHT)) {
       apply(e.newValue, false, false);
     }
   });
 
-  /* تغییر تم سیستم — فقط وقتی کاربر انتخاب دستی نکرده باشد */
+  /* System theme change — only when the user hasn't made a manual choice */
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
   const onSys = e => {
     let saved = null;
@@ -134,12 +135,12 @@
 })();
 
 /* ═══════════════════════════════════════════════════════════
-   افکت ripple (موج کلیک) روی دکمه‌های هدر — سبک متریال/تلگرام.
-   روی دکمه زنگ اعمال نمی‌شود (بج اعلان بیرون کادر است).
+   Ripple effect (click wave) on header buttons — Material/Telegram style.
+   Not applied to the bell button (the notification badge sits outside the box).
    ═══════════════════════════════════════════════════════════ */
 (function () {
-  // نکته: .theme-toggle عمداً ریپل ندارد — چرخش دکمه + مورفِ آیکون + محوِ تم
-  // هم‌زمان اجرا می‌شوند و افزودن ریپل روی آن باعث تداخل و لگ می‌شد.
+  // Note: .theme-toggle intentionally has no ripple — the button rotation +
+  // icon morph + theme fade all run at once, and adding a ripple caused conflicts and lag.
   const SEL = '.hdr-btn, .user-menu-btn, .btn, .btn-icon, .chip,'
     + ' .auth-btn, .user-menu-item, .notif-drop-item, .login-submit-btn,'
     + ' .profile-submit-btn, .login-tab, .pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-row,'
@@ -166,24 +167,26 @@
     btn.appendChild(r);
     const kill = () => r.remove();
     r.addEventListener('animationend', kill);
-    // ایمنی: اگر animationend به هر دلیلی نیامد، ریپل بیش از عمر انیمیشن نماند
+    // Safety net: if animationend never fires for some reason, don't let the ripple outlive the animation
     setTimeout(kill, 700);
   });
-  /* رفع باگ bfcache: اگر حین پخش ریپل به صفحه‌ای دیگر برویم، span موج در صفحهٔ
-     منجمدشده باقی می‌ماند و هنگام بازگشت (back/forward) یک فریم پخش‌شدنش دیده
-     می‌شود. راهکار قطعی: صفحه هرگز با ریپلِ زنده منجمد نشود — پیش از هر ناوبری،
-     پیش از مخفی‌شدن صفحه، و نیز هنگام بازیابی از کش، همهٔ ریپل‌ها پاک می‌شوند. */
+  /* bfcache bug fix: if we navigate away mid-ripple, the wave's span stays in
+     the frozen page and gets seen playing for one frame on back/forward
+     navigation. Definitive fix: never freeze the page with a live ripple —
+     all ripples are cleared before any navigation, before the page hides,
+     and when restoring from the cache. */
   function purgeRipples() {
     document.querySelectorAll('span.ripple').forEach(function (n) { n.remove(); });
   }
   window.addEventListener('pagehide', purgeRipples);
-  window.addEventListener('pageshow', purgeRipples);          // بدون شرط persisted
+  window.addEventListener('pageshow', purgeRipples);          // unconditional, regardless of persisted
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') purgeRipples();
   });
-  /* لینک‌های هدر/منو با prerender فوری باز می‌شوند و ریپل دیده نمی‌شود؛
-     ناوبری را ~160ms نگه می‌داریم تا موج کلیک پخش شود؛ اما دقیقا پیش از
-     ناوبری ریپل‌ها را پاک می‌کنیم تا صفحه بدون موجِ نیمه‌کاره منجمد شود. */
+  /* Header/menu links open instantly via prerender and the ripple never gets
+     seen; we hold navigation for ~160ms so the click wave gets to play, but
+     clear the ripples right before navigating so the page never freezes with
+     a half-finished wave. */
   document.addEventListener('click', function (e) {
     const a = e.target.closest(SEL);
     if (!a || a.tagName !== 'A') return;
@@ -196,8 +199,8 @@
 })();
 
 /* ═══════════════════════════════════════════════════════════
-   هدر چسبان هنگام اسکرول: با اسکرول به پایین کلاس .is-stuck اضافه می‌شود
-   (نوار به بالای صفحه می‌چسبد و سایه‌ی کم‌رنگ می‌گیرد)؛ با برگشت به بالا حذف.
+   Sticky header on scroll: scrolling down adds the .is-stuck class
+   (the bar sticks to the top and gets a faint shadow); scrolling back up removes it.
    ═══════════════════════════════════════════════════════════ */
 (function () {
   const header = document.querySelector('.app-header');
@@ -205,8 +208,9 @@
   let ticking = false;
   function update() {
     const y = window.scrollY;
-    // آستانه‌ی دوگانه (hysteresis) تا با نوسان چند پیکسلی اسکرول (مثلا اثر
-    // خودِ تغییر padding-top روی is-stuck) کلاس پشت‌هم toggle نشود و هدر نلرزد.
+    // Dual threshold (hysteresis) so a few pixels of scroll jitter (e.g. the
+    // padding-top change caused by is-stuck itself) doesn't keep toggling the
+    // class back and forth and making the header jitter.
     if (y > 24) header.classList.add('is-stuck');
     else if (y < 8) header.classList.remove('is-stuck');
     ticking = false;
@@ -218,11 +222,11 @@
 })();
 
 /* ═══════════════════════════════════════════════════════════
-   Toast — پیام شناور با آیکون رنگی + عنوان + توضیح + دکمه بستن
-   (مشترک بین همه صفحات عمومی: داشبورد/ورود/پروفایل/اعلان‌ها).
+   Toast — floating message with colored icon + title + description + close button
+   (shared across all public pages: dashboard/login/profile/notifications).
    Toast.show(message, type, title?) — type: success | error | warning | info
-   همیشه فقط یک toast هم‌زمان نمایش داده می‌شود؛ toast تازه جای قبلی را
-   می‌گیرد نه اینکه رویش انباشته شود.
+   Only ever one toast shown at a time; a new toast takes the previous one's
+   place instead of stacking on top of it.
    ═══════════════════════════════════════════════════════════ */
 const Toast = {
   _wrap: null, _timer: null,
@@ -239,7 +243,7 @@ const Toast = {
     if (!this._wrap) this._wrap = document.getElementById('toastWrap');
     if (!this._wrap) return;
     clearTimeout(this._timer);
-    // یک toast هم‌زمان: پیام قبلی (اگر بود) بلافاصله جای خود را به تازه می‌دهد.
+    // One toast at a time: any previous message immediately gives way to the new one.
     this._wrap.innerHTML = '';
     const t = document.createElement('div');
     t.className = 'toast-msg ' + type;

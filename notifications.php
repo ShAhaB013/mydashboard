@@ -1,24 +1,24 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// notifications.php — صفحه تاریخچه و جستجوی اعلان‌ها
-// برای کاربران لاگین‌کرده و مهمان‌ها
+// notifications.php — notification history and search page
+// For logged-in users and guests
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);
 require_once __DIR__ . '/version.php';
 
-// ── Bootstrap مشترک: autoload + config + DB + session ────
+// ── Shared bootstrap: autoload + config + DB + session ────
 $config = require __DIR__ . '/bootstrap.php';
 
-// ── وضعیت کاربر (مهمان یا لاگین‌کرده) ───────────────────
+// ── User state (guest or logged-in) ───────────────────────
 $isLoggedIn = UserSession::check();
 $userId     = $isLoggedIn ? UserSession::id() : 0;
 
-// توکن CSRF برای درخواست حالت‌تغییردهنده‌ی mark_read (فقط کاربر لاگین‌شده)
+// CSRF token for the state-changing mark_read request (logged-in users only)
 $csrfToken = $isLoggedIn ? UserSession::ensureCsrfToken() : '';
 
-// ── پارامترهای صفحه‌بندی و جستجو ─────────────────────────
-// دو مسیر موازی: page=N (OFFSET سنتی، برای شماره‌ی صفحه/برو-به-صفحه) یا
-// after=/before= (keyset، برای فلش Prev/Next مجاور — سریع در هر عمقی).
+// ── Pagination and search parameters ──────────────────────
+// Two parallel paths: page=N (traditional OFFSET, for page numbers/go-to-page) or
+// after=/before= (keyset, for adjacent Prev/Next arrows — fast at any depth).
 $search  = trim($_GET['q']    ?? '');
 $page    = max(1, (int) ($_GET['page'] ?? 1));
 $afterCursor  = Cursor::decode(trim($_GET['after']  ?? ''));
@@ -27,8 +27,8 @@ $useKeyset    = ($afterCursor !== null || $beforeCursor !== null || isset($_GET[
 $keysetDir    = $beforeCursor !== null || isset($_GET['before']) ? 'prev' : 'next';
 $keysetCursor = $keysetDir === 'prev' ? $beforeCursor : $afterCursor;
 
-// تعداد آیتم در هر صفحه — قابل تنظیم توسط کاربر و ماندگار (مهمان + لاگین‌کرده)
-// اولویت: انتخاب جاری در URL → کوکی ذخیره‌شده → پیش‌فرض
+// Items per page — user-adjustable and persisted (guest + logged-in)
+// Priority: current selection in URL → saved cookie → default
 $perPageAllowed = [10, 20, 50, 100];
 $ppDefault      = 20;
 $ppFromGet      = isset($_GET['pp']) ? (int) $_GET['pp'] : 0;
@@ -37,7 +37,7 @@ $perPage        = $ppFromGet ?: ($ppFromCookie ?: $ppDefault);
 if (!in_array($perPage, $perPageAllowed, true)) {
     $perPage = $ppDefault;
 }
-// ذخیره انتخاب کاربر برای دفعات بعد (کوکی سمت‌کلاینت → مستقل از لاگین)
+// Save the user's choice for next time (client-side cookie → independent of login)
 if ($ppFromGet && in_array($perPage, $perPageAllowed, true)) {
     setcookie('notif_pp', (string) $perPage, [
         'expires'  => time() + 60 * 60 * 24 * 365,
@@ -46,11 +46,11 @@ if ($ppFromGet && in_array($perPage, $perPageAllowed, true)) {
     ]);
 }
 
-// ── فیلترهای جستجوی پیشرفته (تاریخ ایجاد + وضعیت) ─────────
+// ── Advanced search filters (creation date + status) ──────
 $fDateFrom = trim($_GET['df'] ?? '');
 $fDateTo   = trim($_GET['dt'] ?? '');
 $fStatus   = trim($_GET['st'] ?? '');
-// اعتبارسنجی فرمت تاریخ و وضعیت
+// Validate date and status format
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fDateFrom)) $fDateFrom = '';
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fDateTo))   $fDateTo   = '';
 if (!in_array($fStatus, ['active', 'expired'], true)) $fStatus   = '';
@@ -60,10 +60,10 @@ $filters = [
     'date_to'   => $fDateTo,
     'status'    => $fStatus,
 ];
-// آیا فیلتر پیشرفته‌ای فعال است؟ (برای باز نگه‌داشتن پنل)
+// Is any advanced filter active? (to keep the panel open)
 $hasAdvanced = ($fDateFrom !== '' || $fDateTo !== '' || $fStatus !== '');
 
-// ── کمک‌تابع تاریخ میلادی ──
+// ── Gregorian date helper ──
 if (!function_exists('gregorian_datetime')) {
     function gregorian_datetime(int $ts): string
     {
@@ -71,7 +71,7 @@ if (!function_exists('gregorian_datetime')) {
     }
 }
 
-// ── کمک‌تابع بازه شماره صفحات (هم‌سو با _pageRange در notifications-admin.js) ──
+// ── Page number range helper (matches _pageRange in notifications-admin.js) ──
 if (!function_exists('notif_page_range')) {
     function notif_page_range(int $cur, int $count): array
     {
@@ -87,7 +87,7 @@ if (!function_exists('notif_page_range')) {
     }
 }
 
-// ── واکشی داده (بر اساس وضعیت لاگین + مسیر صفحه‌بندی) ────
+// ── Fetch data (based on login state + pagination path) ──
 $nm = new NotificationModel();
 
 $total = $isLoggedIn
@@ -108,8 +108,8 @@ if ($useKeyset) {
     if (!empty($items)) {
         $first = $items[0];
         $last  = $items[count($items) - 1];
-        // نگاه سبک (LIMIT 1) به هر دو طرف برای تعیین وجود صفحه‌ی بعد/قبل —
-        // واضح‌تر از استنتاج صرف از جهت درخواست جاری.
+        // A light (LIMIT 1) peek on both sides to determine whether a next/prev page
+        // exists — clearer than inferring purely from the direction of the current request.
         $peekPrev = $isLoggedIn
             ? $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters)
             : $nm->historyForGuestKeyset(Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters);
@@ -119,9 +119,9 @@ if ($useKeyset) {
         if (!empty($peekPrev)) $prevCursor = Cursor::encode($first['created_at'], (int) $first['id']);
         if (!empty($peekNext)) $nextCursor = Cursor::encode($last['created_at'], (int) $last['id']);
     }
-    // برای سازگاری با بخش‌های دیگر قالب که هنوز بر اساس $page متن می‌سازند
-    // (مثلا شماره‌ی صفحه‌ی نزدیک)، یک تخمین صرفا نمایشی نگه می‌داریم؛ منبع
-    // حقیقت ناوبری واقعی همان cursor هاست.
+    // For compatibility with other parts of the template that still build text based
+    // on $page (e.g. the nearby page number), we keep a display-only estimate; the
+    // real source of truth for navigation is the cursor.
     $page = min($page, $pages);
 } else {
     $page  = min($page, $pages);
@@ -138,16 +138,16 @@ if ($useKeyset) {
     }
 }
 
-// badge های هر اعلان
+// Badges for each notification
 $badgesMap = [];
 foreach ($items as $item) {
     $badgesMap[$item['id']] = $nm->getBadges((int) $item['id']);
 }
 
-// علامت‌گذاری خوانده‌شده فقط هنگام باز کردن هر اعلان در modal (از طریق JS) انجام می‌شود
-// مهمان‌ها: وضعیت خوانده‌شده از طریق localStorage مدیریت می‌شود
+// Marking as read only happens when each notification is opened in the modal (via JS)
+// Guests: read state is managed via localStorage
 
-// ── ورژن فایل‌های استاتیک ────────────────────────────────
+// ── Static asset versions ─────────────────────────────────
 $vCss   = asset_v(__DIR__ . '/assets/css/style.css');
 $vJs    = asset_v(__DIR__ . '/assets/js/script.js');
 $vLightbox = asset_v(__DIR__ . '/assets/js/lightbox.js');
@@ -157,7 +157,7 @@ $vDpCss = asset_v(__DIR__ . '/assets/css/datepicker.css');
 $vNotifCss = asset_v(__DIR__ . '/assets/css/notifications.css');
 $vNotifJs  = asset_v(__DIR__ . '/assets/js/notifications.js');
 
-// ── داده اعلان‌ها برای JS (بدون تصویر در لیست) ───────────
+// ── Notification data for JS (no image in the list) ───────
 $notifJson = [];
 foreach ($items as $item) {
     $notifJson[(int) $item['id']] = [
@@ -171,7 +171,7 @@ foreach ($items as $item) {
         'is_expired' => (bool) ($item['is_expired']  ?? false),
         'is_public'  => (bool) ($item['is_public']   ?? false),
         'badges'     => $badgesMap[$item['id']]  ?? [],
-        // مهمان: همیشه false — JS وضعیت را از localStorage می‌خواند
+        // Guest: always false — JS reads state from localStorage
         'is_read'    => $isLoggedIn ? (bool) ($item['is_read']   ?? false) : false,
         'is_edited'  => $isLoggedIn ? (bool) ($item['is_edited'] ?? false) : false,
     ];
@@ -193,7 +193,7 @@ foreach ($items as $item) {
   <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
   <script src="/assets/js/lightbox.js?v=<?= $vLightbox ?>" defer></script>
   <script src="/assets/js/datepicker.js?v=<?= $vDpJs ?>" defer></script>
-  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
@@ -212,7 +212,7 @@ foreach ($items as $item) {
 </head>
 <body class="notif-page-wrap">
 
-  <!-- ── هدر یکپارچه (سبک تلگرام) ── -->
+  <!-- ── Unified header (Telegram-style) ── -->
   <header class="app-header">
     <div class="app-header__inner">
       <div class="app-header__lead">
@@ -231,7 +231,6 @@ foreach ($items as $item) {
 
   <main class="notif-page-main" role="main">
 
-    <!-- فرم جستجو -->
     <form class="notif-search-form" method="GET" action="/notifications" role="search">
       <div class="notif-search-wrap">
         <label for="notif-q" class="sr-only">جستجو در اعلان‌ها</label>
@@ -250,7 +249,6 @@ foreach ($items as $item) {
         <a href="/notifications?pp=<?= $perPage ?>" class="notif-search-clear">پاک کردن</a>
       <?php endif; ?>
 
-      <!-- تعداد در هر صفحه -->
       <label class="notif-perpage" title="تعداد آیتم در هر صفحه">
         <span class="sr-only">تعداد در هر صفحه</span>
         <select name="pp" data-cselect data-change="submitForm" aria-label="تعداد آیتم در هر صفحه">
@@ -260,7 +258,6 @@ foreach ($items as $item) {
         </select>
       </label>
 
-      <!-- دکمه باز/بستن جستجوی پیشرفته -->
       <button type="button" class="notif-adv-toggle<?= $hasAdvanced ? ' active' : '' ?>"
               id="notifAdvToggle" aria-expanded="<?= $hasAdvanced ? 'true' : 'false' ?>"
               aria-controls="notifAdvPanel" title="جستجوی پیشرفته">
@@ -270,7 +267,6 @@ foreach ($items as $item) {
         <span>فیلتر</span>
       </button>
 
-      <!-- پنل جستجوی پیشرفته -->
       <div class="notif-adv-panel<?= $hasAdvanced ? ' open' : '' ?>" id="notifAdvPanel">
         <div class="notif-adv-field">
           <label for="adv-df">از تاریخ</label>
@@ -297,7 +293,6 @@ foreach ($items as $item) {
       </div>
     </form>
 
-    <!-- لیست ردیفی -->
     <?php if (empty($items)): ?>
       <div class="notif-empty">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -315,11 +310,11 @@ foreach ($items as $item) {
       <div class="notif-table" role="list" aria-label="لیست اعلان‌ها">
 
         <?php
-          // شماره ردیف با احتساب صفحه‌بندی
+          // Row number accounting for pagination
           $rowIndex = ($page - 1) * $perPage;
         ?>
         <?php foreach ($items as $item):
-          // لاگین‌کرده: از DB | مهمان: JS از localStorage می‌خواند (همیشه false در PHP)
+          // Logged-in: from DB | Guest: JS reads from localStorage (always false in PHP)
           $isRead    = $isLoggedIn ? (bool) ($item['is_read']    ?? false) : false;
           $isEdited  = $isLoggedIn ? (bool) ($item['is_edited']  ?? false) : false;
           $isExpired = (bool) ($item['is_expired'] ?? false);
@@ -330,7 +325,7 @@ foreach ($items as $item) {
             . (!$isRead    ? ' unread'  : '')
             . ($isExpired  ? ' expired' : '');
 
-          // هایلایت جستجو فقط در عنوان
+          // Highlight search matches in the title only
           $titleHtml = htmlspecialchars($item['title']);
           if ($search !== '') {
               $safeQ     = preg_quote(htmlspecialchars($search), '/');
@@ -393,8 +388,8 @@ foreach ($items as $item) {
 
       </div>
 
-      <!-- صفحه‌بندی: فلش‌های Prev/Next مجاور از cursor (keyset، سریع در هر عمقی) استفاده
-           می‌کنند؛ شماره‌های صفحه و «برو به صفحه» از page=N (OFFSET) استفاده می‌کنند. -->
+      <!-- Pagination: adjacent Prev/Next arrows use the cursor (keyset, fast at any
+           depth); page numbers and "go to page" use page=N (OFFSET). -->
       <?php if ($pages > 1):
         $qStr = ($search ? '&q=' . urlencode($search) : '') . '&pp=' . $perPage
               . ($fDateFrom ? '&df=' . urlencode($fDateFrom) : '')
@@ -457,7 +452,7 @@ foreach ($items as $item) {
   </main>
 
   <!-- ══════════════════════════════════════════════
-       Modal جزئیات اعلان — تصویر فقط هنگام باز شدن لود می‌شود
+       Notification detail modal — image loads only when opened
        ══════════════════════════════════════════════ -->
   <div
     class="nd-overlay"
@@ -480,7 +475,7 @@ foreach ($items as $item) {
 
       <div class="nd-body">
 
-        <!-- تصویر: فقط هنگام open() لود می‌شود -->
+        <!-- Image: loaded only on open() -->
         <div class="nd-image-wrap" id="ndImageWrap">
           <img id="ndImage" class="js-lightbox" src="" alt="" loading="lazy">
         </div>
@@ -489,7 +484,6 @@ foreach ($items as $item) {
           <div class="nd-text" id="ndText"></div>
 
           <div class="nd-meta" id="ndMeta">
-            <!-- ساخته شده توسط JS -->
           </div>
         </div>
 
@@ -502,7 +496,7 @@ foreach ($items as $item) {
     </div>
   </div>
 
-  <!-- داده اعلان‌ها و وضعیت کاربر -->
+  <!-- Notification data and user state -->
   <script nonce="<?= csp_nonce() ?>">
     const NOTIFS       = <?= json_encode($notifJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
     const IS_LOGGED_IN = <?= $isLoggedIn ? 'true' : 'false' ?>;

@@ -11,7 +11,7 @@
     .notif-row:hover { border-color:#484f58; box-shadow:0 2px 12px rgba(0,0,0,.15); }
     .notif-row.is-expired { opacity:.65; }
 
-    /* شماره ردیف */
+    /* Row number */
     .notif-row-num {
       flex-shrink:0; min-width:26px;
       display:flex; align-items:center; justify-content:center;
@@ -19,7 +19,7 @@
       font-variant-numeric:tabular-nums; user-select:none;
       align-self:center;
     }
-    /* تاریخ میلادی (کنار شمسی) */
+    /* Gregorian date (next to the Persian/Jalali one) */
     .pill-date-greg { opacity:.8; direction:ltr; }
 
     .notif-row-thumb {
@@ -57,7 +57,7 @@
     .notif-modal-body::-webkit-scrollbar { width:5px; }
     .notif-modal-body::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
 
-    /* ── آپلود فایل (تک‌فایل، طرح کشیدن‌ورها‌کردن) ── */
+    /* ── File upload (single file, drag-and-drop) ── */
     .file-up-zone {
       position:relative; border:2px dashed var(--border); border-radius:var(--radius-lg);
       padding:26px 16px; text-align:center; cursor:pointer; background:var(--bg-input);
@@ -75,7 +75,7 @@
     .file-up-link { color:var(--accent); font-weight:700; }
     .file-up-hint { font-size:11.5px; color:var(--text-3); }
 
-    /* ردیف فایل انتخاب‌شده (آپلود / کامل / خطا) */
+    /* Selected file row (uploading / complete / error) */
     .file-item {
       display:flex; align-items:center; gap:12px; margin-top:10px;
       border:1px solid var(--border); border-radius:var(--radius);
@@ -114,7 +114,7 @@
     .file-item-x:hover { background:var(--danger-bg); color:var(--danger); }
     .file-item-x svg { width:15px; height:15px; }
 
-    /* وضعیت‌ها */
+    /* States */
     .file-item.is-done .file-item-bar,
     .file-item.is-done .file-item-pct,
     .file-item.is-done .file-item-spin { display:none; }
@@ -154,14 +154,14 @@
     .badge-check-label input { display:none; }
     .badge-check-empty { font-size:12px; color:var(--text-3); padding:10px 14px; }
 
-    /* ── date/time inputs: باید LTR باشند ── */
+    /* ── date/time inputs: must be LTR ── */
     .datetime-ltr {
       font-family:'DashboardFont',sans-serif; font-size:14px;
       background:var(--bg-input); color:var(--text);
       border:1px solid var(--border); border-radius:var(--radius);
       padding:10px 14px; outline:none; width:100%;
       transition:border-color var(--t), box-shadow var(--t);
-      direction: ltr;        /* ← کلیدی: بدون این، مرورگر بخش ساعت را مخفی می‌کند */
+      direction: ltr;        /* ← key: without this, the browser hides the time portion */
       text-align: left;
     }
     .datetime-ltr:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,166,255,.12); }
@@ -190,7 +190,7 @@
     .rte-btn.active { background:var(--accent-bg); color:var(--accent); border-color:rgba(88,166,255,.3); }
     .rte-sep { width:1px; height:20px; background:var(--border); margin:0 3px; }
 
-    /* ── انتخاب‌گر رنگ بومی ساده ── */
+    /* ── Simple native color picker ── */
     .rte-color {
       display:inline-flex; align-items:center; gap:5px;
       height:30px; padding:0 8px; border-radius:var(--radius-xs); cursor:pointer;
@@ -201,7 +201,7 @@
     .rte-color input[type="color"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
     .rte-color-swatch { width:16px; height:16px; border-radius:4px; background:#e11d48; border:1px solid var(--border); flex-shrink:0; }
     .rte-color-label { pointer-events:none; }
-    /* هایلایت مصنوعی متنی که در حال تغییر رنگ است (انتخاب مرورگر هنگام بازشدن دیالوگ رنگ می‌پرد) */
+    /* Synthetic highlight for the text whose color is being changed (the browser's native selection is lost when the color dialog opens) */
     .rte-editor [data-color-marker] {
       background:rgba(88,166,255,.28);
       box-shadow:0 0 0 1px rgba(88,166,255,.5);
@@ -230,7 +230,7 @@
     .rte-counter-nums { unicode-bidi:isolate; }
     .rte-counter.over { color:var(--danger); font-weight:700; }
 
-    /* اسکلت لودینگ ردیف اعلان — هم‌ساختار با notif-row واقعی (شماره/عنوان/متن/pillها/اکشن‌ها) */
+    /* Notification row loading skeleton — same structure as a real notif-row (number/title/text/pills/actions) */
     .notif-skeleton { cursor:default; }
     .notif-skeleton .sk { position:relative; overflow:hidden; background:var(--bg-hover); border-radius:var(--radius-xs); }
     .notif-skeleton .sk::after {
@@ -253,7 +253,7 @@
     @keyframes skSweep { 0%{transform:translateX(100%)} 60%,100%{transform:translateX(-200%)} }
     @media(prefers-reduced-motion:reduce) { .notif-skeleton .sk::after { animation:none; } }
 
-    /* نمایش تاریخ انقضا در فرم — helper */
+    /* Expiry date display in the form — helper */
     .expiry-display {
       font-size:12px; color:var(--text-2); margin-top:5px;
       display:none; align-items:center; gap:6px;
@@ -286,7 +286,7 @@
     .nm-perpage select:hover  { border-color:var(--accent); }
     .nm-perpage select:focus  { outline:none; border-color:var(--border-focus,var(--accent)); }
 
-    /* ── دکمه و پنل جستجوی پیشرفته (ادمین) ── */
+    /* ── Advanced search button and panel (admin) ── */
     .nm-adv-toggle {
       display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
       font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
@@ -320,14 +320,14 @@
     }
     .nm-adv-field select:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(88,166,255,.12); }
     .nm-adv-field .datetime-ltr { height:42px; }
-    /* CustomSelect (هماهنگ با سایر صفحات پنل) داخل کنترل‌های این صفحه */
-    /* همه کنترل‌های جستجو/فیلتر این صفحه pill — هماهنگ با نوار جستجوی سراسری پروژه */
+    /* CustomSelect (synced with other panel pages) inside this page's controls */
+    /* All search/filter controls on this page are pill-shaped — synced with the project's global search bar */
     .nm-perpage .cselect { width:auto; }
     .nm-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); background:var(--bg-card); }
     .nm-adv-field .cselect-trigger { min-height:42px; border-radius:var(--radius-xs); }
     .nm-adv-field .tdp-trigger { min-height:42px; border-radius:var(--radius-xs); }
     .nm-adv-actions { display:flex; gap:8px; align-items:center; }
-    /* هم‌ارتفاع کردن دکمه‌ها با تاریخ‌گزین/دراپ‌داون (همگی 42px) + pill هماهنگ با پنل فیلتر */
+    /* Match button height to the date-picker/dropdown (all 42px) + pill shape synced with the filter panel */
     .nm-adv-actions .btn { height:42px; border-radius:var(--radius-xs); }
     @media (max-width:560px) {
       .notif-list-controls { flex-wrap:wrap; }
@@ -352,7 +352,7 @@
       width:26px; height:26px; border-radius:50%; border:none;
       background:var(--bg-card); color:var(--text-3); cursor:pointer;
       display:none; align-items:center; justify-content:center;
-      overflow:hidden; /* ریپل را به دایره می‌برد (موقعیت absolute حفظ می‌شود) */
+      overflow:hidden; /* confines the ripple to the circle (absolute positioning is preserved) */
       transition:background var(--t), color var(--t);
     }
     .notif-search-clear svg { width:13px; height:13px; }
@@ -365,7 +365,7 @@
       flex-wrap:wrap; gap:6px; margin:20px 0 8px;
     }
     .notif-pagination.hidden { display:none; }
-    /* دکمه‌های صفحه‌بندی: کامپوننت مشترک .pagination-btn/.pagination-ellipsis در assets/css/pagination.css */
+    /* Pagination buttons: shared component .pagination-btn/.pagination-ellipsis in assets/css/pagination.css */
     .notif-page-info { text-align:center; font-size:12px; color:var(--text-3); margin-bottom:8px; }
 
     @media(max-width:680px) { .notif-row-meta { display:none; } }

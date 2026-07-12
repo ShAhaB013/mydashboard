@@ -2,16 +2,16 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// AccessModel — مدیریت دسترسی دو سطحی
-//   سطح ۱: tool_access    — دسترسی مستقیم کاربر ↔ ابزار
-//   سطح ۲: category_access — دسترسی گروهی کاربر ↔ badge
+// AccessModel — manages two-level access control
+//   Level 1: tool_access    — direct user <-> tool access
+//   Level 2: category_access — group user <-> badge access
 // ═══════════════════════════════════════════════════════════
 
 class AccessModel
 {
-    // ── Tool-level (سطح ۱) ──────────────────────────────────
+    // ── Tool-level (level 1) ────────────────────────────────
 
-    /** ID ابزارهایی که کاربر دسترسی مستقیم دارد */
+    /** IDs of tools the user has direct access to */
     public function getToolIds(int $userId): array
     {
         return array_column(
@@ -23,9 +23,9 @@ class AccessModel
         );
     }
 
-    // ── Category-level (سطح ۲) ──────────────────────────────
+    // ── Category-level (level 2) ────────────────────────────
 
-    /** badge هایی که کاربر دسترسی گروهی دارد */
+    /** Badges the user has group access to */
     public function getBadges(int $userId): array
     {
         return array_column(
@@ -39,7 +39,7 @@ class AccessModel
 
     // ── Combined ────────────────────────────────────────────
 
-    /** دریافت هر دو سطح دسترسی با یک فراخوانی */
+    /** Gets both access levels in a single call */
     public function getAll(int $userId): array
     {
         return [
@@ -49,8 +49,8 @@ class AccessModel
     }
 
     /**
-     * ذخیره هر دو سطح دسترسی در یک transaction
-     * ابتدا همه دسترسی‌های قبلی پاک، سپس جدید نوشته می‌شود
+     * Saves both access levels in a single transaction
+     * First all previous access is cleared, then the new access is written
      */
     public function setAll(int $userId, array $toolIds, array $badges): bool
     {
@@ -58,11 +58,11 @@ class AccessModel
         $pdo->beginTransaction();
 
         try {
-            // پاک کردن دسترسی‌های قبلی
+            // Clear previous access
             DB::run('DELETE FROM tool_access     WHERE user_id = :uid', [':uid' => $userId]);
             DB::run('DELETE FROM category_access WHERE user_id = :uid', [':uid' => $userId]);
 
-            // ثبت دسترسی مستقیم به ابزارها (یک INSERT چندردیفی به‌جای یک اجرا به‌ازای هر ردیف)
+            // Insert direct tool access (a single multi-row INSERT instead of one execution per row)
             if (!empty($toolIds)) {
                 $placeholders = [];
                 $params       = [];
@@ -77,7 +77,7 @@ class AccessModel
                 );
             }
 
-            // ثبت دسترسی گروهی به badge ها (whitelist شده، یک INSERT چندردیفی)
+            // Insert group access to badges (whitelisted, a single multi-row INSERT)
             $validBadges = $this->getAvailableBadges();
             $badges      = array_values(array_filter($badges, fn ($b) => in_array($b, $validBadges, true)));
             if (!empty($badges)) {
@@ -105,7 +105,7 @@ class AccessModel
 
     // ── Utility ─────────────────────────────────────────────
 
-    /** لیست badge های موجود در سیستم (از جدول tools) */
+    /** List of badges that exist in the system (from the tools table) */
     public function getAvailableBadges(): array
     {
         return array_column(

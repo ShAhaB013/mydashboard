@@ -1,17 +1,17 @@
-    /* ── layout صفحه پروفایل ── */
+    /* ── Profile page layout ── */
     .profile-wrap {
-      /* هدر تمام‌عرض پیش‌فرض (مثل همه‌ی صفحات دیگر) — هیچ override عرض/پدینگ ندارد */
+      /* Default full-width header (like every other page) — no width/padding override */
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      /* پس‌زمینه تخت مثل صفحات تنظیمات/ادمین (بدون aurora) تا رنگ‌بندی با تم پروژه یکی شود */
+      /* Flat background like the settings/admin pages (no aurora) so the coloring matches the project theme */
       background-color: var(--color-bg-primary);
       background-image: none;
     }
     .profile-wrap::before,
-    .profile-wrap::after { display: none; } /* حذف لایه‌های aurora و نویز */
+    .profile-wrap::after { display: none; } /* Remove the aurora and noise layers */
 
-    /* کارت هم‌عرض کامل هدر (لبه‌به‌لبه با پیل هدر) */
+    /* Card matches the header's full width (edge-to-edge with the header pill) */
     .profile-main {
       max-width: var(--page-w, 1100px);
       margin: 16px auto 48px;
@@ -22,9 +22,9 @@
     }
     @media (max-width: 1140px) { .profile-main { padding: 0 14px; } }
 
-    /* دکمه بازگشت یکپارچه در style.css تعریف شده (.btn-back) */
+    /* The unified back button is defined in style.css (.btn-back) */
 
-    /* ── کارت محتوا — هم‌عرض هدر، گوشه‌گرد پروژه (radius-lg) ── */
+    /* ── Content card — matches the header width, project corner radius (radius-lg) ── */
     .profile-card {
       background: var(--color-bg-card);
       border: 1.5px solid var(--color-border);
@@ -33,7 +33,7 @@
       box-shadow: 0 4px 20px rgba(15,23,42,.05);
     }
 
-    /* ── هدر کارت: چیدمان وسط‌چین (آواتار روی هم، نام+بج، ایمیل زیرش) ── */
+    /* ── Card header: centered layout (avatar on top, name+badge, email below) ── */
     .profile-card-head {
       padding: 28px 28px 24px;
       border-bottom: 1px solid var(--color-border);
@@ -43,7 +43,7 @@
       text-align: center;
       gap: 10px;
       width: 100%;
-      max-width: 600px;          /* هم‌تراز ستون وسط‌چین محتوا */
+      max-width: 600px;          /* aligned with the content's centered column */
       margin-inline: auto;
     }
 
@@ -67,7 +67,7 @@
       align-items: center;
     }
 
-    /* ── ردیف نام + بج ادمین ── */
+    /* ── Name + admin badge row ── */
     .profile-name-row {
       display: flex;
       align-items: center;
@@ -79,7 +79,7 @@
       font-weight: 700;
       color: var(--color-text-primary);
     }
-    /* ── بج ادمین: تیک تایید آبی رنگ کنار نام (فقط برای role=admin) ── */
+    /* ── Admin badge: a blue verified checkmark next to the name (role=admin only) ── */
     .profile-admin-badge {
       display: inline-flex;
       flex-shrink: 0;
@@ -94,7 +94,7 @@
       direction: ltr;
       text-align: center;
       word-break: break-all;
-      /* فونت لاتین واضح برای ایمیل (به‌جای monospace کم‌خوانا) */
+      /* Clear Latin font for the email (instead of a hard-to-read monospace) */
       font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
       font-size: 13.5px;
       font-weight: 500;
@@ -103,7 +103,7 @@
     }
     .profile-email { margin-top: 2px; }
 
-    /* ── اسکلت لودینگ (هدر کارت + فیلدهای تب مشخصات کاربری) — هر دو از یک fetch می‌آیند ── */
+    /* ── Loading skeleton (card header + user-info tab fields) — both come from the same fetch ── */
     .profile-card { --sk-base: rgba(100,116,139,.13); --sk-glow: rgba(255,255,255,.55); }
     [data-theme="dark"] .profile-card { --sk-base: rgba(148,163,184,.12); --sk-glow: rgba(255,255,255,.06); }
     .profile-card-head.is-loading .profile-avatar,
@@ -147,7 +147,7 @@
       .profile-card-head.is-loading .profile-email { animation: shimmer 1.6s ease-in-out infinite; }
     }
 
-    /* ── اسکلت لودینگ فیلدهای نام/نام‌خانوادگی — همان fetchِ سرسیدی «me» است ── */
+    /* ── Loading skeleton for the first/last name fields — same "me" head-of-page fetch ── */
     #tabPanel-name.is-loading .field-input {
       color: transparent;
       background: var(--sk-base);
@@ -172,13 +172,13 @@
       #tabPanel-name.is-loading .field-input { animation: shimmer 1.6s ease-in-out infinite; }
     }
 
-    /* بدنه = تک‌ستونه؛ بخش‌ها وسط‌چین کارت قرار می‌گیرند (کارت تمام‌عرض هدر می‌ماند) */
+    /* Body = single column; sections are centered within the card (the card stays the header's full width) */
     .profile-card-body {
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    /* ── نوار تب‌های صفحه پروفایل (نام/رمز/نشست‌ها) — هم‌الگو با تب‌های ورود ── */
+    /* ── Profile page tab bar (name/password/sessions) — same pattern as the login tabs ── */
     .profile-tabs {
       position: relative;
       display: flex;
@@ -199,7 +199,7 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      overflow: hidden;   /* میزبان افکت ripple */
+      overflow: hidden;   /* hosts the ripple effect */
       font-family: 'DashboardFont', sans-serif;
       font-size: 12.5px;
       font-weight: 700;
@@ -225,8 +225,8 @@
       transition: transform .34s cubic-bezier(.34, 1.4, .5, 1), width .34s cubic-bezier(.34, 1.4, .5, 1);
     }
     .profile-tab-panel {
-      width: 100%;   /* بدون این، فرزند flex-column وسط‌چین (align-items:center) به
-                        عرض محتوایش جمع می‌شود و فیلدهای داخلش (نام/نام‌خانوادگی) کوچک دیده می‌شوند */
+      width: 100%;   /* Without this, the centered flex-column child (align-items:center) shrinks
+                        to its content width and the fields inside it (first/last name) look small */
     }
     .profile-tab-panel[hidden] { display: none; }
     .profile-tab-panel .profile-section { max-width: 600px; }
@@ -235,7 +235,7 @@
       .profile-tab svg { width: 18px; height: 18px; }
     }
 
-    /* هر بخش = ستون تک‌ستونه ۶۰۰px وسط‌چین: عنوان+توضیح بالا، فیلدها پایین (یکسان در همه عرض‌ها) */
+    /* Each section = a centered 600px single column: title+description on top, fields below (consistent at every width) */
     .profile-section {
       display: flex;
       flex-direction: column;
@@ -243,7 +243,7 @@
       padding: 26px 28px;
       width: 100%;
       max-width: 600px;
-      margin-inline: auto;   /* .profile-tab-panel والد حالا تمام‌عرض است؛ بدون این، بخش به‌جای وسط‌چین به راست (سمت start در RTL) می‌چسبد */
+      margin-inline: auto;   /* the parent .profile-tab-panel is now full width; without this, the section sticks to the right (start side in RTL) instead of centering */
     }
     .profile-section-aside {
       display: flex;
@@ -266,7 +266,7 @@
       .profile-section { padding: 22px 22px; }
     }
 
-    /* ── عنوان بخش — هم‌الگو با هدر بخش‌های صفحه تنظیمات (.add-asset-form h4): آیکون + HeadingFont ── */
+    /* ── Section title — same pattern as the settings page's section headers (.add-asset-form h4): icon + HeadingFont ── */
     .profile-section-title {
       font-family: 'HeadingFont', 'DashboardFont', sans-serif;
       font-size: 14px;
@@ -284,7 +284,7 @@
       color: var(--color-accent);
     }
 
-    /* ── فیلدها ── */
+    /* ── Fields ── */
     .profile-field {
       display: flex;
       flex-direction: column;
@@ -329,7 +329,7 @@
       background: var(--color-border);
     }
 
-    /* ── password wrapper با دکمه نمایش ── */
+    /* ── Password wrapper with reveal button ── */
     .profile-pass-wrap {
       position: relative;
     }
@@ -355,14 +355,14 @@
     .profile-pass-toggle:hover { color: var(--color-accent); }
     .profile-pass-toggle svg { width: 16px; height: 16px; pointer-events: none; }
 
-    /* ── divider ── */
+    /* ── Divider ── */
     .profile-divider {
       height: 1px;
       background: var(--color-border);
       margin: 4px 0;
     }
 
-    /* ── دکمه submit ── */
+    /* ── Submit button ── */
     .profile-submit-btn {
       font-family: 'DashboardFont', sans-serif;
       font-size: 14px;
@@ -386,10 +386,10 @@
     .profile-submit-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
     .profile-submit-btn svg { width: 16px; height: 16px; }
 
-    /* چک‌لیست زنده‌ی قوانین رمز عبور: کلاس‌های .pass-rules/.pass-rule/... حالا
-       در style.css مشترک تعریف شده‌اند (استفاده در login.php/profile.php/admin) */
+    /* Live password-rules checklist: the .pass-rules/.pass-rule/... classes are now
+       shared in style.css (used in login.php/profile.php/admin) */
 
-    /* ── دکمه متنی «ارسال مجدد» داخل hint ── */
+    /* ── "Resend" text button inside the hint ── */
     .profile-link-btn {
       background: none; border: none; padding: 0;
       color: var(--color-accent); font: inherit; font-size: 11.5px; font-weight: 700;
@@ -402,7 +402,7 @@
     .profile-cancel-btn { color: var(--color-text-muted); font-weight: 600; }
     .profile-cancel-btn:not(:disabled):hover { color: var(--color-text-secondary); }
     .profile-hint-sep { color: var(--color-text-muted); margin: 0 2px; }
-    /* اسپینر کوچک هنگام «در حال ارسال…» */
+    /* Small spinner while "sending…" */
     .profile-resend-spin {
       display: none; width: 11px; height: 11px;
       border: 2px solid currentColor; border-top-color: transparent;
@@ -410,7 +410,7 @@
     }
     .profile-link-btn.sending .profile-resend-spin { display: inline-block; }
 
-    /* ── اسپینر دکمه اصلی (هم‌رفتار با دکمه‌های صفحه ورود) ── */
+    /* ── Main button spinner (same behavior as the login page buttons) ── */
     .profile-submit-btn .btn-spinner {
       display: none; width: 16px; height: 16px;
       border: 2px solid rgba(255,255,255,.45);
@@ -420,7 +420,7 @@
     .profile-submit-btn.loading .btn-spinner { display: inline-block; }
     .profile-submit-btn.loading > *:not(.btn-spinner) { display: none; }
 
-    /* ── ورودی کد ۶ رقمی ── */
+    /* ── 6-digit code input ── */
     .profile-code-input {
       direction: ltr; text-align: center;
       letter-spacing: 10px; font-size: 18px; font-weight: 700;
@@ -433,7 +433,7 @@
       .profile-section { padding: 22px 20px; }
     }
 
-    /* ── نشست‌های فعال (دستگاه‌ها) ── */
+    /* ── Active sessions (devices) ── */
     .acct-sessions { display: flex; flex-direction: column; gap: 10px; }
     .acct-sessions-empty { font-size: 13px; color: var(--color-text-muted); padding: 8px 2px; }
     .acct-sess-row {
@@ -466,7 +466,7 @@
       color: #ef4444; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25);
       padding: 6px 14px; border-radius: var(--radius-sm, 10px);
       transition: background var(--transition), color var(--transition);
-      position: relative; overflow: hidden;   /* میزبان افکت ripple */
+      position: relative; overflow: hidden;   /* hosts the ripple effect */
     }
     .acct-sess-kill:hover { background: #ef4444; color: #fff; }
     .acct-killall-btn { margin-top: 14px; background: rgba(239,68,68,.1); color: #ef4444; box-shadow: none; }

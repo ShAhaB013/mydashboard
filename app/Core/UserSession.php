@@ -2,32 +2,33 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// UserSession — مدیریت session کاربران عادی
-// کاملا مجزا از session ادمین (session_name متفاوت)
+// UserSession — manages regular users' sessions
+// Completely separate from the admin session (different session_name)
 // ═══════════════════════════════════════════════════════════
 
 class UserSession
 {
     private const SESSION_NAME = 'dash_user';
 
-    /** طول عمر پیش‌فرض نشست (ساعت) اگر تنظیمات در دسترس نباشد */
+    /** Default session lifetime (hours) if settings aren't available */
     private const TTL_HOURS_DEFAULT = 24;
 
     public static function start(): void
     {
         if (session_status() !== PHP_SESSION_NONE) return;
 
-        // ── ذخیره‌سازی نشست در دیتابیس (به‌جای فایل) ──
-        // نیازمند اتصال برقرار DB است؛ همه نقاط ورود پیش از این، bootstrap.php
-        // را بارگذاری می‌کنند (autoload + DB::connect + همین start).
-        // مدت فعال‌بودن نشست از پنل ادمین قابل تنظیم است (۱ تا ۷۲۰ ساعت).
+        // ── Store sessions in the database (instead of files) ──
+        // Requires an established DB connection; every entry point loads
+        // bootstrap.php before this (autoload + DB::connect + this start).
+        // Session lifetime is configurable from the admin panel (1 to 720 hours).
         $ttl = SettingsModel::getInt('session_ttl_hours', 1, 720, self::TTL_HOURS_DEFAULT) * 3600;
         ini_set('session.gc_maxlifetime', (string) $ttl);
-        ini_set('session.use_strict_mode', '1'); // شناسه نامعتبر پذیرفته نشود
+        ini_set('session.use_strict_mode', '1'); // reject invalid session IDs
 
-        // بعضی هاست‌ها gc را در php.ini غیرفعال کرده‌اند (gc_probability=0) و
-        // آن را با cron جداگانه انجام می‌دهند — چیزی که این پروژه ندارد. بدون
-        // این تنظیم صریح، ردیف‌های منقضی‌شده‌ی جدول sessions هرگز پاک نمی‌شدند.
+        // Some hosts disable gc in php.ini (gc_probability=0) and run it via a
+        // separate cron job instead — which this project doesn't have.
+        // Without this explicit setting, expired rows in the sessions table
+        // would never get cleaned up.
         ini_set('session.gc_probability', '1');
         ini_set('session.gc_divisor', '100');
         session_set_save_handler(new DbSessionHandler($ttl), true);
@@ -44,10 +45,10 @@ class UserSession
     }
 
     /**
-     * تشخیص مقاومِ HTTPS. `isset($_SERVER['HTTPS'])` نادرست بود: برخی سرورها
-     * روی HTTP مقدار 'off' می‌گذارند (→ کوکی اشتباهاً Secure) و پشت TLS-terminating
-     * proxy اصلاً ست نمی‌شود (→ کوکی Secure نمی‌شود). این متد هر سه سیگنالِ
-     * معتبر را بررسی می‌کند.
+     * Robust HTTPS detection. `isset($_SERVER['HTTPS'])` was wrong: some
+     * servers set it to 'off' on HTTP (-> cookie incorrectly marked Secure),
+     * and behind a TLS-terminating proxy it isn't set at all (-> cookie not
+     * marked Secure). This method checks all three valid signals.
      */
     private static function isHttps(): bool
     {
@@ -64,9 +65,10 @@ class UserSession
     {
         if (empty($_SESSION['user_id'])) return false;
 
-        // محدودیت مطلق عمر نشست: چون DbSessionHandler با هر درخواست expires_at
-        // را جلو می‌برد (sliding)، بدون این چک، کاربرِ فعال هیچ‌وقت بعد از
-        // «session_ttl_hours» از لحظه‌ی لاگین مجبور به ورود مجدد نمی‌شد.
+        // Absolute session lifetime limit: since DbSessionHandler advances
+        // expires_at on every request (sliding), without this check an active
+        // user would never be forced to log in again after "session_ttl_hours"
+        // from login.
         $loginTime = $_SESSION['login_time'] ?? null;
         if ($loginTime !== null) {
             $ttl = SettingsModel::getInt('session_ttl_hours', 1, 720, self::TTL_HOURS_DEFAULT) * 3600;
@@ -82,10 +84,11 @@ class UserSession
     }
 
     /**
-     * همگام‌سازی فیلدهای نمایشی سشن (نام/نام‌خانوادگی/ایمیل/نقش) با آخرین مقدار
-     * دیتابیس. بدون این، وقتی ادمین یا خودِ کاربر پروفایل را ویرایش می‌کرد،
-     * تغییرات تا خروج و ورود مجدد روی صفحات اعمال نمی‌شد (چون این فیلدها فقط
-     * لحظه‌ی لاگین در session کش می‌شدند). یک‌بار در هر درخواست کافی است.
+     * Syncs the session's display fields (name/last name/email/role) with the
+     * latest database values. Without this, when an admin or the user
+     * themselves edited the profile, the changes wouldn't show on pages until
+     * logout/login (since these fields were only cached in the session at
+     * login time). Once per request is enough.
      */
     private static function refreshFromDb(): void
     {
@@ -94,7 +97,7 @@ class UserSession
         $done = true;
 
         $row = (new UserModel())->findById(self::id());
-        if ($row === null) return; // کاربر حذف شده — نشست تا انقضای TTL بدون تغییر باقی می‌ماند
+        if ($row === null) return; // user was deleted — session stays unchanged until TTL expiry
 
         $_SESSION['username']     = $row['username'];
         $_SESSION['display_name'] = $row['display_name'];
@@ -106,8 +109,8 @@ class UserSession
     }
 
     /**
-     * توکن CSRFِ نشست را تضمین می‌کند (اگر نبود می‌سازد) و برمی‌گرداند.
-     * منبع یگانه — به‌جای تکرارِ همین بلوک در نقاط ورود مختلف.
+     * Ensures the session's CSRF token exists (creates it if missing) and returns it.
+     * Single source of truth — instead of repeating this block across entry points.
      */
     public static function ensureCsrfToken(): string
     {
@@ -127,7 +130,7 @@ class UserSession
         return $_SESSION['display_name'] ?? $_SESSION['username'] ?? '';
     }
 
-    /** سطح دسترسی ذخیره‌شده در سشن (نمایشی — مرجع امنیتی نیست) */
+    /** Access level stored in the session (display only — not a security reference) */
     public static function role(): string
     {
         return $_SESSION['role'] ?? 'user';

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Reporter — خلاصه‌سازی و نوشتن گزارش JSON اجرای تست
+// Reporter — summarizes and writes the JSON report for the test run
 // ═══════════════════════════════════════════════════════════
 
 class Reporter

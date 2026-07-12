@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// HttpClient — کلاینت cURL سبک برای تست API با cookie jar مستقل
-// (هر نمونه یک "نشست" مرورگر جدا را شبیه‌سازی می‌کند: مهمان/کاربر/ادمین)
+// HttpClient — a lightweight cURL client for API tests with an independent cookie jar
+// (each instance simulates a separate browser "session": guest/user/admin)
 // ═══════════════════════════════════════════════════════════
 
 class HttpClient
@@ -39,7 +39,7 @@ class HttpClient
         $this->csrfToken = null;
     }
 
-    /** درخواست JSON عمومی. $body در صورت آرایه بودن به JSON تبدیل می‌شود. */
+    /** Generic JSON request. $body is converted to JSON if it's an array. */
     public function request(string $method, string $path, ?array $body = null, array $headers = [], bool $withCsrf = true): array
     {
         $url = str_starts_with($path, 'http') ? $path : $this->baseUrl . $path;
@@ -110,7 +110,7 @@ class HttpClient
         return $this->request('POST', $path, $body, $headers, $withCsrf);
     }
 
-    /** GET یک صفحه HTML و استخراج CSRF_TOKEN تزریق‌شده در <script> (index.php / admin.php) */
+    /** GET an HTML page and extract the CSRF_TOKEN injected in a <script> (index.php / admin.php) */
     public function fetchCsrfFromHtml(string $path): ?string
     {
         $res = $this->get($path);
@@ -121,7 +121,7 @@ class HttpClient
         return null;
     }
 
-    /** آپلود multipart/form-data (برای تست آپلود تصویر) */
+    /** multipart/form-data upload (for image upload tests) */
     public function uploadFile(string $path, string $fieldName, string $filePath, string $mimeType, string $fileNameOverride = ''): array
     {
         $url = $this->baseUrl . $path;
@@ -157,7 +157,7 @@ class HttpClient
         return ['status' => $status, 'body' => $rawBody, 'json' => is_array($json) ? $json : null, 'time_ms' => $timeMs];
     }
 
-    /** ورود کمکی: لاگین + دریافت خودکار CSRF token از HTML */
+    /** login helper: log in + automatically fetch the CSRF token from HTML */
     public function loginAs(string $username, string $password, string $csrfPagePath = '/'): array
     {
         $this->resetCookies();

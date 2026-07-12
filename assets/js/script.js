@@ -11,7 +11,7 @@ const SEARCH_DEBOUNCE = 160;
 
 const API_URL = 'api.php';
 
-/* ── نمایش/مخفی کردن رمز (مودال ورود) ── */
+/* ── Show/hide password (login modal) ── */
 function togglePass(inputId, btn) {
   const input = document.getElementById(inputId);
   if (!input) return;
@@ -23,7 +23,7 @@ function togglePass(inputId, btn) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   رنگ سفارشی
+   Custom color
    ═══════════════════════════════════════════════════════════ */
 function hexToRgb(hex) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -67,8 +67,8 @@ function isExternalUrl(path) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   sanitizeNotifHtml — پاک‌سازی HTML متن اعلان (دفاع لایه دوم)
-   فقط تگ‌ها و ویژگی‌های امن مجازند؛ بقیه حذف می‌شوند.
+   sanitizeNotifHtml — sanitizes notification body HTML (second layer of defense)
+   Only safe tags and attributes are allowed; the rest are stripped.
    ═══════════════════════════════════════════════════════════ */
 function sanitizeNotifHtml(html) {
   const ALLOWED_TAGS  = ['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','FONT'];
@@ -180,8 +180,8 @@ const Auth = {
       UserMenu.close();
     }
 
-    // کنترل‌های مرتب‌سازی ادمین (سرور-رندر) را با وضعیت فعلی ادمین همگام کن —
-    // در خروج ادمین بدون رفرش، دکمه «مرتب‌سازی»/نوار نباید باقی بماند.
+    // Sync server-rendered admin reorder controls with current admin state —
+    // on admin logout without a refresh, the "reorder" button/bar must not stay visible.
     const reorderToggle = document.getElementById('reorderToggle');
     if (reorderToggle) reorderToggle.style.display = this.isAdmin ? '' : 'none';
     if (!this.isAdmin) {
@@ -225,10 +225,9 @@ const NotifDetail = {
     const modal = document.getElementById('notifDetailModal');
     if (!modal) return;
 
-    // عنوان
     document.getElementById('ndTitle').textContent = n.title || '';
 
-    // تصویر — بارگذاری پیشرونده (thumbnail → full)
+    // Image — progressive loading (thumbnail → full)
     const imgWrap = document.getElementById('ndImageWrap');
     const img     = document.getElementById('ndImage');
     if (n.image_path) {
@@ -236,20 +235,20 @@ const NotifDetail = {
       imgWrap.classList.add('img-loading');
       img.alt           = n.title || '';
       img.style.cssText = '';
-      img.dataset.full  = n.image_path;   // مبنای نمایش تمام‌صفحه (lightbox)
+      img.dataset.full  = n.image_path;   // source for the fullscreen view (lightbox)
 
       if (n.thumbnail_path) {
-        // thumbnail موجود: فوری نشان بده (blurred) — shimmer پشتش پیداست
+        // thumbnail available: show it immediately (blurred) — shimmer shows through behind it
         img.src             = n.thumbnail_path;
         img.style.filter    = 'blur(10px)';
         img.style.transform = 'scale(1.04)';
       } else {
-        // بدون thumbnail: img مخفی — shimmer دیده می‌شود
+        // no thumbnail: hide img — shimmer is visible instead
         img.src             = '';
         img.style.display   = 'none';
       }
 
-      // لود تصویر اصلی در پس‌زمینه
+      // Load the full image in the background
       const loader   = new Image();
       loader.onload  = async () => {
         try { await loader.decode(); } catch {}
@@ -272,7 +271,7 @@ const NotifDetail = {
       delete img.dataset.full;
     }
 
-    // متن (HTML غنی — پاک‌سازی‌شده در سمت سرور، دوباره در سمت کلاینت)
+    // Text (rich HTML — sanitized server-side, sanitized again client-side)
     const bodyEl = document.getElementById('ndBody');
     if (n.body) {
       bodyEl.innerHTML     = sanitizeNotifHtml(n.body);
@@ -282,13 +281,11 @@ const NotifDetail = {
       bodyEl.innerHTML     = '';
     }
 
-    // تاریخ
     const dateEl = document.getElementById('ndDate');
     dateEl.textContent = n.created_at
       ? new Date(n.created_at).toLocaleString('en-GB')
       : '';
 
-    // انقضا
     const expiryEl = document.getElementById('ndExpiry');
     if (n.expires_at) {
       const d = new Date(n.expires_at * 1000);
@@ -298,7 +295,6 @@ const NotifDetail = {
       expiryEl.style.display = 'none';
     }
 
-    // لینک «مشاهده همه» — فقط برای لاگین‌شده‌ها
     const allLink = document.getElementById('ndViewAllLink');
     if (allLink) allLink.style.display = Auth.loggedIn ? 'inline-flex' : 'none';
 
@@ -315,7 +311,7 @@ const NotifDetail = {
     modal.classList.remove('open');
     document.body.style.overflow = '';
     document.body.classList.remove('notif-modal-open');
-    // پاکسازی state بارگذاری پیشرونده
+    // clean up progressive-loading state
     const img     = document.getElementById('ndImage');
     const imgWrap = document.getElementById('ndImageWrap');
     if (img)     { img.src = ''; img.style.cssText = ''; delete img.dataset.full; }
@@ -333,13 +329,13 @@ const NotifPanel = {
   _page:          1,
   _PER_PAGE:      6,
   _pollTimer:     null,
-  _POLL_MS:        25000,  // حداقل فاصله poll: ۲۵ ثانیه
-  _POLL_JITTER_MS: 5000,   // جیتر تصادفی 0..5s روی هر چرخه (ضد هم‌فازشدن کلاینت‌ها)
-  _loaded:        false,   // آیا لیست کامل (لود تنبل) آمده است؟
-  _loading:       false,   // گارد ضد فراخوانی هم‌زمان
+  _POLL_MS:        25000,  // minimum poll interval: 25s
+  _POLL_JITTER_MS: 5000,   // random jitter 0..5s per cycle (prevents clients from synchronizing)
+  _loaded:        false,   // has the full list (lazy-loaded) arrived yet?
+  _loading:       false,   // guard against concurrent calls
 
   async load() {
-    if (this._loading) return;          // جلوگیری از فراخوانی هم‌زمان دوگانه
+    if (this._loading) return;          // prevent duplicate concurrent calls
     this._loading = true;
     try {
       const [nRes, cRes] = await Promise.all([
@@ -354,13 +350,13 @@ const NotifPanel = {
         if (cData.ok) this._unreadCount = cData.count || 0;
         this._updateBadge();
       } else {
-        // برای مهمان شمارش از روی localStorage محاسبه می‌شود
+        // for guests, the count is computed from localStorage
         this._applyGuestReadState();
       }
-      // اگر پنل هنگام لود پس‌زمینه باز بود، حالا با داده واقعی رندر کن
+      // if the panel was open during this background load, re-render now with the real data
       if (this._open) this._renderDropdown();
     } catch {
-      // در خطا، state قبلی را پاک نکن (ممکن است از لود قبلی معتبر باشد)
+      // on error, don't clear previous state (it may still be valid from an earlier load)
       this._updateBadge();
     } finally {
       this._loading = false;
@@ -371,14 +367,14 @@ const NotifPanel = {
     this._notifications = [];
     this._unreadCount   = 0;
     this._page          = 1;
-    this._loaded        = false;   // تا در ورود/خروج بعدی دوباره لود شود
+    this._loaded        = false;   // so it reloads on the next login/logout
     this._updateBadge();
     this.close();
   },
 
-  // ── Polling بلادرنگ ──────────────────────────────────────
-  // زنجیره setTimeout با جیتر تصادفی (به‌جای setInterval ثابت) تا pollهای
-  // هزاران تب باز هم‌فاز نشوند و موج همزمان درخواست به سرور شکل نگیرد.
+  // ── Realtime polling ──────────────────────────────────────
+  // A setTimeout chain with random jitter (instead of a fixed setInterval) so polls
+  // from thousands of open tabs don't synchronize and cause a request burst on the server.
   startPolling() {
     this.stopPolling();
     const tick = () => {
@@ -397,17 +393,17 @@ const NotifPanel = {
   async _poll() {
     try {
       if (Auth.loggedIn) {
-        // شمارش + هویت (me) هر دو در یک پاسخ حمل می‌شوند — اگر ادمین یا خودِ
-        // کاربر نام/ایمیل/نقش را ویرایش کند، بدون نیاز به خروج/ورود مجدد یا
-        // رفرش دستی، تا ~۲۵ ثانیه بعد در همین صفحه به‌روزرسانی می‌شود.
+        // count + identity (me) both ride along in the same response — if the admin or the
+        // user themself edits the name/email/role, it updates on this page within ~25s
+        // without needing a logout/login or manual refresh.
         const countRes = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
         const data = await countRes.json();
         if (!data.ok) return;
 
-        // نشست ممکن است بین دو poll منقضی شده باشد (چه به‌خاطر پایان یافتن TTL
-        // چه پایان‌دادن دستی توسط ادمین) — حتی اگر کاربر همچنان در حال کار با
-        // صفحه است. رفرش همان صفحه (نه هدایت به /login) سرور را وادار می‌کند
-        // نسخه‌ی مهمان/محافظت‌شده‌ی همین صفحه را دوباره رندر کند.
+        // The session may have expired between two polls (either the TTL ran out or an admin
+        // ended it manually) even while the user is still actively using the page. Refreshing
+        // this same page (instead of redirecting to /login) forces the server to re-render
+        // the guest/protected version of this page.
         if (data.logged_in === false) {
           Auth.setLoggedOut();
           this.reset();
@@ -429,16 +425,16 @@ const NotifPanel = {
 
         const newCount = data.count || 0;
         if (newCount !== this._unreadCount) {
-          await this.load();                 // لیست + badge را هماهنگ می‌کند
+          await this.load();                 // syncs the list + badge
           if (this._open) this._renderDropdown();
         }
       } else {
-        // مهمان: لیست را می‌گیریم و unread را از localStorage محاسبه می‌کنیم
+        // guest: fetch the list and compute unread from localStorage
         const res  = await fetch(`${API_URL}?action=notifications`, { cache: 'no-cache' });
         const data = await res.json();
         if (!data.ok) return;
         this._notifications = data.notifications || [];
-        this._applyGuestReadState();         // شمارش + badge
+        this._applyGuestReadState();         // count + badge
         if (this._open) this._renderDropdown();
       }
     } catch { /* silent */ }
@@ -463,7 +459,7 @@ const NotifPanel = {
 
   open() {
     this._open = true;
-    // اگر لیست تنبل هنوز نیامده، همین حالا بیاور (load خودش بعد آمدن رندر می‌کند)
+    // if the lazy list hasn't arrived yet, fetch it now (load() re-renders once it's back)
     if (!this._loaded) this.load();
     const btn      = document.getElementById('notifBellBtn');
     const dropdown = document.getElementById('notifDropdown');
@@ -495,7 +491,7 @@ const NotifPanel = {
     const start = (this._page - 1) * this._PER_PAGE;
     const list  = this._notifications.slice(start, start + this._PER_PAGE);
 
-    // ── صفحه‌بندی ───────────────────────────────────────
+    // ── pagination ───────────────────────────────────────
     const pagWrap  = document.getElementById('notifPagination');
     const prevBtn  = document.getElementById('notifPrevBtn');
     const nextBtn  = document.getElementById('notifNextBtn');
@@ -579,14 +575,13 @@ const NotifPanel = {
     if (this._page < pages) { this._page++; this._renderDropdown(); }
   },
 
-  // mark read بدون بستن modal یا تغییر UI dropdown (که بسته شده)
+  // mark read without closing the modal or touching the (already-closed) dropdown UI
   async _markReadSilent(id, itemEl, notifObj) {
-    // به‌روزرسانی state محلی
     if (notifObj) notifObj.is_read = true;
     this._unreadCount = Math.max(0, this._unreadCount - 1);
 
-    // اعلان منقضی‌شده پس از خوانده‌شدن از لیست فعال حذف می‌شود
-    // (مطابق رفتار سرور در allActiveForUser) تا بدون رفرش صفحه از لیست برود
+    // an expired notification is removed from the active list once read
+    // (mirrors server behavior in allActiveForUser) so it disappears without a page refresh
     if (notifObj && notifObj.is_expired) {
       this._notifications = this._notifications.filter(x => x.id !== id);
     }
@@ -594,7 +589,6 @@ const NotifPanel = {
     this._updateBadge();
     if (this._open) this._renderDropdown();
 
-    // API در پس‌زمینه
     try {
       await fetch(`${API_URL}?action=mark_read`, {
         method:  'POST',
@@ -604,13 +598,13 @@ const NotifPanel = {
     } catch { /* silent */ }
   },
 
-  // mark read برای مهمان — localStorage با زمان خواندن (پشتیبانی از rebadge هنگام ویرایش)
+  // mark read for guests — localStorage stores the read timestamp (supports re-badging on edit)
   _markReadGuest(id, notifObj) {
     if (notifObj && notifObj.is_read) return;
     if (notifObj) notifObj.is_read = true;
     this._unreadCount = Math.max(0, this._unreadCount - 1);
 
-    // اعلان منقضی‌شده پس از خوانده‌شدن از لیست فعال حذف می‌شود
+    // an expired notification is removed from the active list once read
     if (notifObj && notifObj.is_expired) {
       this._notifications = this._notifications.filter(x => x.id !== id);
     }
@@ -620,19 +614,19 @@ const NotifPanel = {
 
     try {
       const map = this._getGuestReadMap();
-      map[id] = Math.floor(Date.now() / 1000);   // زمان خواندن (ثانیه)
+      map[id] = Math.floor(Date.now() / 1000);   // read timestamp (seconds)
       this._setGuestReadMap(map);
     } catch { /* silent */ }
   },
 
-  // خواندن نگاشت {id: read_ts} با سازگاری با فرمت قدیمی (آرایه id)
+  // reads the {id: read_ts} map, staying compatible with the legacy format (array of ids)
   _getGuestReadMap() {
     try {
       const raw = localStorage.getItem('notif_read_ids');
       if (!raw) return {};
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // مهاجرت از فرمت قدیمی: id خوانده‌شده با زمان ۰ (همیشه read مگر ویرایش جدید)
+        // migrate from the legacy format: read id with timestamp 0 (always read unless re-edited)
         const map = {};
         parsed.forEach(id => { map[id] = 0; });
         return map;
@@ -643,25 +637,25 @@ const NotifPanel = {
 
   _setGuestReadMap(map) {
     try {
-      // فقط ۸۰ آیدی آخر را نگه می‌داریم تا localStorage پر نشود
+      // keep only the last 80 ids so localStorage doesn't grow unbounded
       let entries = Object.entries(map);
       if (entries.length > 80) entries = entries.slice(entries.length - 80);
       localStorage.setItem('notif_read_ids', JSON.stringify(Object.fromEntries(entries)));
     } catch { /* silent */ }
   },
 
-  // اعمال وضعیت خوانده‌شده مهمان + محاسبه شمارش (همیشه)
+  // applies the guest read state + (always) recomputes the unread count
   _applyGuestReadState() {
     try {
       const map = this._getGuestReadMap();
       this._notifications.forEach(n => {
         const readTs   = map[n.id];
         const updatedTs = n.updated_at ? Math.floor(new Date(n.updated_at).getTime() / 1000) : 0;
-        // خوانده‌شده فقط وقتی که بعد از آخرین ویرایش خوانده شده باشد
+        // only counts as read if it was read after the last edit
         n.is_read = (readTs !== undefined) && (readTs === 0 || readTs >= updatedTs);
       });
-      // اعلان‌های منقضی‌شده‌ای که قبلا خوانده شده‌اند از لیست حذف می‌شوند
-      // (منقضی‌شده‌های ناخوانده باقی می‌مانند تا badge را زنده نگه دارند)
+      // expired notifications that have already been read are removed from the list
+      // (unread expired ones stay, to keep the badge alive)
       this._notifications = this._notifications.filter(n => !(n.is_expired && n.is_read));
       this._unreadCount = this._notifications.filter(n => !n.is_read).length;
       this._updateBadge();
@@ -774,12 +768,12 @@ function setFilter(f) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Card visibility observer — pause انیمیشن کارت‌های off-screen
+   Card visibility observer — pause off-screen card animation
    ═══════════════════════════════════════════════════════════ */
-/* ── توقف انیمیشن deco حین اسکرول ──
-   هنگام اسکرول، repaintهای انیمیشن SVG با خود اسکرول رقابت می‌کنند و لگ می‌دهند.
-   با گذاشتن کلاس is-scrolling روی <html> همه انیمیشن‌های deco موقتا متوقف می‌شوند
-   و ~150ms پس از توقف اسکرول دوباره روشن می‌شوند. (بی‌ضرر اگر کارتی نباشد.) */
+/* ── pause deco animation during scroll ──
+   While scrolling, SVG animation repaints compete with the scroll itself and cause lag.
+   Adding the is-scrolling class to <html> temporarily stops all deco animations,
+   which resume ~150ms after scrolling stops. (Harmless if there are no cards.) */
 (function () {
   const root = document.documentElement;
   let scrolling = false, raf = 0, off = 0;
@@ -812,12 +806,12 @@ function getCardVisibilityObserver() {
 /* ═══════════════════════════════════════════════════════════
    Render
    ═══════════════════════════════════════════════════════════ */
-/* ── لود تدریجی (lazy): کارت‌ها در دسته‌های BATCH_SIZE ساخته می‌شوند و
-      دسته بعدی فقط وقتی کاربر به انتهای لیست نزدیک شد رندر می‌شود.
-      این کار از ساخت یکجای صدها کارت + انیمیشن deco جلوگیری می‌کند. */
+/* ── lazy loading: cards are built in batches of BATCH_SIZE, and the
+      next batch only renders once the user scrolls near the end of the list.
+      This avoids building hundreds of cards + deco animations all at once. */
 const BATCH_SIZE = 12;
-/* حد آستانه حالت «آرام»: بالای این تعداد کارت، انیمیشن deco فقط روی کارت زیر
-   ماوس اجرا می‌شود (بقیه ساکن) تا با ۵۰-۱۰۰+ کارت لگ نزند. قابل تنظیم. */
+/* "calm mode" threshold: above this many cards, deco animation only runs on the
+   hovered card (the rest stay still) to avoid lag with 50-100+ cards. Adjustable. */
 const MOTION_THRESHOLD = 30;
 let loadMoreObserver = null;
 let renderQueue = { list: [], rendered: 0, sentinel: null };
@@ -849,11 +843,11 @@ function renderNextBatch() {
   grid.appendChild(frag);
   renderQueue.rendered += slice.length;
 
-  // observe فقط کارت‌های تازه برای pause انیمیشن off-screen
+  // only observe the newly added cards, for off-screen animation pausing
   const obs = getCardVisibilityObserver();
   if (obs) newCards.forEach(c => obs.observe(c));
 
-  // اگر هنوز کارتی مانده، sentinel بساز و رصد کن تا دسته بعد لود شود
+  // if cards remain, create and observe a sentinel to load the next batch
   if (renderQueue.rendered < list.length) {
     const lm = getLoadMoreObserver();
     if (lm) {
@@ -864,19 +858,19 @@ function renderNextBatch() {
       renderQueue.sentinel = sentinel;
       lm.observe(sentinel);
     } else {
-      renderNextBatch(); // بدون IntersectionObserver: همه را یکجا بساز
+      renderNextBatch(); // no IntersectionObserver: build everything at once
     }
   }
 }
 
 function renderTools(filterText = '') {
-  // disconnect observerها پیش از پاک کردن DOM (جلوگیری از memory leak)
+  // disconnect observers before clearing the DOM (prevents a memory leak)
   cardVisibilityObserver?.disconnect();
   loadMoreObserver?.disconnect();
 
   grid.textContent = '';
 
-  // تایل ثابت «افزودن ابزار» — همیشه اول گرید برای ادمین
+  // fixed "add tool" tile — always first in the grid, for admins
   if (window.AdminTools && AdminTools.enabled) grid.appendChild(AdminTools.makeAddTile());
 
   const q = filterText.trim().toLowerCase();
@@ -895,7 +889,7 @@ function renderTools(filterText = '') {
 
   if (toolCount) toolCount.textContent = String(list.length);
 
-  // حالت آرام تطبیقی: با تعداد زیاد کارت، انیمیشن deco فقط روی hover
+  // adaptive calm mode: with many cards, deco animation only runs on hover
   grid.classList.toggle('grid--calm', list.length > MOTION_THRESHOLD);
 
   if (!list.length) { showEmptyState(q); return; }
@@ -971,7 +965,7 @@ function createCard(tool) {
     });
   }
 
-  // کنترل‌های مدیریت اینلاین (فقط وقتی ادمین وارد است)
+  // inline management controls (only when an admin is logged in)
   if (window.AdminTools && AdminTools.enabled) AdminTools.decorateCard(card, tool);
 
   return card;
@@ -1074,7 +1068,7 @@ searchInput.addEventListener('paste', () => {
 });
 clearButton.addEventListener('click', clearSearch);
 
-// ── حالت جستجو (سبک تلگرام): آیکون #searchToggle نوار جستجوی تمام‌عرض را باز می‌کند ──
+// ── search mode (Telegram-style): the #searchToggle icon opens a full-width search bar ──
 const appHeader    = document.querySelector('.app-header');
 const searchToggle = document.getElementById('searchToggle');
 const searchClose  = document.getElementById('searchClose');
@@ -1088,7 +1082,7 @@ if (searchToggle) searchToggle.addEventListener('click', openSearch);
 if (searchClose)  searchClose.addEventListener('click', closeSearch);
 
 searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeSearch(); // Esc → بستن نوار (و پاک‌کردن متن در صورت وجود)
+  if (e.key === 'Escape') closeSearch();
 });
 
 mainContent.addEventListener('keydown', e => {
@@ -1103,7 +1097,7 @@ mainContent.addEventListener('keydown', e => {
    ═══════════════════════════════════════════════════════════ */
 document.addEventListener('click', e => {
 
-  // ── زنگ اعلان ──────────────────────────────────────────
+  // ── notification bell ──────────────────────────────────────────
   const bellBtn = e.target.closest('#notifBellBtn');
   if (bellBtn) {
     e.stopPropagation();
@@ -1111,25 +1105,25 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // ── صفحه‌بندی dropdown اعلان‌ها ───────────────────────
+  // ── notification dropdown pagination ───────────────────────
   const notifPrev = e.target.closest('#notifPrevBtn');
   if (notifPrev) { e.stopPropagation(); NotifPanel.prevPage(); return; }
   const notifNext = e.target.closest('#notifNextBtn');
   if (notifNext) { e.stopPropagation(); NotifPanel.nextPage(); return; }
 
-  // ── بستن modal جزئیات ─────────────────────────────────
+  // ── close the detail modal ─────────────────────────────────
   const detailClose = e.target.closest('#notifDetailClose');
   if (detailClose) { NotifDetail.close(); return; }
   const detailOverlay = document.getElementById('notifDetailModal');
   if (detailOverlay && e.target === detailOverlay) { NotifDetail.close(); return; }
 
-  // ── کلیک بیرون از پنل اعلان — بستن ──────────────────
+  // ── click outside the notification panel — close it ──────────────────
   const notifWrap = e.target.closest('#notifBellWrap');
   if (!notifWrap && NotifPanel._open) {
     NotifPanel.close();
   }
 
-  // ── منوی کاربر ─────────────────────────────────────────
+  // ── user menu ─────────────────────────────────────────
   const menuBtn = e.target.closest('#userMenuBtn');
   if (menuBtn) {
     e.stopPropagation();
@@ -1138,9 +1132,9 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // دکمه «ورود» اکنون لینک مستقیم به login.php است (نیازی به JS ندارد)
+  // the "login" button is now a direct link to login.php (no JS needed)
 
-  // ── دکمه خروج ──────────────────────────────────────────
+  // ── logout button ──────────────────────────────────────────
   const logoutBtn = e.target.closest('#logoutBtn');
   if (logoutBtn) {
     UserMenu.close();
@@ -1148,7 +1142,7 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // ── کلیک بیرون از منوی کاربر ─────────────────────────
+  // ── click outside the user menu ─────────────────────────
   const menuWrap = e.target.closest('#userMenuWrap');
   if (!menuWrap) UserMenu.close();
 });
@@ -1158,7 +1152,7 @@ document.addEventListener('click', e => {
    ═══════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    // اولویت: modal جزئیات > پنل اعلان > منوی کاربر > login modal
+    // priority: detail modal > notification panel > user menu > login modal
     const detailModal = document.getElementById('notifDetailModal');
     if (detailModal?.classList.contains('open')) {
       NotifDetail.close(); return;
@@ -1187,11 +1181,11 @@ async function handleLogout() {
       headers: { 'X-CSRF-Token': window.CSRF_TOKEN || '' },
     });
     ok = res.ok;
-  } catch { /* شبکه قطع — پایین رفرش می‌کنیم */ }
+  } catch { /* network down — we'll refresh below */ }
 
-  // اگر سرور خروج را تایید نکرد (مثلا توکن CSRF کهنه → 403)، سشن هنوز روی سرور
-  // زنده است. نباید UI را «خارج‌شده» نشان دهیم؛ صفحه را رفرش می‌کنیم تا وضعیت
-  // واقعی از سرور همگام شود (توکن تازه + کاربر همچنان وارد).
+  // If the server didn't confirm the logout (e.g. a stale CSRF token → 403), the session is
+  // still alive server-side. We must not show the UI as "logged out"; refresh the page instead
+  // so the real state syncs from the server (fresh token + user still logged in).
   if (!ok) { window.location.reload(); return; }
 
   Auth.setLoggedOut();
@@ -1200,7 +1194,7 @@ async function handleLogout() {
   await NotifPanel.load();
 }
 
-/* ورود اکنون در صفحه مجزای login.php انجام می‌شود (به‌جای مودال). */
+/* Login now happens on the separate login.php page (instead of a modal). */
 
 /* ═══════════════════════════════════════════════════════════
    Skeleton
@@ -1218,7 +1212,7 @@ const SKELETON_LIST_ITEM =
   + '</div>';
 
 function showSkeleton(n = 6) {
-  // قبل از پاک‌کردن DOM، observerها را قطع کن (جلوگیری از نشتی حافظه)
+  // disconnect observers before clearing the DOM (prevents a memory leak)
   cardVisibilityObserver?.disconnect();
   loadMoreObserver?.disconnect();
   grid.innerHTML = SKELETON_CARD.repeat(n);
@@ -1252,11 +1246,11 @@ async function loadData() {
 /* ═══════════════════════════════════════════════════════════
    Init
    ───────────────────────────────────────────────────────────
-   بهینه برای همزمانی بالا: همه داده اولیه (وضعیت لاگین، assets،
-   ابزارها، اعلان‌ها، شمارش) در «یک» درخواست bootstrap گرفته می‌شود
-   تا به‌جای ۵ رفت‌وبرگشت شبکه، فقط ۱ اتصال باز شود.
-   اگر bootstrap در دسترس نبود (نسخه قدیمی سرور)، به روش چند-درخواستی
-   برمی‌گردد.
+   Optimized for high concurrency: all initial data (login state, assets,
+   tools, notifications, count) is fetched in a "single" bootstrap request
+   so only 1 connection opens instead of 5 network round trips.
+   If bootstrap isn't available (older server version), it falls back
+   to the multi-request approach.
    ═══════════════════════════════════════════════════════════ */
 async function init() {
   showSkeleton();
@@ -1265,12 +1259,12 @@ async function init() {
     try {
       const res = await fetch(`${API_URL}?action=bootstrap`, { cache: 'no-cache' });
       if (res.ok) data = await res.json();
-    } catch { /* به fallback می‌رویم */ }
+    } catch { /* falling through to the fallback */ }
 
     if (data && data.ok) {
       applyBootstrap(data);
     } else {
-      await initLegacy();   // fallback: چند درخواست جداگانه
+      await initLegacy();   // fallback: separate individual requests
       return;
     }
   } catch (err) {
@@ -1285,7 +1279,7 @@ async function init() {
   renderTools(searchInput.value);
 }
 
-/* اعمال خروجی bootstrap روی state */
+/* applies the bootstrap response to state */
 function applyBootstrap(data) {
   if (data.me && data.me.logged_in) {
     Auth.setLoggedIn(data.me.display_name || '', data.me.username || '', data.me.is_admin, data.me.email || '');
@@ -1300,16 +1294,16 @@ function applyBootstrap(data) {
 
   allToolsList = (data.tools && data.tools.ok) ? data.tools.tools : [];
 
-  // اعلان‌ها دیگر در bootstrap حمل نمی‌شوند (تا کارت‌ها منتظر ~۱۰۵KB نمانند).
-  // فقط شمارش اولیه (کاربر لاگین‌شده) ست می‌شود تا بج فوری ظاهر شود؛
-  // لیست کامل در startRealtime() به‌صورت پس‌زمینه لود می‌شود.
+  // Notifications no longer ride along in the bootstrap response (so cards don't wait on ~105KB).
+  // Only the initial count (for logged-in users) is set, so the badge appears immediately;
+  // the full list loads in the background via startRealtime().
   NotifPanel._unreadCount = (data.unread && data.unread.ok) ? (data.unread.count || 0) : 0;
   NotifPanel._updateBadge();
 
   startRealtime();
 }
 
-/* روش قدیمی (fallback): چند درخواست موازی */
+/* legacy approach (fallback): several parallel requests */
 async function initLegacy() {
   try {
     const [meRes, assetsRes, toolsRes, notifRes, countRes] = await Promise.all([
@@ -1355,9 +1349,9 @@ async function initLegacy() {
   renderTools(searchInput.value);
 }
 
-/* شروع poll بلادرنگ + چک فوری هنگام برگشت به تب */
+/* starts realtime polling + an immediate check when the tab regains focus */
 function startRealtime() {
-  // لود غیرمسدودکننده لیست اعلان‌ها بعد از رندر کارت‌ها (دیگر بخشی از bootstrap نیست)
+  // non-blocking load of the notification list after cards render (no longer part of bootstrap)
   NotifPanel.load();
   NotifPanel.startPolling();
   document.addEventListener('visibilitychange', () => {
@@ -1367,9 +1361,9 @@ function startRealtime() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   مدیریت اینلاین ابزارها برای ادمین (روی همین داشبورد)
-   فعال فقط وقتی کاربر ادمین وارد است و CSRF در دسترس است.
-   نوشتن به admin.php?api=add|edit|delete|toggle_public (role از DB چک می‌شود).
+   Inline tool management for admins (right on this dashboard)
+   Active only when an admin is logged in and CSRF is available.
+   Writes go to admin.php?api=add|edit|delete|toggle_public (role is checked from the DB).
    ═══════════════════════════════════════════════════════════ */
 const AdminTools = {
   get enabled() { return !!(typeof Auth !== 'undefined' && Auth.isAdmin && window.CSRF_TOKEN); },
@@ -1453,10 +1447,10 @@ const AdminTools = {
     document.getElementById('tmCancel').addEventListener('click', close);
     this._modal.addEventListener('click', (e) => { if (e.target === this._modal) close(); });
     document.getElementById('tmSave').addEventListener('click', () => this.save());
-    // پیش‌نمایش زنده هنگام تایپ
+    // live preview while typing
     ['tmTitle', 'tmDesc', 'tmBadge'].forEach(id =>
       document.getElementById(id).addEventListener('input', () => this._updatePreview()));
-    // رنگ: پریست‌ها + رنگ دلخواه
+    // color: presets + custom color
     document.getElementById('tmColorPresets').addEventListener('click', (e) => {
       const p = e.target.closest('.tm-preset');
       if (p) this._setColor(p.dataset.color || '');
@@ -1471,8 +1465,8 @@ const AdminTools = {
     document.getElementById('tmConfirmOk').addEventListener('click', () => this.doDelete());
     this._confirm.addEventListener('click', (e) => { if (e.target === this._confirm) this._hideConfirm(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { this.closeModal(); this._hideConfirm(); this._hideUnsaved(); this._closeBadgeMenu(); this._closeIconMenu(); this._closeDecoMenu(); } });
-    // dropdown دسته‌بندی/آیکون/طرح پس‌زمینه: چوگرون باز/بسته می‌کند، فوکوس روی
-    // باکس هم باز می‌کند، کلیک بیرون از خودِ کمبوباکس آن را می‌بندد.
+    // category/icon/deco dropdowns: the chevron toggles open/closed, focusing
+    // the box also opens it, and clicking outside the combobox closes it.
     const badgeSelect = document.getElementById('tmBadgeSelect');
     const badgeToggle = document.getElementById('tmBadgeToggle');
     const badgeInput  = document.getElementById('tmBadge');
@@ -1525,7 +1519,7 @@ const AdminTools = {
     this._wired = true;
   },
 
-  // ساخت انتخابگر بصری آیکون و طرح از روی assetsCache
+  // builds the visual icon/deco picker from assetsCache
   _buildPickers(iconKey, decoKey) {
     this._sel.icon = iconKey || 'star';
     this._sel.deco = decoKey || 'generic';
@@ -1550,7 +1544,7 @@ const AdminTools = {
     this._updatePreview();
   },
 
-  // پیش‌نمایش زنده کارت داخل مودال
+  // live preview of the card inside the modal
   _updatePreview() {
     const s = this._sel;
     document.getElementById('tmPrevTitle').textContent = document.getElementById('tmTitle').value || 'عنوان ابزار';
@@ -1584,8 +1578,8 @@ const AdminTools = {
     this._unsaved.onclick = (e) => { if (e.target === this._unsaved) this._hideUnsaved(); };
   },
   _hideUnsaved() { if (this._unsaved) { this._unsaved.classList.remove('open'); this._unsaved.setAttribute('aria-hidden', 'true'); } },
-  // حین باز بودن مودال ویرایش/حذف، انیمیشن‌های تزئینی کارت‌ها متوقف می‌شوند
-  // (کمتر لگ + روان‌تر) — عینِ رفتار notif-modal-open برای مودال جزئیات اعلان.
+  // While the edit/delete modal is open, decorative card animations are paused
+  // (less lag + smoother) — same behavior as notif-modal-open for the notification detail modal.
   _syncModalState() {
     const active = !!((this._modal && this._modal.classList.contains('open')) ||
                        (this._confirm && this._confirm.classList.contains('open')));
@@ -1599,9 +1593,9 @@ const AdminTools = {
     this._syncModalState();
   },
 
-  // dropdown دسته‌بندی: از روی دسته‌های موجود در ابزارها پر می‌شود — هم می‌شود
-  // یکی از قبلی‌ها را کلیک کرد هم مستقیم در باکس، دسته‌بندی تازه تایپ کرد.
-  // حین تایپ، لیست به مواردی که با متن واردشده مطابقت دارند محدود می‌شود.
+  // category dropdown: populated from categories already used by existing tools — you can
+  // either click one of the existing ones or type a brand-new category directly in the box.
+  // While typing, the list is filtered down to entries matching the typed text.
   _badgeList: [],
   _closeBadgeMenu() {
     const wrap = document.getElementById('tmBadgeSelect');
@@ -1617,12 +1611,12 @@ const AdminTools = {
     const toggle = document.getElementById('tmBadgeToggle');
     if (toggle) toggle.setAttribute('aria-expanded', 'true');
   },
-  // دسته‌های موجود را از allToolsList می‌خواند و منو را (بدون فیلتر) می‌سازد.
+  // reads the existing categories from allToolsList and builds the menu (unfiltered).
   _updateBadgeList() {
     this._badgeList = [...new Set((allToolsList || []).map(t => t.badge).filter(Boolean))].sort();
     this._renderBadgeMenu();
   },
-  // منو را بر اساس متن فعلی باکس فیلتر و رندر می‌کند.
+  // filters and renders the menu based on the box's current text.
   _renderBadgeMenu() {
     const menu  = document.getElementById('tmBadgeMenu');
     const input = document.getElementById('tmBadge');
@@ -1634,7 +1628,7 @@ const AdminTools = {
     if (!list.length) {
       const empty = document.createElement('div');
       empty.className = 'tm-combo-empty';
-      // این حالت خطا نیست: تایپ نامی که در لیست نبود یعنی یک دسته‌بندی تازه ساخته می‌شود.
+      // this isn't an error state: typing a name not in the list means a new category will be created.
       empty.textContent = rawQ ? `دسته‌بندی «${rawQ}» به‌عنوان دسته جدید ثبت می‌شود` : 'دسته‌بندی‌ای ثبت نشده';
       menu.appendChild(empty);
       return;
@@ -1645,8 +1639,8 @@ const AdminTools = {
       opt.className = 'tm-combo-option' + (input && input.value === b ? ' selected' : '');
       opt.setAttribute('role', 'option');
       opt.textContent = b;
-      // mousedown قبل از click می‌آید؛ preventDefault از blur زودهنگام باکس
-      // جلوگیری می‌کند تا کلیک همیشه به‌درستی مقدار را ثبت کند.
+      // mousedown fires before click; preventDefault stops the box from blurring early,
+      // so the click always registers the value correctly.
       opt.addEventListener('mousedown', (e) => e.preventDefault());
       opt.addEventListener('click', () => {
         if (input) input.value = b;
@@ -1657,8 +1651,8 @@ const AdminTools = {
     });
   },
 
-  // dropdown آیکون: فقط جستجو + انتخاب از فهرست ثابت آیکون‌ها؛ پیش‌نمایش
-  // آیکونِ انتخاب‌شده داخل باکس (کنار ورودی جستجو) نمایش داده می‌شود.
+  // icon dropdown: search-only + selection from a fixed icon list; the selected
+  // icon is previewed inside the box (next to the search input).
   _iconList: [],
   _syncIconPreview() {
     const input   = document.getElementById('tmIcon');
@@ -1716,8 +1710,8 @@ const AdminTools = {
     });
   },
 
-  // dropdown طرح پس‌زمینه: فقط جستجو + انتخاب از فهرست ثابت decoها (بدون
-  // امکان تایپ مقدار تازه) — با بستن بدون انتخاب، باکس به مقدار انتخاب‌شده برمی‌گردد.
+  // deco dropdown: search-only + selection from a fixed deco list (no way to
+  // type a new value) — closing without a selection reverts the box to the selected value.
   _decoList: [],
   _closeDecoMenu() {
     const wrap = document.getElementById('tmDecoSelect');
@@ -1832,7 +1826,7 @@ const AdminTools = {
     const data = await this.call('toggle_public', { id });
     btn.disabled = false;
     if (!data || !data.ok) return;
-    const nowPublic = !btn.classList.contains('is-public'); // toggle_public مقدار را در DB برعکس می‌کند
+    const nowPublic = !btn.classList.contains('is-public'); // toggle_public flips the value in the DB
     const t = allToolsList.find(x => x.id === id); if (t) t.is_public = nowPublic;
     btn.classList.toggle('is-public', nowPublic);
     btn.innerHTML = nowPublic ? this._ic.pub : this._ic.prv;
@@ -1848,8 +1842,8 @@ const AdminTools = {
     this._ensureWired(); if (!this._confirm) return;
     this._delId = id;
     this._delName = title || '';
-    // ساختِ امنِ DOM به‌جای رشته‌ی innerHTML: عنوانِ ابزار (داده‌ی کاربر) با
-    // textContent درج می‌شود تا حتی اگر شامل HTML بود، اجرا/رندر نشود (ضدِ XSS).
+    // safe DOM construction instead of an innerHTML string: the tool title (user data) is
+    // inserted via textContent so that even if it contains HTML, it won't execute/render (anti-XSS).
     const el = document.getElementById('tmConfirmDesc');
     const name = document.createElement('span');
     name.className = 'item-name';
@@ -1883,11 +1877,11 @@ const AdminTools = {
     } catch (_) {}
   },
 
-  // ── مرتب‌سازی کارت‌ها (drag-drop) ─────────────────────────
+  // ── card reordering (drag-drop) ─────────────────────────
   initReorder() {
     if (this._reorderWired) return;
     const toggle = document.getElementById('reorderToggle');
-    if (!toggle) return;            // فقط وقتی سرور کنترل‌های ادمین را رندر کرده
+    if (!toggle) return;            // only when the server has rendered admin controls
     this._reorderWired = true;
     toggle.addEventListener('click', () => this._reordering ? this.exitReorder() : this.enterReorder());
     document.getElementById('reorderCancel')?.addEventListener('click', () => this.exitReorder());
@@ -1902,7 +1896,7 @@ const AdminTools = {
     const bar = document.getElementById('reorderBar'); if (bar) bar.hidden = false;
     if (typeof cardVisibilityObserver !== 'undefined') cardVisibilityObserver?.disconnect();
     if (typeof loadMoreObserver !== 'undefined') loadMoreObserver?.disconnect();
-    // همه کارت‌ها را یکجا (بدون لود تدریجی) در یک ستون رندر کن تا ترتیب کامل در DOM باشد
+    // render all cards at once (no lazy loading), in one column, so the full order is in the DOM
     grid.textContent = '';
     grid.classList.add('reordering');
     const frag = document.createDocumentFragment();
@@ -1912,8 +1906,8 @@ const AdminTools = {
       frag.appendChild(c);
     });
     grid.appendChild(frag);
-    // توقف انیمیشن‌های SMIL (<animate>/<animateMotion>/<animateTransform>) — این‌ها با
-    // CSS `animation-play-state: paused` متوقف نمی‌شوند، پس مستقیما تایم‌لاین SVG را pause می‌کنیم.
+    // stop SMIL animations (<animate>/<animateMotion>/<animateTransform>) — these aren't
+    // stopped by CSS `animation-play-state: paused`, so we pause the SVG timeline directly.
     grid.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (_) {} });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
@@ -1924,7 +1918,7 @@ const AdminTools = {
     document.getElementById('reorderToggle')?.classList.remove('is-active');
     const bar = document.getElementById('reorderBar'); if (bar) bar.hidden = true;
     grid.classList.remove('reordering');
-    renderTools(searchInput ? searchInput.value : '');   // بازگشت به نمای عادی
+    renderTools(searchInput ? searchInput.value : '');   // back to the normal view
   },
 
   async saveReorder() {
@@ -1938,7 +1932,7 @@ const AdminTools = {
     if (msg) msg.textContent = (data && data.msg) || 'خطا در ذخیره ترتیب';
   },
 
-  // placeholder = جایگاه مقصد (هم‌اندازه کارت) که حین درگ نشان داده می‌شود
+  // placeholder = the destination slot (same size as a card) shown during a drag
   _makePlaceholder(card) {
     const h = card.getBoundingClientRect().height;
     const ph = document.createElement('div');
@@ -1947,21 +1941,21 @@ const AdminTools = {
     return ph;
   },
 
-  // placeholder را فقط وقتی جابه‌جا می‌کند که نشانگر دقیقا روی یک کارت دیگر باشد.
-  // در گپ/فاصله بین کارت‌ها هیچ کاری نمی‌کند → نوسان مرزی حذف می‌شود؛ و چون پس از
-  // هر درج، placeholder زیر نشانگر می‌نشیند، حرکت‌های بعدی no-op می‌شوند (پایدار).
+  // Only moves the placeholder when the pointer is exactly over another card.
+  // In the gap/space between cards it does nothing → eliminates edge jitter; and since the
+  // placeholder settles right under the pointer after each move, further calls become no-ops (stable).
   _movePlaceholder(x, y) {
     if (!this._ph) return;
     const under = document.elementFromPoint(x, y);
     const overCard = under && under.closest ? under.closest('.card[data-tool-id]') : null;
-    if (!overCard || overCard === this._dragCard) return;   // گپ یا مبدأ → جابه‌جا نکن
+    if (!overCard || overCard === this._dragCard) return;   // gap or the drag source → don't move
     const r = overCard.getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const sameRow = Math.abs(y - cy) < r.height / 2;
-    const before = sameRow ? (x > cx) : (y < cy);   // RTL: سمت راست = جلوتر
+    const before = sameRow ? (x > cx) : (y < cy);   // RTL: right side = ahead
     const ref = before ? overCard : overCard.nextSibling;
     if (ref === this._ph) return;
-    if (this._ph.nextSibling === ref) return;       // از قبل همین‌جاست → جابه‌جا نکن
+    if (this._ph.nextSibling === ref) return;       // already there → don't move
     grid.insertBefore(this._ph, ref);
   },
 
@@ -1977,9 +1971,9 @@ const AdminTools = {
     this._ph = null; this._dragCard = null;
   },
 
-  // اسکرول خودکار لبه: وقتی نشانگر/انگشت نزدیک بالا یا پایین صفحه می‌رود،
-  // صفحه خودکار اسکرول می‌شود تا بشود کارت را به ردیف‌های خارج از دید برد.
-  // (حین درگ، اسکرول معمولی کار نمی‌کند؛ این جایگزین آن است — دسکتاپ + لمسی.)
+  // edge auto-scroll: when the pointer/finger nears the top or bottom of the screen,
+  // the page scrolls automatically so a card can be dragged to rows outside the viewport.
+  // (Normal scrolling doesn't work during a drag; this replaces it — desktop + touch.)
   _autoScroll(x, y) {
     this._lastX = x; this._lastY = y;
     const EDGE = 96, vh = window.innerHeight;
@@ -1994,7 +1988,7 @@ const AdminTools = {
   _scrollStep() {
     if (!this._scrollDir) { this._scrollRAF = null; return; }
     window.scrollBy(0, this._scrollDir * this._scrollSpeed);
-    this._movePlaceholder(this._lastX, this._lastY);   // محتوا زیر نشانگر تغییر کرد → به‌روزرسانی
+    this._movePlaceholder(this._lastX, this._lastY);   // content under the pointer changed → update
     this._scrollRAF = requestAnimationFrame(() => this._scrollStep());
   },
   _stopScroll() {
@@ -2007,20 +2001,21 @@ const AdminTools = {
     this._dragWired = true;
     const active = () => this._reordering;
 
-    // ── دسکتاپ: HTML5 Drag & Drop (مبدأ مخفی + placeholder مقصد) ──
+    // ── desktop: HTML5 Drag & Drop (hidden source + destination placeholder) ──
     grid.addEventListener('dragstart', (e) => {
       if (!active()) { e.preventDefault(); return; }
       const card = e.target.closest('.card');
       if (!card) return;
       this._dragCard = card;
       if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', card.dataset.toolId || ''); } catch (_) {} }
-      // اسنپ‌شات تصویر درگ همین حالا گرفته می‌شود؛ در تیک بعد مبدأ مخفی و placeholder درج می‌شود
+      // the drag image snapshot is captured right now; the source is hidden and the placeholder
+      // inserted on the next tick
       setTimeout(() => {
         if (!this._dragCard) return;
         this._ph = this._makePlaceholder(card);
         grid.insertBefore(this._ph, card);
         card.classList.add('card--dragging');
-        document.body.classList.add('is-dragging');   // توقف همه انیمیشن‌های متحرک حین درگ
+        document.body.classList.add('is-dragging');   // pause all moving animations during the drag
       }, 0);
     });
     grid.addEventListener('dragover', (e) => {
@@ -2032,10 +2027,10 @@ const AdminTools = {
     });
     grid.addEventListener('drop', (e) => { if (active()) { e.preventDefault(); this._finishDrag(); } });
     grid.addEventListener('dragend', () => { if (this._dragCard) this._finishDrag(); });
-    // در حالت مرتب‌سازی کلیک ناوبری کارت غیرفعال است
+    // card navigation clicks are disabled while in reorder mode
     grid.addEventListener('click', (e) => { if (active()) { e.preventDefault(); e.stopPropagation(); } }, true);
 
-    // ── لمسی (موبایل): کلون شناور مبدأ + همان placeholder مقصد ──
+    // ── touch (mobile): floating clone of the source + the same destination placeholder ──
     let tOffX = 0, tOffY = 0;
     grid.addEventListener('touchstart', (e) => {
       if (!active()) return;
@@ -2052,11 +2047,11 @@ const AdminTools = {
         boxShadow: '0 12px 30px rgba(15,23,42,.35)', borderRadius: 'var(--radius-lg)',
       });
       document.body.appendChild(this._clone);
-      this._clone.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (_) {} }); // SMIL کلون هم متوقف
+      this._clone.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (_) {} }); // pause the clone's SMIL too
       this._ph = this._makePlaceholder(card);
       grid.insertBefore(this._ph, card);
       card.classList.add('card--dragging');
-      document.body.classList.add('is-dragging');   // توقف همه انیمیشن‌های متحرک حین درگ
+      document.body.classList.add('is-dragging');   // pause all moving animations during the drag
     }, { passive: true });
     grid.addEventListener('touchmove', (e) => {
       if (!this._dragCard || !this._clone) return;
@@ -2078,20 +2073,21 @@ function boot() {
   document.readyState === 'loading'
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
-  // کنترل‌های مرتب‌سازی ادمین (فقط وقتی سرور آن‌ها را رندر کرده باشد)
+  // admin reorder controls (only when the server has rendered them)
   AdminTools.initReorder();
 }
 
-// اگر این صفحه prerender شده باشد، init را تا «فعال‌سازی» (نمایش واقعی) به تعویق می‌اندازیم؛
-// در غیر این صورت داده‌ها با نشست مهمان زمان prerender گرفته می‌شد و پس از ورود
-// تا رفرش، حالت مهمان نمایش داده می‌ماند. حالا با نشست فعلی (بعد از ورود) لود می‌شود.
+// If this page was prerendered, defer init until "activation" (actual display); otherwise
+// the data would be fetched with the guest session at prerender time, and after logging in
+// the guest state would keep showing until a refresh. Now it loads with the current
+// (post-login) session instead.
 if (document.prerendering) {
   document.addEventListener('prerenderingchange', boot, { once: true });
 } else {
   boot();
 }
 
-/* ── اکشن‌ها (جایگزین on* برای CSP) ── */
+/* ── actions (replaces on* for CSP) ── */
 if (window.Actions) {
   Actions.register({
     notifDetailClose: () => NotifDetail.close(),

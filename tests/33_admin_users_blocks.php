@@ -38,8 +38,8 @@ Assert::test('add_user معتبر → ردیف واقعا در DB ساخته م�
 
 Assert::test('edit_user گارد ضدقفل‌شدن: آخرین ادمین فعال نمی‌تواند تنزل داده شود', function () use ($BASE, $ACC) {
     $http = admin_http($BASE, $ACC);
-    // فرض: zztest_admin ممکن است تنها ادمین فعال نباشد؛ پس یک ادمین ثانویه می‌سازیم تا مطمئنا این ادمین سوم نیست
-    // در عوض این تست مستقیما روی خودِ حساب zztest_admin بررسی می‌کند که اگر تنها ادمین فعال DB باشد، گارد فعال شود.
+    // Note: zztest_admin might not be the only active admin, so we can't just assume a third admin exists.
+    // Instead, this test checks directly against the zztest_admin account itself: if it is the DB's only active admin, the guard must kick in.
     $activeAdmins = (int) DB::run("SELECT COUNT(*) c FROM users WHERE role='admin' AND is_active=1")->fetchColumn();
     $adminRow = Fixtures::findUserByUsername($ACC['admin']['username']);
     if ($activeAdmins > 1 || $adminRow === null) {

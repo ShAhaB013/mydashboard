@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// SettingsController — ذخیره تنظیمات ایمیل/SMTP + ارسال ایمیل آزمایشی
+// SettingsController — saves email/SMTP settings + sends a test email
 // ═══════════════════════════════════════════════════════════
 
 class SettingsController
@@ -14,7 +14,7 @@ class SettingsController
         $this->request = $request;
     }
 
-    /** ذخیره تنظیمات */
+    /** Save settings */
     public function save(): void
     {
         $secure = strtolower(trim((string) $this->request->input('smtp_secure', 'tls')));
@@ -65,8 +65,8 @@ class SettingsController
             'code_ttl'        => (string) $ttl,
         ];
 
-        // رمز SMTP فقط وقتی به‌روزرسانی می‌شود که مقداری وارد شده باشد
-        // (خالی‌گذاشتن = حفظ رمز قبلی؛ تا ادمین مجبور به تایپ مجدد نباشد)
+        // SMTP password is only updated if a value was entered
+        // (leaving it blank = keep the previous password, so the admin doesn't have to retype it)
         $pass = (string) $this->request->input('smtp_pass');
         if ($pass !== '') {
             $kv['smtp_pass'] = $pass;
@@ -76,7 +76,7 @@ class SettingsController
         Response::ok();
     }
 
-    /** ارسال یک ایمیل آزمایشی با تنظیمات فعلی */
+    /** Send a test email with the current settings */
     public function sendTest(): void
     {
         $to = trim((string) $this->request->input('test_email'));
@@ -98,7 +98,7 @@ class SettingsController
         if ($res['ok']) {
             Response::ok(['msg' => 'ایمیل آزمایشی ارسال شد']);
         } else {
-            // پاسخ خام SMTP می‌تواند طولانی/چندخطی باشد؛ برای Toast کوتاه می‌شود
+            // Raw SMTP response can be long/multi-line; shortened for the Toast
             $err = trim(preg_replace('/\s+/', ' ', $res['error']));
             if (mb_strlen($err) > 160) {
                 $err = mb_substr($err, 0, 160) . '…';

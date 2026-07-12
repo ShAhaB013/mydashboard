@@ -2,13 +2,13 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Crypto — رمزنگاری متقارن (AES-256-GCM از طریق ext-openssl) برای مقادیر
-// حساسِ قابل‌بازیابی در دیتابیس (مثل smtp_pass) که برخلاف رمز کاربر باید
-// دوباره به‌صورت اصلی خوانده شود؛ پس هش یک‌طرفه اینجا کاربرد ندارد.
-// ext-openssl به‌جای libsodium انتخاب شد چون روی هاست‌های اشتراکی
-// تقریبا همیشه فعال است (لازمه‌ی TLS/cURL)، برخلاف sodium که ممکن است
-// در هاست‌های اشتراکی غیرفعال باشد.
-// کلید فقط در config.php (خارج از دیتابیس) نگه‌داری می‌شود.
+// Crypto — symmetric encryption (AES-256-GCM via ext-openssl) for sensitive
+// values in the database that must be recoverable (e.g. smtp_pass), unlike
+// user passwords — so a one-way hash doesn't work here.
+// ext-openssl was chosen over libsodium because it's almost always enabled
+// on shared hosting (a TLS/cURL requirement), unlike sodium which may be
+// disabled on shared hosts.
+// The key is kept only in config.php (outside the database).
 // ═══════════════════════════════════════════════════════════
 
 class Crypto
@@ -19,12 +19,12 @@ class Crypto
 
     private static ?string $key = null;
 
-    /** مقداردهی اولیه با کلید base64 از config.php. نبودِ کلید/افزونه → غیرفعال (passthrough امن). */
+    /** Initializes with a base64 key from config.php. Missing key/extension -> disabled (safe passthrough). */
     public static function init(string $base64Key): void
     {
         self::$key = null;
-        // trim: جلوگیری از شکستِ decode به‌خاطر newline/فاصله‌ی اضافی هنگام
-        // کپی‌کردنِ خروجیِ دستورِ تولید کلید در config.php
+        // trim: avoids decode failures from a stray newline/space when copying
+        // the key-generation command's output into config.php
         $base64Key = trim($base64Key);
         if ($base64Key === ''
             || !function_exists('openssl_encrypt')
@@ -37,7 +37,7 @@ class Crypto
         }
     }
 
-    /** رمزنگاری. اگر کلید تنظیم نشده باشد یا مقدار خالی باشد، بدون تغییر برمی‌گردد. */
+    /** Encrypts. Returns the value unchanged if no key is set or the value is empty. */
     public static function encrypt(string $plain): string
     {
         if (self::$key === null || $plain === '') {
@@ -53,9 +53,9 @@ class Crypto
     }
 
     /**
-     * رمزگشایی. مقادیرِ بدونِ پیشوندِ v1: (داده‌های قدیمیِ متن‌ساده) بدون تغییر
-     * برگردانده می‌شوند تا نصب‌های موجود بدون migration کار کنند. اگر کلید
-     * موجود نباشد یا صحتِ رمز تایید نشود، رشته‌ی خالی برمی‌گردد (fail-safe).
+     * Decrypts. Values without the v1: prefix (legacy plaintext data) are
+     * returned unchanged so existing installs keep working without a migration.
+     * If no key is available or authentication fails, returns an empty string (fail-safe).
      */
     public static function decrypt(string $stored): string
     {

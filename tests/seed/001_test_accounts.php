@@ -1,9 +1,9 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// seed/001_test_accounts.php — ساخت/ری‌ست یک‌باره‌ی حساب‌های تستی ثابت
-// اجرا (دستی، یک‌بار قبل از اولین اجرای مجموعه تست):
+// seed/001_test_accounts.php — one-time creation/reset of the fixed test accounts
+// run (manually, once before the first test suite run):
 //   php tests\seed\001_test_accounts.php
-// این اسکریپت idempotent است: اجرای مجدد فقط رمز/نقش/وضعیت را ری‌ست می‌کند.
+// this script is idempotent: rerunning it only resets password/role/status.
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);
 

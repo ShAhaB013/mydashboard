@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/version.php';
-// Bootstrap مشترک: autoload + config + DB + session
+// Shared bootstrap: autoload + config + DB + session
 $config = require __DIR__ . '/bootstrap.php';
 
-// اگر از قبل وارد شده، مستقیم به داشبورد
+// If already logged in, go straight to the dashboard
 if (UserSession::check()) {
     header('Location: /');
     exit;
@@ -42,7 +42,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
   <main class="login-page" role="main">
 
-    <!-- پس‌زمینه زنده: گرادیانت نرم متحرک + حباب‌های شناور (سبک و هماهنگ با تم) -->
+    <!-- Live background: soft animated gradient + floating bubbles (light and theme-aware) -->
     <div class="login-bg" aria-hidden="true">
       <span class="login-bubble b1"></span>
       <span class="login-bubble b2"></span>
@@ -62,9 +62,9 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
                 <stop offset="100%" stop-color="var(--color-accent-dark)"/>
               </linearGradient>
             </defs>
-            <!-- حلقه بیرونی هم‌رنگ اکسنت -->
+            <!-- Outer ring in accent color -->
             <circle cx="50" cy="50" r="46" fill="none" stroke="url(#ll-ring)" stroke-width="3" opacity="0.85"/>
-            <!-- نقاط مدار ساده هم‌رنگ اکسنت -->
+            <!-- Simple orbit dots in accent color -->
             <g fill="currentColor" opacity="0.55">
               <circle cx="50" cy="8"  r="2.4"/>
               <circle cx="82" cy="24" r="2.4"/>
@@ -79,18 +79,18 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
               <line x1="20" y1="26" x2="28" y2="33"/>
               <line x1="20" y1="74" x2="28" y2="67"/>
             </g>
-            <!-- دنده ۸-دندانه هم‌رنگ اکسنت (outer r=14, inner r=10) -->
+            <!-- 8-tooth gear in accent color (outer r=14, inner r=10) -->
             <path id="ll-gear"
                   d="M50,36 L53.8,40.8 L59.9,40.1 L59.2,46.2 L64,50 L59.2,53.8 L59.9,59.9 L53.8,59.2 L50,64 L46.2,59.2 L40.1,59.9 L40.8,53.8 L36,50 L40.8,46.2 L40.1,40.1 L46.2,40.8 Z"
                   fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <!-- هاب مرکزی دنده -->
+            <!-- Central gear hub -->
             <circle cx="50" cy="50" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>
           </svg>
         </div>
         <h1 class="login-title">ورود به حساب کاربری</h1>
       </div>
 
-      <!-- ═══ فرم ورود ═══ -->
+      <!-- ═══ Login form ═══ -->
       <form class="login-card-body login-form" id="loginForm" autocomplete="on" novalidate>
         <div class="field" data-state="idle">
           <label class="field-label" for="loginUsername">نام کاربری</label>
@@ -133,7 +133,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
         </button>
       </form>
 
-      <!-- ═══ فرم فراموشی رمز عبور (سه‌مرحله‌ای: ایمیل → تایید کد → رمز جدید) ═══ -->
+      <!-- ═══ Forgot password form (three steps: email → verify code → new password) ═══ -->
       <form class="login-card-body login-form" id="forgotForm" autocomplete="off" novalidate data-step="1" hidden>
 
         <div class="forgot-head">
@@ -143,7 +143,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <h2 class="forgot-title">بازیابی رمز عبور</h2>
         </div>
 
-        <!-- مرحله ۱: ایمیل -->
+        <!-- Step 1: email -->
         <div class="reg-step" data-step="1">
           <p class="reg-code-hint">ایمیل حسابتان را وارد کنید تا کد بازیابی برایتان ارسال شود.</p>
           <div class="field" data-state="idle">
@@ -157,7 +157,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           </div>
         </div>
 
-        <!-- مرحله ۲: تایید کد -->
+        <!-- Step 2: verify code -->
         <div class="reg-step" data-step="2" hidden>
           <p class="reg-code-hint">کد ۶ رقمی به <b id="fpEmailEcho" dir="ltr"></b> ارسال شد؛ آن را وارد کنید.</p>
           <input type="text" id="fpCode" class="reg-code-input" inputmode="numeric" maxlength="6"
@@ -170,7 +170,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="reg-dev-note" id="fpDevNote" hidden></p>
         </div>
 
-        <!-- مرحله ۳: رمز جدید (فقط پس از تایید کد) -->
+        <!-- Step 3: new password (only after code verification) -->
         <div class="reg-step" data-step="3" hidden>
           <p class="reg-code-hint">کد تایید شد. رمز جدید خود را تعیین کنید.</p>
           <div class="field" data-state="idle">
@@ -186,7 +186,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
               </button>
             </div>
             <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
-            <!-- چک‌لیست زنده‌ی قوانین رمز عبور (هنگام focus/تایپ به‌روز می‌شود) -->
+            <!-- Live password rules checklist (updates on focus/typing) -->
             <div class="pass-rules" id="fpPassRules" aria-live="polite" hidden>
               <div class="pass-rules-title">قوانین رمز عبور</div>
               <ul class="pass-rules-list">
@@ -234,7 +234,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
     </div>
   </main>
 
-  <!-- ظرف Toast صفحه ورود -->
+  <!-- Login page toast container -->
   <div class="toast-wrap" id="toastWrap" aria-live="assertive"></div>
 
   <script src="/assets/js/field.js?v=<?= $v_field ?>"></script>

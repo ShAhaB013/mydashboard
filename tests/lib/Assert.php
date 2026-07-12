@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Assert — دستیار سنجش + شمارنده pass/fail سراسری برای کل اجرای تست
+// Assert — assertion helper + global pass/fail counter for the whole test run
 // ═══════════════════════════════════════════════════════════
 
 class Assert

@@ -15,8 +15,8 @@ Assert::test('get_access با user_id نامعتبر → رد می‌شود', fu
 
 Assert::test('set_access → tool_access/category_access دقیقا با درخواست مطابقت دارند (بدون ردیف یتیم)', function () use ($BASE, $ACC) {
     $http = admin_http($BASE, $ACC);
-    // AccessModel::setAll فقط badge هایی را می‌پذیرد که در ستون tools.badge واقعا موجودند
-    // (whitelist از DB، نه ورودی آزاد) — پس باید یک ابزار با badge واقعی بسازیم.
+    // AccessModel::setAll only accepts badges that actually exist in the tools.badge column
+    // (a DB whitelist, not free input) — so we need to create a tool with a real badge.
     $realBadge = Fixtures::uniq('badge');
     $uid   = Fixtures::createUser();
     $tool1 = Fixtures::createTool(['badge' => $realBadge]);
@@ -30,7 +30,7 @@ Assert::test('set_access → tool_access/category_access دقیقا با درخ�
     $badgeRows1 = DB::run('SELECT badge FROM category_access WHERE user_id=:id', [':id' => $uid])->fetchAll();
     Assert::eq(1, count($badgeRows1), 'badge ناموجود باید بی‌صدا فیلتر شود؛ فقط badge واقعی ذخیره می‌شود (whitelist از tools.badge)');
 
-    // فراخوانی دوم با زیرمجموعه — ردیف‌های اضافه باید حذف شوند (بدون orphan)
+    // second call with a subset — the extra rows must be removed (no orphans)
     $res2 = $http->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [$tool1], 'badges' => [$realBadge]]);
     Assert::jsonOk($res2, 'set_access دوم باید موفق باشد');
     $toolRows2 = DB::run('SELECT tool_id FROM tool_access WHERE user_id=:id', [':id' => $uid])->fetchAll();

@@ -16,10 +16,10 @@ return [
         'pass' => 'your_db_password',
     ],
 
-    // کلید رمزنگاری مقادیر حساسِ قابل‌بازیابی در DB (مثل smtp_pass).
-    // تولید: php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"
-    // خالی گذاشتنِ این مقدار رمزنگاری را غیرفعال می‌کند (بدون خطا)؛ اما تا
-    // وقتی تنظیم نشود، smtp_pass به‌صورت متن‌ساده در DB ذخیره می‌ماند.
+    // Encryption key for recoverable sensitive values in the DB (e.g. smtp_pass).
+    // Generate with: php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"
+    // Leaving this empty disables encryption (no error); but until it's
+    // set, smtp_pass is stored as plain text in the DB.
     'crypto' => [
         'key' => '',
     ],

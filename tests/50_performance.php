@@ -44,7 +44,7 @@ foreach (['/api.php?action=bootstrap' => 'bootstrap', '/api.php?action=tools' =>
 }
 
 Assert::test('list_tools ادمین: تعداد کوئری DB با افزایش نتایج به‌صورت خطی رشد نمی‌کند (N+1 smell)', function () use ($BASE, $ACC) {
-    // ساخت ۵ ردیف تستی برای مقایسه با حالت پایه
+    // create 5 test rows to compare against the baseline
     $ids = [];
     for ($i = 0; $i < 5; $i++) $ids[] = Fixtures::createTool();
 
@@ -62,7 +62,7 @@ Assert::test('list_tools ادمین: تعداد کوئری DB با افزایش 
     $after25 = (int) DB::run("SHOW SESSION STATUS LIKE 'Questions'")->fetch()['Value'];
     $q25 = $after25 - $before2;
 
-    // این کوئری‌ها خودشان هم DB مصرف می‌کنند؛ فقط رشد نامتناسب (خطی با تعداد ردیف) را پرچم می‌کنیم
+    // these queries themselves also consume DB; we only flag disproportionate growth (linear with row count)
     if ($q25 > $q5 + 15) {
         Assert::warn("تعداد کوئری با ۵ برابر شدن نتایج به‌طرز نامتناسبی رشد کرد (q5={$q5}, q25={$q25}) — احتمال N+1");
     } else {

@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════
-   pagination.css — کامپوننت مشترک صفحه‌بندی (شماره صفحه + Prev/Next + Go to Page)
-   جایگزین سه پیاده‌سازی جدا (.pg-btn در admin.css، .page-btn در
-   notifications-admin.css، .npag-btn در notifications.css) که با کامنت
-   «هم‌راستا نگه داریم» به‌صورت دستی sync می‌شدند.
-   این فایل هم در پنل ادمین (admin.css) و هم در سایت اصلی (style.css) لود
-   می‌شود؛ چون این دو مجموعه‌ی متغیر CSS نام‌گذاری متفاوتی دارند
-   (--accent در ادمین در برابر --color-accent در سایت)، هر مقدار با
-   fallback زنجیره‌ای نوشته شده تا در هر دو زمینه درست کار کند.
+   pagination.css — shared pagination component (page numbers + Prev/Next + Go to Page)
+   Replaces three separate implementations (.pg-btn in admin.css, .page-btn in
+   notifications-admin.css, .npag-btn in notifications.css) that were manually
+   synced via a "keep these aligned" comment.
+   This file is loaded both in the admin panel (admin.css) and the main site
+   (style.css); since these two CSS-variable sets use different naming
+   (--accent in admin vs --color-accent on the site), every value uses a
+   chained fallback so it works correctly in both contexts.
    ═══════════════════════════════════════════════════════════ */
 
 .pagination {
@@ -56,10 +56,11 @@
 
 .pagination-info { font-size: 12px; color: var(--text-3, var(--color-text-muted)); }
 
-/* ── «برو به صفحه» ─────────────────────────────────────────
-   بدون دکمه‌ی «برو»: عدد صفحه تایپ می‌شود و Enter مستقیم ناوبری می‌کند؛
-   دکمه‌های بالا/پایین سفارشی (به‌جای spinner بومی مرورگر که در فایرفاکس/
-   کروم ظاهر متفاوت و ناهماهنگ با UI پروژه دارد) هم بلافاصله ناوبری می‌کنند. */
+/* ── "Go to page" ─────────────────────────────────────────
+   No "go" button: the page number is typed and Enter navigates directly;
+   the custom up/down buttons (instead of the browser's native spinner, which
+   looks different in Firefox/Chrome and clashes with the project UI) also
+   navigate immediately. */
 .pagination-goto {
   display: flex;
   align-items: center;

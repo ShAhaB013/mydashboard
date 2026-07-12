@@ -6,7 +6,7 @@
       position: relative; z-index: 1;
     }
 
-    /* دکمه بازگشت یکپارچه در style.css تعریف شده (.btn-back) */
+    /* The unified back button is defined in style.css (.btn-back) */
 
     /* ── Page head ── */
     .notif-page-head {
@@ -47,7 +47,7 @@
       box-shadow: 0 0 0 2px rgba(var(--field-focus-rgb),.10), 0 0 9px rgba(var(--field-focus-rgb),.12);
     }
 
-    /* ── دکمه فیلتر پیشرفته ── */
+    /* ── Advanced filter button ── */
     .notif-adv-toggle {
       display: inline-flex; align-items: center; gap: 6px;
       font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
@@ -65,12 +65,12 @@
     }
     .notif-adv-toggle svg { flex-shrink: 0; }
 
-    /* ── پنل جستجوی پیشرفته ── */
+    /* ── Advanced search panel ── */
     .notif-adv-panel {
       flex-basis: 100%; order: 99;
       display: none; flex-wrap: wrap; gap: 14px; align-items: flex-end;
       margin-top: 4px; padding: 18px;
-      /* پس‌زمینه تورفته تا ورودی‌های bg-card روی آن برجسته شوند */
+      /* Recessed background so the bg-card inputs stand out on top of it */
       background: var(--color-bg-primary);
       border: 1.5px solid var(--color-border);
       border-radius: var(--radius-lg);
@@ -101,17 +101,17 @@
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
       background-repeat: no-repeat; background-position: left 14px center;
     }
-    /* چورون select و آیکن تقویم در حالت تاریک — هماهنگ با تم */
+    /* Select chevron and calendar icon in dark mode — matched to the theme */
     [data-theme="dark"] .notif-perpage select,
     [data-theme="dark"] .notif-adv-field select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     }
-    /* کنترل بومی تاریخ هماهنگ با تم سایت (نه تنظیم سیستم‌عامل) تا آیکن و متن در هر دو حالت دیده شوند */
+    /* Native date control matched to the site theme (not the OS setting) so the icon and text are visible in both modes */
     .notif-adv-field input.adv-date { color-scheme: light; }
     [data-theme="dark"] .notif-adv-field input.adv-date { color-scheme: dark; }
     .adv-date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .85; }
     .adv-date::-webkit-calendar-picker-indicator:hover { opacity: 1; }
-    /* تقویم سفارشی در پنل فیلتر: trigger هم‌شکل بقیه کنترل‌های pill این پنل (radius/ارتفاع) */
+    /* Custom calendar in the filter panel: the trigger matches this panel's other pill controls (radius/height) */
     .notif-adv-field .tdp-trigger {
       height: 44px; min-height: 44px; padding: 0 18px;
       border-width: 1.5px; border-radius: var(--radius-sm);
@@ -136,7 +136,7 @@
     }
     .notif-adv-reset:hover { color: var(--color-accent); }
 
-    /* ── dropdown سفارشی (radius و رنگ لیست هماهنگ با پروژه؛ جایگزین لیست بومی select) ── */
+    /* ── Custom dropdown (radius and list color matched to the project; replaces the native select list) ── */
     .cselect { position: relative; display: inline-flex; }
     .cselect-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0; }
     .cselect-btn {
@@ -178,7 +178,7 @@
     }
     .cselect-opt:hover { background: var(--color-accent-bg); color: var(--color-accent); }
     .cselect-opt[aria-selected="true"] { color: var(--color-accent); font-weight: 700; background: var(--color-accent-bg); }
-    /* در پنل فیلتر، dropdown وضعیت تمام‌عرض ستون می‌شود */
+    /* In the filter panel, the status dropdown becomes the full width of the column */
     .notif-adv-field .cselect { display: flex; width: 100%; }
     .notif-adv-field .cselect-btn { width: 100%; }
 
@@ -253,7 +253,7 @@
     .notif-row:hover { background: var(--color-bg-primary); }
     .notif-row.expired { opacity: .72; }
 
-    /* نوار رنگی سمت راست برای خوانده‌نشده */
+    /* Colored side bar for unread items */
     .notif-row-bar {
       background: transparent;
       transition: background var(--transition);
@@ -263,7 +263,7 @@
       background: linear-gradient(180deg, var(--color-accent), var(--color-accent-light));
     }
 
-    /* محتوای ردیف */
+    /* Row content */
     .notif-row-body {
       padding: 14px 20px;
       display: flex;
@@ -288,12 +288,12 @@
     .notif-row-date {
       font-size: 11px; color: var(--color-text-muted); direction: rtl;
     }
-    /* جداکننده بین تاریخ انتشار و انقضا (فقط شمسی) */
+    /* Separator between the publish and expiry dates (Jalali only) */
     .notif-row-date + .notif-row-date {
       padding-right: 7px; margin-right: 5px;
       border-right: 1px solid var(--color-border);
     }
-    /* شماره ردیف */
+    /* Row number */
     .notif-row-num {
       display: flex; align-items: center; justify-content: center;
       font-size: 12px; font-weight: 700;
@@ -316,7 +316,7 @@
     .npill-badge   { background: rgba(139,92,246,.08); color: #8b5cf6; border: 1px solid rgba(139,92,246,.2); }
     .npill-img     { background: rgba(245,158,11,.08); color: #d97706; border: 1px solid rgba(245,158,11,.2); }
 
-    /* دکمه مشاهده */
+    /* View button */
     .notif-row-action {
       padding: 0 20px;
       display: flex; align-items: center;
@@ -354,9 +354,9 @@
     }
     .notif-empty a:hover { background: var(--color-accent-bg-hover); }
 
-    /* صفحه‌بندی: کامپوننت مشترک .pagination/.pagination-btn در assets/css/pagination.css */
+    /* Pagination: shared .pagination/.pagination-btn component in assets/css/pagination.css */
 
-    /* ── Search highlight (هماهنگ با تم) ── */
+    /* ── Search highlight (matched to the theme) ── */
     mark {
       background: var(--color-accent-bg-hover); color: var(--color-accent);
       border-radius: 3px; padding: 0 2px;
@@ -424,7 +424,7 @@
       width: 100%; max-height: 340px;
       object-fit: contain; display: block;
     }
-    /* placeholder تا تصویر لود شود */
+    /* Placeholder until the image loads */
     .nd-image-wrap.loading::before {
       content: '';
       display: block; height: 180px;
@@ -445,7 +445,7 @@
       margin-bottom: 18px;
       user-select: text; -webkit-user-select: text;
     }
-    /* ── محتوای غنی (rich text) داخل اعلان ── */
+    /* ── Rich text content inside a notification ── */
     .nd-text p { margin: 0 0 10px; }
     .nd-text p:last-child { margin-bottom: 0; }
     .nd-text b, .nd-text strong { font-weight: 700; color: var(--color-text-primary); }

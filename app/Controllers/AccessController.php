@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// AccessController — هندل کردن API دسترسی دو سطحی
+// AccessController — handles the two-level access API
 // ═══════════════════════════════════════════════════════════
 
 class AccessController
@@ -16,7 +16,7 @@ class AccessController
         $this->request = $request;
     }
 
-    /** دریافت دسترسی‌های یک کاربر (هر دو سطح) */
+    /** Get a user's access (both levels) */
     public function get(): void
     {
         $userId = $this->request->inputInt('user_id');
@@ -29,7 +29,7 @@ class AccessController
         Response::ok($this->model->getAll($userId));
     }
 
-    /** ذخیره دسترسی‌های یک کاربر (هر دو سطح با هم) */
+    /** Save a user's access (both levels together) */
     public function set(): void
     {
         $userId  = $this->request->inputInt('user_id');
@@ -41,11 +41,9 @@ class AccessController
             return;
         }
 
-        // اطمینان از integer بودن tool_ids
         $toolIds = array_map('intval', $toolIds);
         $toolIds = array_filter($toolIds, fn($id) => $id > 0);
 
-        // اطمینان از string بودن badges
         $badges = array_filter(
             array_map('strval', $badges),
             fn($b) => $b !== ''
@@ -56,7 +54,6 @@ class AccessController
         $ok ? Response::ok() : Response::error('خطا در ذخیره دسترسی‌ها');
     }
 
-    /** لیست badge های موجود در سیستم */
     public function listBadges(): void
     {
         Response::ok(['badges' => $this->model->getAvailableBadges()]);

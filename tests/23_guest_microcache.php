@@ -2,12 +2,12 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// 23_guest_microcache — میکروکش ضد-stampede پاسخ‌های مهمان
-//   • hit تازه بدون اجرای builder
-//   • جیتر TTL در بازه [ttl, ttl*1.2]
-//   • stale-serving وقتی قفل rebuild دست درخواست دیگری است
-//   • forget → بازسازی فوری
-//   • سطح HTTP: اعلان/ابزار جدید بلافاصله (پس از invalidate) در فید مهمان
+// 23_guest_microcache — anti-stampede micro-cache for guest responses
+//   • fresh hit without running the builder
+//   • TTL jitter within [ttl, ttl*1.2]
+//   • stale-serving while the rebuild lock is held by another request
+//   • forget → immediate rebuild
+//   • HTTP level: new notification/tool visible immediately (after invalidate) in the guest feed
 // ═══════════════════════════════════════════════════════════
 
 if (!isset($cfg)) $cfg = require __DIR__ . '/bootstrap.php';
@@ -52,7 +52,7 @@ Assert::test('stale-serving → با قفل گرفته‌شده، نسخه من�
     $key  = 'zztest-mc-' . bin2hex(random_bytes(4));
     $file = $cacheFileOf($key);
 
-    // نسخه منقضی + قفل rebuild دست «درخواست دیگر»
+    // expired entry + rebuild lock held by "another request"
     file_put_contents($file, (time() - 5) . "\nstale-body");
     file_put_contents($file . '.lock', '');
 
@@ -103,7 +103,7 @@ Assert::test('HTTP مهمان: tools کش‌شده + ETag/304 + انعکاس ف�
         Assert::statusEq($res304, 304, 'با If-None-Match مطابق باید 304 بدهد');
     }
 
-    // ابزار عمومی جدید (fixture کش را invalidate می‌کند) باید بلافاصله دیده شود
+    // new public tool (fixture invalidates the cache) must be visible immediately
     $title  = Fixtures::uniq('mc_tool');
     $toolId = Fixtures::createTool(['title' => $title, 'is_public' => 1]);
     $res2   = $http->get('/api.php?action=tools');

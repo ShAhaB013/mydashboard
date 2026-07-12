@@ -3,21 +3,23 @@ declare(strict_types=1);
 
 class RateLimiter
 {
-    private const MAX_ATTEMPTS    = 10;   // حداکثر تلاش مجاز
-    private const WINDOW_SECONDS  = 900;  // پنجره زمانی: ۱۵ دقیقه
-    private const BLOCK_SECONDS   = 900;  // مدت بلاک: ۱۵ دقیقه
-    private const CLEANUP_CHANCE  = 50;   // هر ۱ در X درخواست، cleanup اجرا می‌شه
+    private const MAX_ATTEMPTS    = 10;   // max allowed attempts
+    private const WINDOW_SECONDS  = 900;  // time window: 15 minutes
+    private const BLOCK_SECONDS   = 900;  // block duration: 15 minutes
+    private const CLEANUP_CHANCE  = 50;   // cleanup runs on 1 in X requests
 
     private string $ip;
     private string $scope;
 
     /**
-     * @param string $scope جداسازی شمارنده‌ها: 'user' برای api.php و 'admin' برای admin.php
-     *                      تا قفل‌شدن یکی روی دیگری اثر نگذارد.
+     * @param string $scope separates counters: 'user' for api.php and 'admin' for admin.php,
+     *                      so a lockout in one doesn't affect the other.
      *
-     * توجه: محدودیت عمداً فقط بر پایه IP است (نه per-account). قفلِ حساب‌محور امکانِ
-     * «lockout عمدیِ» یک کاربر توسط مهاجم را می‌داد؛ چون این نصب پشت پراکسی نیست و
-     * REMOTE_ADDR همان IP واقعی است، limiterِ اتمیکِ IP-محور کافی و بدونِ آن ریسک است.
+     * Note: limiting is deliberately IP-based only (not per-account). An
+     * account-based lock would let an attacker deliberately lock out a
+     * victim's account; since this install isn't behind a proxy and
+     * REMOTE_ADDR is the real IP, an atomic IP-based limiter is sufficient
+     * and avoids that risk.
      */
     public function __construct(string $scope = 'user')
     {
@@ -30,10 +32,8 @@ class RateLimiter
         $row = $this->fetchRow();
         if (!$row) return false;
 
-        // اگه بلاک فعال باشه
         if ($row['blocked_until'] > time()) return true;
 
-        // اگه بلاک منقضی شده، ریست کن
         if ($row['blocked_until'] > 0 && $row['blocked_until'] <= time()) {
             $this->reset();
             return false;
@@ -43,21 +43,23 @@ class RateLimiter
     }
 
     /**
-     * ثبت یک تلاش ناموفق — به‌صورت اتمیک در یک دستور.
+     * Records a failed attempt — atomically, in a single statement.
      *
-     * الگوی قبلی (SELECT سپس UPDATE) شرطِ رقابتی داشت: چند درخواستِ هم‌زمان
-     * یک مقدار قدیمی می‌خواندند و شمارنده را کم‌شمار می‌کردند، پس مهاجم می‌توانست
-     * از سقف عبور کند. اینجا شمارش و تصمیمِ بلاک هر دو داخلِ موتور دیتابیس و در
-     * یک `INSERT ... ON DUPLICATE KEY UPDATE` انجام می‌شود (بدونِ پنجره‌ی رقابت).
+     * The previous pattern (SELECT then UPDATE) had a race condition:
+     * concurrent requests would read the same old value and under-count the
+     * attempts, letting an attacker exceed the cap. Here, both the counting
+     * and the block decision happen inside the database engine, in a single
+     * `INSERT ... ON DUPLICATE KEY UPDATE` (no race window).
      *
-     * ترتیب SET مهم است: هر سه عبارت به مقادیرِ «قدیمِ» attempts/last_attempt
-     * ارجاع می‌دهند (last_attempt در انتها مقداردهی می‌شود).
+     * The order of the SET clauses matters: all three expressions reference
+     * the "old" values of attempts/last_attempt (last_attempt is set last).
      */
     public function recordFailure(): void
     {
         $now = time();
-        // placeholderهای یکتا: با EMULATE_PREPARES=false نمی‌توان یک نام را
-        // چند بار در کوئری تکرار کرد، پس هر تکرار نامِ جدا و مقدارِ یکسان دارد.
+        // Unique placeholders: with EMULATE_PREPARES=false, a named
+        // placeholder can't be repeated in the query, so each repetition
+        // gets its own name with the same value.
         DB::run(
             'INSERT INTO login_rate_limit (ip, scope, attempts, last_attempt, blocked_until)
              VALUES (:ip, :scope, 1, :now0, 0)
@@ -77,14 +79,14 @@ class RateLimiter
             ]
         );
 
-        // پاک‌سازی تصادفی رکوردهای قدیمی
+        // Randomly clean up old records
         if (random_int(1, self::CLEANUP_CHANCE) === 1) {
             $this->cleanup();
         }
     }
 
     /**
-     * ریست کردن بعد از لاگین موفق
+     * Resets after a successful login
      */
     public function reset(): void
     {
@@ -95,7 +97,7 @@ class RateLimiter
     }
 
     /**
-     * چند ثانیه تا رفع بلاک باقی مانده
+     * How many seconds remain until unblock
      */
     public function secondsUntilUnblock(): int
     {
@@ -128,14 +130,13 @@ class RateLimiter
     {
         $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
-        // فقط اگه سرور پشت proxy شناخته‌شده بود این رو فعال کن
-        // در غیر این صورت X-Forwarded-For قابل جعل است
+        // Only enable this if the server is behind a known proxy —
+        // otherwise X-Forwarded-For can be spoofed
         // if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
         //     $forwarded = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
         //     $ip = trim($forwarded[0]);
         // }
 
-        // اعتبارسنجی فرمت IP
         if (filter_var($ip, FILTER_VALIDATE_IP)) {
             return $ip;
         }

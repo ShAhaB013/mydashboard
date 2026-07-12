@@ -2,14 +2,14 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// SessionModel — پرس‌وجوی نشست‌های فعال (جدول `sessions`) برای مدیریت ادمین.
-// (ذخیره/خواندن خود نشست در DbSessionHandler انجام می‌شود؛ این مدل فقط
-//  برای نمایش و پایان‌دادن نشست‌ها در پنل است.)
+// SessionModel — queries active sessions (`sessions` table) for admin management.
+// (Session storage/reading itself happens in DbSessionHandler; this model is
+//  only for displaying and terminating sessions in the panel.)
 // ═══════════════════════════════════════════════════════════
 
 class SessionModel
 {
-    /** فهرست نشست‌های فعال (به‌همراه نام کاربر). $userId=null → همه کاربران. */
+    /** List of active sessions (with the username). $userId=null -> all users. */
     public static function active(?int $userId = null, int $limit = 300): array
     {
         $sql = 'SELECT s.id, s.user_id, s.ip, s.user_agent, s.last_seen, s.expires_at,
@@ -30,7 +30,7 @@ class SessionModel
         }
     }
 
-    /** شمارش نشست‌های فعال هر کاربر → [user_id => count] */
+    /** Counts active sessions per user -> [user_id => count] */
     public static function countsByUser(): array
     {
         try {
@@ -50,7 +50,7 @@ class SessionModel
         return $out;
     }
 
-    /** پایان‌دادن به یک نشست مشخص (با شناسه) */
+    /** Terminates a specific session (by ID) */
     public static function terminate(string $id): bool
     {
         try {
@@ -61,7 +61,7 @@ class SessionModel
         }
     }
 
-    /** پایان همه نشست‌های یک کاربر (اختیاری: به‌جز نشست استثناشده) → تعداد حذف‌شده */
+    /** Terminates all of a user's sessions (optionally except one) -> number deleted */
     public static function terminateUser(int $userId, ?string $exceptId = null): int
     {
         $sql    = 'DELETE FROM sessions WHERE user_id = :uid';
@@ -77,7 +77,7 @@ class SessionModel
         }
     }
 
-    /** پایان همه نشست‌ها به‌جز نشست جاری → تعداد حذف‌شده */
+    /** Terminates all sessions except the current one -> number deleted */
     public static function terminateOthers(string $exceptId): int
     {
         try {
@@ -87,7 +87,7 @@ class SessionModel
         }
     }
 
-    /** پایان‌دادن به نشست تنها در صورتی که متعلق به همین کاربر باشد (مالکیت سرور-تضمین) */
+    /** Terminates a session only if it belongs to this user (server-enforced ownership) */
     public static function terminateOwned(string $id, int $userId): bool
     {
         try {
@@ -101,7 +101,7 @@ class SessionModel
         }
     }
 
-    /** خلاصه خوانا User-Agent برای نمایش (مرورگر · سیستم‌عامل) */
+    /** Readable User-Agent summary for display (browser · OS) */
     public static function describeAgent(string $ua): string
     {
         if ($ua === '') return 'نامشخص';

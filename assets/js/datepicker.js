@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
-   datepicker.js — تقویم و ساعت سفارشی هماهنگ با تم پروژه
+   datepicker.js — themed custom calendar and clock
    ───────────────────────────────────────────────────────────
-   هر <input type="date"> و <input type="time"> را به کنترل سفارشی ارتقا می‌دهد:
-   - input بومی به‌عنوان منبع مقدار مخفی می‌ماند (date: yyyy-mm-dd، time: HH:MM)
-     تا کد موجود و ارسال فرم دست‌نخورده کار کنند.
-   - پنجره هماهنگ‌با‌تم با موقعیت‌دهی fixed (flip/clamp تا از صفحه بیرون نزند).
-   - تقویم: سه نمای روز/ماه/سال (drill-down). ساعت: ستون ساعت + دقیقه.
+   Upgrades every <input type="date"> and <input type="time"> into a custom control:
+   - The native input stays hidden as the source of the value (date: yyyy-mm-dd, time: HH:MM)
+     so existing code and form submission keep working unchanged.
+   - A theme-matched popup with fixed positioning (flip/clamp so it never overflows the screen).
+   - Calendar: three drill-down views, day/month/year. Time: hour + minute columns.
    API: window.ThemedDatePicker / window.ThemedTimePicker → enhanceAll(), refresh(input)
    ═══════════════════════════════════════════════════════════ */
 (function () {
@@ -27,14 +27,14 @@
   var openInst = null;
   function closeOpen() { if (openInst) openInst.close(); }
 
-  /** موقعیت‌دهی مشترک پنجره: زیر trigger، در صورت کمبود جا flip به بالا، و clamp داخل مودال/viewport */
+  /** Shared popup positioning: below the trigger, flips above if there's no room, clamped inside the modal/viewport */
   function positionPopup(trigger, pop) {
     var pad2 = 8, gap = 6;
     var tr = trigger.getBoundingClientRect();
     var pw = pop.offsetWidth, ph = pop.offsetHeight;
     var vw = window.innerWidth, vh = window.innerHeight;
 
-    // مرزهای افقی: viewport و در صورت وجود مودال/کارت، داخل خود آن تا پنجره از مودال بیرون نزند
+    // Horizontal bounds: the viewport, and if there's a modal/card, inside it too, so the popup never overflows the modal
     var minX = pad2, maxX = vw - pad2;
     var host = trigger.closest('.modal, .login-card');
     if (host) {
@@ -43,19 +43,20 @@
       maxX = Math.min(maxX, hr.right - 12);
     }
 
-    // عمودی: پایین، وگرنه بالا، وگرنه چسبیده به کف
+    // Vertical: below, otherwise above, otherwise pinned to the bottom
     var top;
     if (tr.bottom + gap + ph <= vh - pad2)      top = tr.bottom + gap;
     else if (tr.top - gap - ph >= pad2)         top = tr.top - gap - ph;
     else                                        top = vh - ph - pad2;
 
-    // افقی (RTL): ترجیحا لبه راست پنجره با لبه راست فیلد هم‌تراز شود تا «به‌سمت داخل/چپ» باز
-    // شود و از لبه راست صفحه بیرون نزند. اگر این کار پنجره را از مرز چپ مودال/صفحه بیرون می‌برد،
-    // به لبه چپ فیلد هم‌تراز کن (حالت فیلد ساعت در سمت چپ مودال).
+    // Horizontal (RTL): prefer aligning the popup's right edge with the field's right edge so it
+    // opens inward/toward the left and doesn't overflow the screen's right edge. If that would push
+    // the popup past the modal/screen's left boundary, align to the field's left edge instead
+    // (the time field's case on the modal's left side).
     var left = tr.right - pw;
     if (left < minX) left = tr.left;
 
-    // clamp نهایی قطعی
+    // final hard clamp
     if (left + pw > maxX) left = maxX - pw;
     if (left < minX)      left = minX;
     if (top + ph > vh - pad2) top = vh - ph - pad2;
@@ -67,13 +68,13 @@
     pop.style.left = Math.round(left) + 'px';
     pop.style.top = Math.round(top) + 'px';
   }
-  /** موقعیت‌دهی + یک‌بار تکرار در فریم بعد (برای ته‌نشین‌شدن چیدمان/اسکرول مودال پس از باز شدن) */
+  /** Position + one repeat on the next frame (lets the modal's layout/scroll settle after opening) */
   function placeNow(trigger, pop) {
     positionPopup(trigger, pop);
     requestAnimationFrame(function () { if (pop.classList.contains('open')) positionPopup(trigger, pop); });
   }
 
-  /** ساخت پوسته (wrap + trigger مخفی‌کننده input بومی + pop). برمی‌گرداند {wrap, trigger, valueSpan, pop} */
+  /** Builds the shell (wrap + trigger hiding the native input + pop). Returns {wrap, trigger, valueSpan, pop} */
   function scaffold(input, iconSvg, popClass) {
     var wrap = document.createElement('div');
     wrap.className = 'tdp';
@@ -90,7 +91,7 @@
     trigger.className = 'tdp-trigger';
     trigger.setAttribute('aria-haspopup', 'dialog');
     if (input.getAttribute('aria-label')) trigger.setAttribute('aria-label', input.getAttribute('aria-label'));
-    // آیکون اول می‌آید تا در چیدمان RTL سمت راست (ابتدای فیلد) قرار گیرد
+    // Icon comes first so it lands on the right (start of the field) in RTL layout
     trigger.innerHTML = iconSvg + '<span class="tdp-value"></span>';
 
     var pop = document.createElement('div');
@@ -98,8 +99,8 @@
     pop.setAttribute('dir', 'ltr');
 
     wrap.appendChild(trigger);
-    // پنجره به body پورتال می‌شود تا ancestorهای دارای transform (مثل مودال) موقعیت
-    // position:fixed را نشکنند و پنجره از مودال بیرون/کج نیفتد.
+    // Popup is portaled to body so ancestors with a transform (like a modal) don't break
+    // position:fixed and cause the popup to be clipped/misplaced relative to the modal.
     document.body.appendChild(pop);
     return { wrap: wrap, trigger: trigger, valueSpan: trigger.querySelector('.tdp-value'), pop: pop };
   }

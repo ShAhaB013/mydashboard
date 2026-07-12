@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Router — مسیریابی درخواست‌های API به کنترلرها
+// Router — routes API requests to controllers
 // ═══════════════════════════════════════════════════════════
 
 class Router
@@ -18,7 +18,7 @@ class Router
     private SessionController      $sessionCtrl;
 
     private const ROUTES = [
-        // ── ابزارها ─────────────────────────────────────────
+        // ── tools ────────────────────────────────────────────
         'list_tools'    => [ToolController::class,         'listPaginated'],
         'add'           => [ToolController::class,         'add'],
         'edit'          => [ToolController::class,         'edit'],
@@ -26,31 +26,31 @@ class Router
         'reorder'       => [ToolController::class,         'reorder'],
         'toggle_public' => [ToolController::class,         'togglePublic'],
 
-        // ── آیکون‌ها ─────────────────────────────────────────
+        // ── icons ────────────────────────────────────────────
         'save_icon'     => [IconController::class,         'save'],
         'delete_icon'   => [IconController::class,         'delete'],
 
-        // ── انیمیشن‌ها ───────────────────────────────────────
+        // ── animations ───────────────────────────────────────
         'save_deco'     => [DecoController::class,         'save'],
         'delete_deco'   => [DecoController::class,         'delete'],
 
-        // ── کاربران ──────────────────────────────────────────
+        // ── users ────────────────────────────────────────────
         'list_users'    => [UserController::class,         'list'],
         'add_user'      => [UserController::class,         'create'],
         'edit_user'     => [UserController::class,         'update'],
         'delete_user'   => [UserController::class,         'delete'],
         'toggle_user'   => [UserController::class,         'toggleActive'],
 
-        // ── انسداد ورود (Rate limit) ─────────────────────────
+        // ── login blocks (rate limit) ────────────────────────
         'list_blocks'   => [UserController::class,         'listBlocks'],
         'unblock_ip'    => [UserController::class,         'unblockIp'],
 
-        // ── دسترسی‌ها ────────────────────────────────────────
+        // ── access ───────────────────────────────────────────
         'get_access'    => [AccessController::class,       'get'],
         'set_access'    => [AccessController::class,       'set'],
         'badges'        => [AccessController::class,       'listBadges'],
 
-        // ── اعلان‌ها ──────────────────────────────────────────
+        // ── notifications ────────────────────────────────────
         'list_notifications'          => [NotificationController::class, 'list'],
         'create_notification'         => [NotificationController::class, 'create'],
         'update_notification'         => [NotificationController::class, 'update'],
@@ -58,11 +58,11 @@ class Router
         'delete_notification_image'   => [NotificationController::class, 'deleteImage'],
         'upload_notification_image'   => [NotificationController::class, 'uploadImage'],
 
-        // ── تنظیمات ایمیل/SMTP ──────────────────────────────
+        // ── email/SMTP settings ──────────────────────────────
         'save_settings' => [SettingsController::class, 'save'],
         'test_email'    => [SettingsController::class, 'sendTest'],
 
-        // ── نشست‌های فعال کاربران ────────────────────────────
+        // ── users' active sessions ───────────────────────────
         'list_sessions'           => [SessionController::class, 'list'],
         'terminate_session'       => [SessionController::class, 'terminate'],
         'terminate_user_sessions' => [SessionController::class, 'terminateUser'],

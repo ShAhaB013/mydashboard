@@ -2,35 +2,36 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// MicroCache — میکروکش فایلی پاسخ‌های مشترک (شاخه مهمان API)
+// MicroCache — file-based micro-cache for shared responses (guest API branch)
 //
-// چرا: پاسخ‌های مهمان (bootstrap/tools/notifications) بین همه بازدیدکنندگان
-// بایت‌به‌بایت یکسان‌اند ولی بدون کش سرور، هر درخواست مستقلا کوئری کامل +
-// serialize را اجرا می‌کند. این کلاس در ترافیک بالا N محاسبه همزمان را به ۱
-// تبدیل می‌کند. فقط برای پاسخ‌های بدون دادهٔ per-user استفاده شود.
+// Why: guest responses (bootstrap/tools/notifications) are byte-for-byte
+// identical across all visitors, but without a server-side cache, every
+// request independently runs the full query + serialize. This class
+// collapses N concurrent computations into 1 under high traffic. Use it
+// only for responses with no per-user data.
 //
-// سازوکار ضد-stampede:
-//   • جیتر TTL: انقضای واقعی = ttl + random(0..ttl/5) — انقضای کلیدها هم‌زمان نمی‌شود
-//   • single-flight: هنگام انقضا فقط درخواستی که قفل را می‌گیرد rebuild می‌کند؛
-//     بقیه بلافاصله نسخهٔ stale موجود را می‌گیرند (stale-while-revalidate)
-//   • قفل یتیم (کرش وسط rebuild) بعد از LOCK_TIMEOUT ثانیه بازپس‌گیری می‌شود
+// Anti-stampede mechanism:
+//   - TTL jitter: real expiry = ttl + random(0..ttl/5) — keys don't expire in sync
+//   - single-flight: on expiry, only the request that gets the lock rebuilds;
+//     the rest immediately get the existing stale version (stale-while-revalidate)
+//   - an orphaned lock (crash mid-rebuild) is reclaimed after LOCK_TIMEOUT seconds
 //
-// ذخیره‌سازی: sys_get_temp_dir()/das-cache/{md5(key)}.cache
-//   خط اول = timestamp انقضا، ادامه = بدنهٔ پاسخ (نوشتن اتمیک tmp + rename،
-//   همان الگوی JsonStore::save)
+// Storage: sys_get_temp_dir()/das-cache/{md5(key)}.cache
+//   first line = expiry timestamp, rest = response body (atomic tmp write +
+//   rename, same pattern as JsonStore::save)
 // ═══════════════════════════════════════════════════════════
 
 class MicroCache
 {
-    /** مهلت بازپس‌گیری قفل یتیم‌شده (ثانیه) */
+    /** Timeout for reclaiming an orphaned lock (seconds) */
     private const LOCK_TIMEOUT = 10;
 
     /**
-     * بدنهٔ کش‌شده را برمی‌گرداند؛ در صورت انقضا فقط یک درخواست بازسازی می‌کند
-     * و بقیه نسخهٔ stale را می‌گیرند. در کش سرد (هیچ نسخه‌ای موجود نیست) بدون
-     * قفل مستقیم build می‌شود.
+     * Returns the cached body; if expired, only one request rebuilds it and
+     * the rest get the stale version. On a cold cache (no version exists),
+     * builds directly without a lock.
      *
-     * @param callable():string $builder سازندهٔ بدنهٔ تازه (فقط در صورت نیاز صدا می‌شود)
+     * @param callable():string $builder builds the fresh body (called only when needed)
      */
     public static function remember(string $key, int $ttl, callable $builder): string
     {
@@ -45,13 +46,13 @@ class MicroCache
                 $expires = (int) substr($raw, 0, $nl);
                 $body    = substr($raw, $nl + 1);
                 if ($expires > $now) {
-                    return $body;          // تازه — پرتکرارترین مسیر
+                    return $body;          // fresh — the hottest path
                 }
-                $stale = $body;            // منقضی ولی قابل سرو تا rebuild تمام شود
+                $stale = $body;            // expired but servable until the rebuild finishes
             }
         }
 
-        // منقضی یا ناموجود — فقط یک درخواست (برندهٔ قفل) بازسازی می‌کند
+        // Expired or missing — only one request (the lock winner) rebuilds it
         if (self::acquireLock($file)) {
             try {
                 $body = $builder();
@@ -62,17 +63,17 @@ class MicroCache
             }
         }
 
-        // قفل دست درخواست دیگری است: اگر نسخهٔ stale داریم همان را فورا سرو کن
+        // The lock is held by another request: if we have a stale version, serve it immediately
         if ($stale !== null) {
             return $stale;
         }
 
-        // کش سرد و قفل هم آزاد نشد — محاسبه مستقیم بدون نوشتن (نادر: فقط
-        // چند درخواست اول پس از پاک‌شدن کامل کش)
+        // Cold cache and the lock wasn't freed either — compute directly without
+        // writing (rare: only the first few requests after a full cache clear)
         return $builder();
     }
 
-    /** حذف فوری یک کلید (پس از نوشتن ادمین، تا تغییر بلافاصله دیده شود) */
+    /** Immediately removes a key (after an admin write, so the change is seen right away) */
     public static function forget(string $key): void
     {
         @unlink(self::path($key));
@@ -80,7 +81,7 @@ class MicroCache
 
     // ── internals ────────────────────────────────────────────
 
-    /** نوشتن اتمیک «expiry\nbody» با انقضای جیتردار */
+    /** Atomic write of "expiry\nbody" with jittered expiry */
     private static function store(string $file, string $body, int $ttl): void
     {
         $jitter  = $ttl >= 5 ? random_int(0, intdiv($ttl, 5)) : 0;
@@ -91,7 +92,7 @@ class MicroCache
         }
     }
 
-    /** تصاحب قفل rebuild (fopen حالت x اتمیک است)؛ قفل یتیم را بازپس می‌گیرد */
+    /** Acquires the rebuild lock (fopen mode 'x' is atomic); reclaims an orphaned lock */
     private static function acquireLock(string $file): bool
     {
         $lock = $file . '.lock';
@@ -100,7 +101,7 @@ class MicroCache
             fclose($fh);
             return true;
         }
-        // قفل موجود: اگر از LOCK_TIMEOUT کهنه‌تر است (کرش وسط rebuild) بازپس‌گیری
+        // Lock exists: reclaim it if it's older than LOCK_TIMEOUT (crash mid-rebuild)
         $mtime = @filemtime($lock);
         if ($mtime !== false && (time() - $mtime) > self::LOCK_TIMEOUT) {
             @unlink($lock);

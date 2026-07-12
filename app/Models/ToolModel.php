@@ -2,14 +2,13 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// ToolModel — عملیات CRUD روی ابزارها (MySQL)
+// ToolModel — CRUD operations on tools (MySQL)
 // ═══════════════════════════════════════════════════════════
 
 class ToolModel
 {
     // ── Public queries ──────────────────────────────────────
 
-    /** همه ابزارهای عمومی (بدون لاگین) */
     public function allPublic(): array
     {
         return DB::run(
@@ -17,7 +16,6 @@ class ToolModel
         )->fetchAll();
     }
 
-    /** ابزارهای قابل نمایش برای یک کاربر مشخص */
     public function allForUser(int $userId): array
     {
         return DB::run(
@@ -34,7 +32,7 @@ class ToolModel
         )->fetchAll();
     }
 
-    /** همه ابزارها (فقط برای پنل ادمین) */
+    /** All tools (admin panel only) */
     public function all(): array
     {
         return DB::run(
@@ -43,8 +41,8 @@ class ToolModel
     }
 
     /**
-     * صفحه‌بندی سمت سرور برای پنل ادمین + جستجوی اختیاری.
-     * فقط ردیف‌های صفحه جاری از DB می‌آیند (مستقل از کل تعداد).
+     * Server-side pagination for the admin panel + optional search.
+     * Only the rows for the current page are fetched from the DB (independent of total count).
      */
     public function allForAdminPaginated(int $page, int $perPage, string $search = ''): array
     {
@@ -52,7 +50,7 @@ class ToolModel
         $perPage = max(1, min(100, $perPage));
         $offset  = ($page - 1) * $perPage;
         $like    = '%' . $search . '%';
-        // LIMIT/OFFSET اعتبارسنجی‌شده مستقیم تزریق می‌شوند (عدد صحیح)
+        // LIMIT/OFFSET are validated integers, safe to interpolate directly
         $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
 
         return DB::run(
@@ -66,7 +64,6 @@ class ToolModel
         )->fetchAll();
     }
 
-    /** تعداد کل ابزارها برای صفحه‌بندی ادمین (با جستجوی اختیاری) */
     public function countForAdmin(string $search = ''): int
     {
         $like = '%' . $search . '%';
@@ -79,7 +76,6 @@ class ToolModel
         )->fetchColumn();
     }
 
-    /** یافتن ابزار با ID */
     public function findById(int $id): ?array
     {
         $row = DB::run(
@@ -90,8 +86,8 @@ class ToolModel
     }
 
     /**
-     * یافتن ابزار با index ترتیبی (سازگاری با کنترلر قدیمی)
-     * index = موقعیت در لیست sort_order
+     * Find a tool by sequential index (compatibility with the legacy controller)
+     * index = position in the sort_order list
      */
     public function find(int $index): ?array
     {
@@ -105,9 +101,9 @@ class ToolModel
     // ── Write operations ────────────────────────────────────
 
     /**
-     * حذف میکروکش پاسخ‌های مهمان که به جدول tools وابسته‌اند —
-     * در انتهای هر عملیات نوشتن صدا می‌شود تا تغییر ادمین بلافاصله
-     * (بدون انتظار برای انقضای TTL) به بازدیدکنندگان برسد.
+     * Invalidates the guest response micro-cache entries that depend on the tools table —
+     * called at the end of every write operation so an admin's change reaches visitors
+     * immediately instead of waiting for the TTL to expire.
      */
     private static function flushGuestCache(): void
     {
@@ -115,7 +111,6 @@ class ToolModel
         MicroCache::forget('boot-guest');
     }
 
-    /** افزودن ابزار جدید */
     public function create(array $data): bool
     {
         $maxOrder = (int) DB::run(
@@ -141,7 +136,7 @@ class ToolModel
         return true;
     }
 
-    /** ویرایش ابزار با index ترتیبی */
+    /** Edit a tool by sequential index */
     public function update(int $index, array $data): bool
     {
         $tool = $this->find($index);
@@ -172,7 +167,7 @@ class ToolModel
         return true;
     }
 
-    /** ویرایش ابزار با ID مستقیم */
+    /** Edit a tool directly by ID */
     public function updateById(int $id, array $data): bool
     {
         DB::run(
@@ -200,7 +195,7 @@ class ToolModel
         return true;
     }
 
-    /** حذف ابزار با index ترتیبی */
+    /** Delete a tool by sequential index */
     public function delete(int $index): bool
     {
         $tool = $this->find($index);
@@ -211,7 +206,6 @@ class ToolModel
         return true;
     }
 
-    /** تغییر وضعیت is_public */
     public function togglePublic(int $id): bool
     {
         DB::run(
@@ -222,7 +216,7 @@ class ToolModel
         return true;
     }
 
-    /** مرتب‌سازی مجدد بر اساس آرایه‌ای از index ها */
+    /** Reorder based on an array of indexes */
     public function reorder(array $order): bool
     {
         $all = $this->all();
@@ -244,10 +238,10 @@ class ToolModel
 
 
     /**
-     * مرتب‌سازی سراسری بر اساس آرایه کامل id ها.
-     * برای حالت «مرتب‌سازی همه کارت‌ها» — مستقل از صفحه‌بندی.
-     * فقط وقتی اعمال می‌شود که مجموعه id ها دقیقا برابر کل ابزارها باشد
-     * (جلوگیری از خراب‌شدن ترتیب با لیست ناقص).
+     * Global reorder based on the full array of ids.
+     * For the "reorder all cards" mode — independent of pagination.
+     * Only applies when the set of ids exactly matches all tools
+     * (prevents corrupting the order with an incomplete list).
      */
     public function reorderByIds(array $ids): bool
     {
@@ -265,7 +259,7 @@ class ToolModel
         return true;
     }
 
-    /** حذف ابزار با id مستقیم */
+    /** Delete a tool directly by id */
     public function deleteById(int $id): bool
     {
         DB::run('DELETE FROM tools WHERE id = :id', [':id' => $id]);
@@ -274,8 +268,8 @@ class ToolModel
     }
 
     /**
-     * saveAll — سازگاری با DecoModel (جایگزینی badge در ابزارهای وابسته)
-     * $tools باید آرایه‌ای از رکوردهای DB باشد (دارای id)
+     * saveAll — compatibility with DecoModel (replacing badge on dependent tools)
+     * $tools must be an array of DB records (with id)
      */
     public function saveAll(array $tools): bool
     {
@@ -292,12 +286,12 @@ class ToolModel
     }
 
     /**
-     * نسخه سبک برای کارهای سراسری پنل که به «همه ابزارها» نیاز دارند
-     * ولی نه به فیلدهای سنگین (description/path/accent):
-     *   - حالت مرتب‌سازی (drag-drop)
-     *   - مودال دسترسی دو سطحی
-     *   - شمارش «استفاده‌شده در» آیکون/دکو
-     * این آرایه به‌جای تزریق کل دیتاست کامل در هر بار لود استفاده می‌شود.
+     * Lightweight version for panel-wide tasks that need "all tools"
+     * but not the heavy fields (description/path/accent):
+     *   - reorder mode (drag-drop)
+     *   - two-tier access modal
+     *   - "used in" count for icon/deco
+     * Used instead of shipping the full dataset on every load.
      */
     public static function toLite(array $rows): array
     {
@@ -311,8 +305,8 @@ class ToolModel
         ], $rows);
     }
 
-    // ── Helper: تبدیل خروجی DB به فرمت JSON قدیمی ───────────
-    // (برای سازگاری با script.js که انتظار iconKey دارد)
+    // ── Helper: convert DB output to the legacy JSON format ───────────
+    // (for compatibility with script.js, which expects iconKey)
     public static function toFrontend(array $rows): array
     {
         return array_map(fn($t) => [

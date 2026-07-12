@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// View: settings_view.php — تنظیمات ایمیل/SMTP و زمان‌بندی کد OTP
+// View: settings_view.php — email/SMTP settings and OTP code timing
 // ═══════════════════════════════════════════════════════════
 $s = $settings ?? [];
 $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
@@ -47,14 +47,15 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
       .test-email-row { flex-direction:column; align-items:stretch; }
       .test-email-row .btn { width:100%; justify-content:center; }
     }
-    /* بخش فعال‌سازی SMTP از بقیه فیلدها مجزا شود — هم‌الگو با .sess-ttl-row پروژه
-       (پس‌زمینه خاکستری ملایم + radius-xs، همان الگوی جعبه‌های تنظیمات دیگر) */
+    /* Set the SMTP enable section apart from the other fields — matches the
+       project's .sess-ttl-row pattern (soft gray background + radius-xs, same
+       pattern as other settings boxes) */
     .set-toggle-box {
       background:var(--bg-2, rgba(127,127,127,.06)); border:1px solid var(--border); border-radius:var(--radius-xs);
       padding:12px 14px; margin-bottom:18px;
     }
   </style>
-  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
@@ -71,7 +72,6 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 </head>
 <body>
 
-<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
 <header class="app-header">
   <div class="app-header__inner">
     <div class="app-header__lead"><h1 class="app-header__title">تنظیمات ایمیل</h1></div>
@@ -88,7 +88,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 
 <div class="admin-wrap">
 
-  <!-- ── نوار فرعی (بدون عنوان؛ عنوان صفحه در هدر بالا «تنظیمات ایمیل» است) ── -->
+  <!-- ── Sub-bar (no title; the page title is "Email settings" in the header above) ── -->
   <div class="tools-header" style="justify-content:flex-end;">
     <div class="tools-header-actions">
       <button type="button" class="btn btn-primary btn-sm" id="saveSettingsBtn" data-act="saveSettings">
@@ -99,10 +99,8 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
     </div>
   </div>
 
-  <!-- ── کارت تنظیمات ── -->
   <div class="settings-card">
 
-  <!-- ── تنظیمات سرور ایمیل (SMTP) ── -->
   <div class="add-asset-form">
     <h4>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
@@ -176,7 +174,6 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 
   </div>
 
-  <!-- ── ارسال ایمیل آزمایشی ── -->
   <div class="add-asset-form" style="margin-top:16px;">
     <h4>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
@@ -200,13 +197,13 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 
 </div><!-- /admin-wrap -->
 
-<!-- ── Toast (محتوا با JS ساخته می‌شود) ── -->
+<!-- Toast (content built by JS) -->
 <div class="toast" id="toast" aria-live="assertive"></div>
 
 <script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
   window.CSRF_TOKEN = CSRF_TOKEN;
-  // متغیرهای داشبورد ابزارها در این صفحه استفاده نمی‌شوند ولی برای سازگاری با admin.js تعریف می‌شوند
+  // Tools-dashboard variables aren't used on this page but are defined for compatibility with admin.js
   const TOOLS_RAW  = [];
   const tools      = TOOLS_RAW;
   const ICONS_DATA = {};

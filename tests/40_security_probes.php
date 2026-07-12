@@ -60,7 +60,7 @@ Assert::test('CSRF replay: توکن یک نشست منقضی/logout-شده دی�
     $token = $http->csrfToken();
     $http->get('/api.php?action=logout');
 
-    // همان کوکی/توکن قدیمی را بعد از logout دوباره امتحان کن
+    // try the same old cookie/token again after logout
     $http->setCsrfToken($token);
     $res = $http->postJson('/api.php?action=change_password', ['current_password' => 'x', 'new_password' => 'y', 'confirm_password' => 'y']);
     Assert::statusEq($res, 401, 'بعد از logout، درخواست حالت‌تغییردهنده باید 401 بدهد (نشست باطل شده)');

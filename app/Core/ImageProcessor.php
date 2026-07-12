@@ -2,19 +2,19 @@
 declare(strict_types=1);
 
 /**
- * ImageProcessor — بهینه‌سازی و تولید نسخه بند انگشتی تصاویر
+ * ImageProcessor — optimizes images and generates thumbnails
  *
- * ویژگی‌ها:
- *  - تصحیح خودکار جهت EXIF (عکس‌های موبایل)
- *  - حفظ شفافیت (PNG / WebP / GIF)
- *  - Animated GIF passthrough (بدون از دست دادن انیمیشن)
- *  - SVG و فرمت‌های ناشناس passthrough
- *  - پشتیبانی AVIF (PHP 8.1+ با GD)
- *  - بررسی حافظه دقیق بر اساس channels/bits واقعی
- *  - file-size guard: اگر WebP از اصل بزرگتر شد، اصل نگه داشته می‌شود
- *  - upscale ممنوع برای نسخه کامل
+ * Features:
+ *  - automatic EXIF orientation correction (mobile photos)
+ *  - transparency preservation (PNG / WebP / GIF)
+ *  - animated GIF passthrough (no loss of animation)
+ *  - SVG and unknown formats passthrough
+ *  - AVIF support (PHP 8.1+ with GD)
+ *  - accurate memory check based on actual channels/bits
+ *  - file-size guard: keeps the original if WebP ends up larger
+ *  - no upscaling for the full version
  *
- * نیاز: PHP >= 8.0 + GD با WebP support
+ * Requires: PHP >= 8.0 + GD with WebP support
  */
 class ImageProcessor
 {
@@ -31,10 +31,10 @@ class ImageProcessor
     // ── Public API ───────────────────────────────────────────
 
     /**
-     * پردازش تصویر آپلودشده — ایجاد نسخه کامل + بند انگشتی
+     * Processes an uploaded image — creates a full version + thumbnail
      *
      * @return array{full:string|null, thumb:string|null}
-     *   null = پردازش ممکن نیست؛ فایل اصلی بدون تغییر استفاده شود
+     *   null = processing not possible; use the original file unchanged
      */
     public static function process(string $sourcePath, string $uploadDir, string $uploadUrl): array
     {
@@ -53,7 +53,7 @@ class ImageProcessor
             return ['full' => null, 'thumb' => null];
         }
 
-        // GIF انیمیشنی → passthrough (حفظ انیمیشن)
+        // Animated GIF -> passthrough (preserve the animation)
         if ($type === IMAGETYPE_GIF && self::isAnimatedGif($sourcePath)) {
             return ['full' => null, 'thumb' => null];
         }
@@ -70,16 +70,15 @@ class ImageProcessor
             return ['full' => null, 'thumb' => null];
         }
 
-        // تصحیح جهت EXIF (عکس‌های موبایل)
         $src = self::fixOrientation($src, $sourcePath, $type);
 
-        // ابعاد واقعی پس از چرخش
+        // Actual dimensions after rotation
         $realW    = imagesx($src);
         $realH    = imagesy($src);
         $uuid     = self::uuid();
         $origSize = (int) @filesize($sourcePath);
 
-        // ── نسخه کامل فشرده ──────────────────────────────────
+        // ── compressed full version ─────────────────────────
         [$fw, $fh] = self::scaleFit($realW, $realH, self::FULL_MAX_W, self::FULL_MAX_H);
         $fullImg  = self::resample($src, $realW, $realH, $fw, $fh);
         $fullFile = $uuid . '.webp';
@@ -92,14 +91,14 @@ class ImageProcessor
         }
         imagedestroy($fullImg);
 
-        // file-size guard: اگر WebP از اصل بزرگتر بود → اصل را نگه دار
+        // file-size guard: if WebP ended up bigger than the original -> keep the original
         if ($origSize > 0 && is_file($fullDisk) && filesize($fullDisk) >= $origSize) {
             @unlink($fullDisk);
             imagedestroy($src);
             return ['full' => null, 'thumb' => null];
         }
 
-        // ── بند انگشتی (crop مرکزی مربع) ─────────────────────
+        // ── thumbnail (square center crop) ──────────────────
         $thumbDir = $uploadDir . '/' . self::THUMB_DIR;
         self::ensureDir($thumbDir);
 
@@ -115,7 +114,7 @@ class ImageProcessor
         ];
     }
 
-    /** حذف هر دو نسخه تصویر از دیسک */
+    /** Deletes both image versions from disk */
     public static function deleteFiles(string $uploadDir, string $imagePath, ?string $thumbPath = null): void
     {
         $fullDisk = $uploadDir . '/' . basename($imagePath);
@@ -126,7 +125,7 @@ class ImageProcessor
         if (is_file($thumbDisk)) @unlink($thumbDisk);
     }
 
-    /** بررسی در دسترس بودن GD با پشتیبانی WebP */
+    /** Checks whether GD is available with WebP support */
     public static function isAvailable(): bool
     {
         return extension_loaded('gd') && function_exists('imagewebp');
@@ -134,7 +133,7 @@ class ImageProcessor
 
     // ── Private Helpers ──────────────────────────────────────
 
-    /** بررسی اینکه آیا این نوع فایل توسط GD قابل پردازش است */
+    /** Checks whether this file type can be processed by GD */
     private static function isProcessable(int $type): bool
     {
         $types = [
@@ -145,7 +144,7 @@ class ImageProcessor
             IMAGETYPE_BMP,
         ];
 
-        // AVIF — PHP 8.1+ با GD نسخه کافی
+        // AVIF — PHP 8.1+ with a sufficiently new GD
         if (defined('IMAGETYPE_AVIF') && function_exists('imagecreatefromavif')) {
             $types[] = IMAGETYPE_AVIF;
         }
@@ -153,7 +152,7 @@ class ImageProcessor
         return in_array($type, $types, true);
     }
 
-    /** لود تصویر با GD بر اساس نوع فرمت */
+    /** Loads an image with GD based on its format type */
     private static function loadSource(string $path, int $type): ?\GdImage
     {
         $img = match (true) {
@@ -177,14 +176,14 @@ class ImageProcessor
     }
 
     /**
-     * تصحیح جهت تصویر بر اساس EXIF Orientation
+     * Corrects image orientation based on EXIF Orientation
      *
-     * گوشی‌های موبایل عکس را با orientation metadata ذخیره می‌کنند.
-     * بدون این اصلاح عکس پورتریت ممکن است landscape نمایش داده شود.
+     * Mobile phones save photos with orientation metadata. Without this
+     * correction, a portrait photo may display as landscape.
      *
-     *   Orientation 3 = ۱۸۰ درجه چرخیده
-     *   Orientation 6 = ۹۰ درجه CW  (اندروید پورتریت)
-     *   Orientation 8 = ۹۰ درجه CCW (اندروید وارونه)
+     *   Orientation 3 = rotated 180 degrees
+     *   Orientation 6 = 90 degrees CW  (Android portrait)
+     *   Orientation 8 = 90 degrees CCW (Android upside down)
      */
     private static function fixOrientation(\GdImage $img, string $path, int $type): \GdImage
     {
@@ -213,10 +212,10 @@ class ImageProcessor
     }
 
     /**
-     * تشخیص GIF انیمیشنی
+     * Detects animated GIFs
      *
-     * GIF انیمیشنی دارای بیش از یک Graphic Control Extension (00 21 F9 04) است.
-     * GD فقط frame اول را می‌خواند، پس animated GIF باید passthrough شود.
+     * An animated GIF has more than one Graphic Control Extension (00 21 F9 04).
+     * GD only reads the first frame, so animated GIFs must be passed through.
      */
     private static function isAnimatedGif(string $path): bool
     {
@@ -237,10 +236,10 @@ class ImageProcessor
     }
 
     /**
-     * بررسی حافظه آزاد قبل از لود GD
+     * Checks free memory before loading into GD
      *
-     * از channels و bits واقعی تصویر استفاده می‌کند (دقیق‌تر از تخمین ثابت).
-     * ضریب ۲.۵ = source buffer + destination + JPEG decode overhead
+     * Uses the image's actual channels and bits (more accurate than a fixed
+     * estimate). The 2.5 factor = source buffer + destination + JPEG decode overhead
      */
     private static function hasEnoughMemory(int $w, int $h, array $info): bool
     {
@@ -258,7 +257,7 @@ class ImageProcessor
         return $free >= $required;
     }
 
-    /** تبدیل رشته memory_limit (مثلا "256M") به بایت */
+    /** Converts a memory_limit string (e.g. "256M") to bytes */
     private static function parseMemoryLimit(string $str): int
     {
         $str = trim($str);
@@ -274,7 +273,7 @@ class ImageProcessor
     }
 
     /**
-     * محاسبه ابعاد fit با حفظ نسبت تصویر — بدون upscale
+     * Computes fit dimensions while preserving aspect ratio — no upscaling
      */
     private static function scaleFit(int $w, int $h, int $maxW, int $maxH): array
     {
@@ -287,8 +286,8 @@ class ImageProcessor
     }
 
     /**
-     * resize با کیفیت بالا + حفظ کانال alpha
-     * PNG/WebP با شفافیت را درست مدیریت می‌کند
+     * High-quality resize + preserves the alpha channel
+     * Correctly handles transparent PNG/WebP
      */
     private static function resample(\GdImage $src, int $sw, int $sh, int $dw, int $dh): \GdImage
     {
@@ -302,10 +301,10 @@ class ImageProcessor
     }
 
     /**
-     * scale to fill + crop مرکزی برای thumbnail مربع
+     * scale to fill + center crop for a square thumbnail
      *
-     * مرحله ۱: scale کوچک تا دو بعد پر شوند (ممکن است upscale کند)
-     * مرحله ۲: crop از مرکز به اندازه dw×dh
+     * Step 1: scale so both dimensions are filled (may upscale)
+     * Step 2: crop from the center to dw×dh
      */
     private static function cropCenter(\GdImage $src, int $sw, int $sh, int $dw, int $dh): \GdImage
     {
@@ -313,7 +312,7 @@ class ImageProcessor
         $scaledW = max(1, (int) round($sw * $ratio));
         $scaledH = max(1, (int) round($sh * $ratio));
 
-        // مرحله ۱: scale
+        // Step 1: scale
         $scaled = imagecreatetruecolor($scaledW, $scaledH);
         imagealphablending($scaled, false);
         imagesavealpha($scaled, true);
@@ -321,7 +320,7 @@ class ImageProcessor
         imagefilledrectangle($scaled, 0, 0, $scaledW - 1, $scaledH - 1, $t);
         imagecopyresampled($scaled, $src, 0, 0, 0, 0, $scaledW, $scaledH, $sw, $sh);
 
-        // مرحله ۲: crop مرکزی
+        // Step 2: center crop
         $offX = (int) round(($scaledW - $dw) / 2);
         $offY = (int) round(($scaledH - $dh) / 2);
         $dst  = imagecreatetruecolor($dw, $dh);
@@ -335,7 +334,7 @@ class ImageProcessor
         return $dst;
     }
 
-    /** ایجاد پوشه + htaccess امنیتی */
+    /** Creates the directory + a security .htaccess */
     private static function ensureDir(string $dir): void
     {
         if (!is_dir($dir)) {
@@ -345,9 +344,11 @@ class ImageProcessor
     }
 
     /**
-     * محتوای مرجعِ .htaccess پوشه‌های آپلود — منبع یگانه (هم پوشه‌ی اصلی، هم thumbs).
-     * دفاع در عمق: منع اجرای هر فرمتِ PHP + اجبار دانلودِ فرمت‌های اجراپذیر/رندرشونده
-     * (svg/xml/html/…) با CSPِ قفل‌شده، تا حتی اگر فایلی از فیلترها گذشت در مرورگر اجرا نشود.
+     * Canonical .htaccess content for upload directories — single source of
+     * truth (used for both the main directory and thumbs). Defense in depth:
+     * blocks execution of any PHP format + forces download of
+     * executable/renderable formats (svg/xml/html/…) with a locked-down CSP,
+     * so even if a file slips past the filters it still won't execute in the browser.
      */
     public static function uploadHtaccessBody(): string
     {
@@ -363,9 +364,9 @@ class ImageProcessor
     }
 
     /**
-     * نوشتنِ idempotentِ .htaccess: فقط وقتی که فایل نبود یا محتوایش با نسخه‌ی
-     * مرجع فرق داشت (ارتقای نسخه‌های قدیمی) — تا در مسیرِ داغِ آپلود، هر بار یک
-     * نوشتِ بی‌مورد روی دیسک انجام نشود.
+     * Idempotent .htaccess write: only writes when the file is missing or its
+     * content differs from the canonical version (upgrading older versions) —
+     * so the hot upload path doesn't do an unnecessary disk write every time.
      */
     public static function writeUploadHtaccess(string $dir): bool
     {

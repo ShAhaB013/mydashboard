@@ -2,20 +2,18 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// UserModel — عملیات CRUD روی کاربران (شامل سطح دسترسی role)
-// role: 'user' (عادی) | 'admin' (مدیر پنل)
-// کاربران فقط توسط ادمین ساخته می‌شوند (بدون ثبت‌نام عمومی/ایمیل).
+// UserModel — CRUD operations on users (including the role access level)
+// role: 'user' (regular) | 'admin' (panel admin)
+// Users are only created by an admin (no public signup/email registration).
 // ═══════════════════════════════════════════════════════════
 
 class UserModel
 {
-    /** فهرست مجاز سطوح دسترسی */
     public const ROLES = ['user', 'admin'];
 
-    /** هزینه‌ی bcrypt — از پیش‌فرضِ ۱۰ به ۱۲ افزایش یافت (کندسازیِ brute-force آفلاین) */
+    /** bcrypt cost — raised from the default of 10 to 12 to slow down offline brute-force */
     public const BCRYPT_COST = 12;
 
-    /** نرمال‌سازی role ورودی به یکی از مقادیر مجاز */
     public static function normalizeRole(string $role): string
     {
         $role = strtolower(trim($role));
@@ -23,8 +21,8 @@ class UserModel
     }
 
     /**
-     * تقسیم «نام و نام خانوادگی» (ورودی تکی) به نام و فامیل.
-     * اولین واژه = نام، بقیه = نام خانوادگی. فاصله‌های اضافی نرمال می‌شوند.
+     * Split a single "full name" input into first/last name.
+     * First word = first name, the rest = last name. Extra whitespace is normalized.
      * @return array{0:string,1:string} [first, last]
      */
     public static function splitName(string $full): array
@@ -37,7 +35,6 @@ class UserModel
         return [mb_substr($full, 0, $i), trim(mb_substr($full, $i + 1))];
     }
 
-    /** دریافت همه کاربران */
     public function all(): array
     {
         return DB::run(
@@ -48,7 +45,7 @@ class UserModel
     }
 
     /**
-     * ساخت شرط فیلترهای پیشرفته (نقش + وضعیت) برای لیست ادمین.
+     * Build the advanced filter clause (role + status) for the admin list.
      * $filters: ['role'=>'admin|user', 'status'=>'active|inactive']
      */
     private function buildAdminFilters(array $filters, array &$params): string
@@ -69,8 +66,8 @@ class UserModel
     }
 
     /**
-     * صفحه‌بندی سمت سرور + جستجوی اختیاری (نام نمایشی/نام/فامیل/موبایل/نام‌کاربری/ایمیل)
-     * + فیلترهای پیشرفته (نقش/وضعیت). فقط ردیف‌های صفحه جاری از DB می‌آیند.
+     * Server-side pagination + optional search (display name/first/last/phone/username/email)
+     * + advanced filters (role/status). Only the rows for the current page are fetched from the DB.
      */
     public function allPaginated(int $page, int $perPage, string $search = '', array $filters = []): array
     {
@@ -97,7 +94,6 @@ class UserModel
         )->fetchAll();
     }
 
-    /** تعداد کل کاربران برای صفحه‌بندی (با جستجو و فیلترهای پیشرفته اختیاری) */
     public function countAll(string $search = '', array $filters = []): int
     {
         $like = '%' . $search . '%';
@@ -115,7 +111,6 @@ class UserModel
         )->fetchColumn();
     }
 
-    /** یافتن کاربر با ID */
     public function findById(int $id): ?array
     {
         $row = DB::run(
@@ -126,7 +121,7 @@ class UserModel
         return $row ?: null;
     }
 
-    /** تعداد ادمین‌های فعال — برای جلوگیری از قفل‌شدن پنل */
+    /** Count of active admins — used to prevent locking the panel out */
     public function countActiveAdmins(): int
     {
         return (int) DB::run(
@@ -135,8 +130,8 @@ class UserModel
     }
 
     /**
-     * آیا این کاربر «آخرین ادمین فعال» است؟
-     * (حذف/تنزل/غیرفعال‌کردن آن باعث قفل‌شدن پنل می‌شود)
+     * Is this user the "last active admin"?
+     * (deleting/demoting/deactivating them would lock the panel out)
      */
     public function isLastActiveAdmin(int $id): bool
     {
@@ -147,7 +142,6 @@ class UserModel
         return $this->countActiveAdmins() <= 1;
     }
 
-    /** بررسی وجود username */
     public function usernameExists(string $username, int $excludeId = 0): bool
     {
         $row = DB::run(
@@ -157,7 +151,7 @@ class UserModel
         return (bool) $row;
     }
 
-    /** بررسی وجود شماره موبایل (برای یکتایی هنگام ایجاد/ویرایش در پنل) */
+    /** Uniqueness check for the phone number when creating/editing in the panel */
     public function phoneExists(string $phone, int $excludeId = 0): bool
     {
         $row = DB::run(
@@ -167,7 +161,7 @@ class UserModel
         return (bool) $row;
     }
 
-    /** بررسی وجود ایمیل (برای یکتایی هنگام ایجاد/ویرایش در پنل) */
+    /** Uniqueness check for the email when creating/editing in the panel */
     public function emailExists(string $email, int $excludeId = 0): bool
     {
         $row = DB::run(
@@ -177,7 +171,7 @@ class UserModel
         return (bool) $row;
     }
 
-    /** افزودن کاربر جدید (نام‌کاربری و شماره موبایل توسط ادمین تعیین می‌شوند) */
+    /** Add a new user (username and phone number are set by the admin) */
     public function create(string $firstName, string $lastName, string $username, string $phone, string $email, string $password, string $role = 'user'): int
     {
         $displayName = trim($firstName . ' ' . $lastName);
@@ -190,7 +184,7 @@ class UserModel
                 ':f' => $firstName,
                 ':l' => $lastName,
                 ':d' => $displayName,
-                ':p' => ($phone === '' ? null : $phone),   // خالی → NULL (سازگار با UNIQUE index)
+                ':p' => ($phone === '' ? null : $phone),   // empty → NULL (compatible with the UNIQUE index)
                 ':e' => $email,
                 ':r' => self::normalizeRole($role),
             ]
@@ -198,7 +192,7 @@ class UserModel
         return (int) DB::get()->lastInsertId();
     }
 
-    /** ویرایش اطلاعات کاربر (نام/نام‌خانوادگی/موبایل/ایمیل/role، بدون تغییر رمز یا username) */
+    /** Edit user info (first/last name/phone/email/role, without changing password or username) */
     public function update(int $id, string $firstName, string $lastName, string $phone, string $email, string $role = 'user'): bool
     {
         DB::run(
@@ -207,7 +201,7 @@ class UserModel
                 ':f'  => $firstName,
                 ':l'  => $lastName,
                 ':d'  => trim($firstName . ' ' . $lastName),
-                ':p'  => ($phone === '' ? null : $phone),   // خالی → NULL (سازگار با UNIQUE index)
+                ':p'  => ($phone === '' ? null : $phone),   // empty → NULL (compatible with the UNIQUE index)
                 ':e'  => $email,
                 ':r'  => self::normalizeRole($role),
                 ':id' => $id,
@@ -216,7 +210,7 @@ class UserModel
         return true;
     }
 
-    /** خودِ کاربر نام/نام‌خانوادگی خودش را ویرایش می‌کند (بدون تغییر username/phone/email/role) */
+    /** User edits their own first/last name (without changing username/phone/email/role) */
     public function updateOwnName(int $id, string $firstName, string $lastName): bool
     {
         DB::run(
@@ -231,7 +225,6 @@ class UserModel
         return true;
     }
 
-    /** تغییر رمز عبور */
     public function changePassword(int $id, string $newPassword): bool
     {
         DB::run(
@@ -241,7 +234,6 @@ class UserModel
         return true;
     }
 
-    /** فعال/غیرفعال کردن کاربر */
     public function toggleActive(int $id): bool
     {
         DB::run(
@@ -251,16 +243,16 @@ class UserModel
         return true;
     }
 
-    /** حذف کاربر (cascade روی tool_access و category_access) */
+    /** Delete user (cascades to tool_access and category_access) */
     public function delete(int $id): bool
     {
         DB::run('DELETE FROM users WHERE id = :id', [':id' => $id]);
         return true;
     }
 
-    // ── بازیابی رمز عبور با OTP ایمیلی (فراموشی رمز) ────────────
+    // ── Password recovery via email OTP (forgot password) ────────────
 
-    /** یافتن کاربر فعال با ایمیل (برای فلوی فراموشی رمز) */
+    /** Find an active user by email (for the forgot-password flow) */
     public function findActiveByEmail(string $email): ?array
     {
         $row = DB::run(
@@ -270,7 +262,7 @@ class UserModel
         return $row ?: null;
     }
 
-    /** ثبت کد OTP جدید برای ریست رمز (جایگزین کد قبلی، شمارنده تلاش صفر می‌شود) */
+    /** Store a new OTP code for password reset (replaces the previous code, resets the attempt counter) */
     public function setResetCode(int $id, string $codeHash, int $expires): void
     {
         DB::run(
@@ -279,13 +271,13 @@ class UserModel
         );
     }
 
-    /** ثبت یک تلاش ناموفق تایید کد ریست */
+    /** Record one failed attempt at verifying the reset code */
     public function incrementResetAttempts(int $id): void
     {
         DB::run('UPDATE users SET reset_attempts = reset_attempts + 1 WHERE id = :id', [':id' => $id]);
     }
 
-    /** پاک‌سازی کد ریست پس از استفاده موفق */
+    /** Clear the reset code after successful use */
     public function clearResetCode(int $id): void
     {
         DB::run(

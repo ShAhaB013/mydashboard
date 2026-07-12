@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// View: dashboard.php — داشبورد مدیریت
+// View: dashboard.php — admin dashboard
 // ═══════════════════════════════════════════════════════════
 ?>
 <!DOCTYPE html>
@@ -18,7 +18,7 @@
   </script>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
-  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
@@ -35,7 +35,6 @@
 </head>
 <body>
 
-<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
 <header class="app-header">
   <div class="app-header__inner">
     <h1 class="app-header__title">پنل مدیریت ابزارها</h1>
@@ -51,10 +50,8 @@
 
 <div class="admin-wrap">
 
-  <!-- ── شبکه بخش‌های مدیریت ── -->
   <div class="admin-tiles">
 
-    <!-- مدیریت کاربران (صفحه مستقل) -->
     <a href="/admin?page=users" class="admin-tile">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -70,7 +67,6 @@
       <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
 
-    <!-- مدیریت اعلان‌ها -->
     <a href="/admin?page=notifications" class="admin-tile">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -85,7 +81,6 @@
       <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
 
-    <!-- تنظیمات ایمیل -->
     <a href="/admin?page=settings" class="admin-tile">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -99,7 +94,6 @@
       <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
 
-    <!-- مدیریت آیکون‌ها -->
     <button type="button" class="admin-tile" data-act="togglePanel" data-panel="iconsBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -114,7 +108,6 @@
       <svg class="admin-tile-arrow admin-tile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
 
-    <!-- مدیریت انیمیشن‌های کارت -->
     <button type="button" class="admin-tile" data-act="togglePanel" data-panel="decosBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -130,7 +123,6 @@
 
   </div>
 
-  <!-- ── پنل مدیریت آیکون‌ها ── -->
   <div class="section-panel" id="iconsBox">
     <div class="section-panel-body">
       <div class="asset-grid" id="iconAssetGrid"></div>
@@ -184,7 +176,6 @@
     </div>
   </div>
 
-  <!-- ── پنل مدیریت انیمیشن‌های کارت ── -->
   <div class="section-panel" id="decosBox">
     <div class="section-panel-body">
       <div class="asset-grid" id="decoAssetGrid" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));"></div>
@@ -251,7 +242,6 @@
 
 </div><!-- /admin-wrap -->
 
-<!-- ── مودال تایید حذف ── -->
 <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="modal confirm-modal">
     <div class="modal-head">
@@ -281,16 +271,16 @@
   </div>
 </div>
 
-<!-- ── Toast (محتوا با JS ساخته می‌شود) ── -->
+<!-- Toast (content built by JS) -->
 <div class="toast" id="toast" aria-live="assertive"></div>
 
-<!-- داده‌های PHP به JS -->
+<!-- PHP data passed to JS -->
 <script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
-  window.CSRF_TOKEN = CSRF_TOKEN; // لازم برای ارسال هدر X-CSRF-Token در admin.js
-  // نسخه «سبک» از همه ابزارها (id/title/badge/iconKey/deco/is_public) — برای
-  // مرتب‌سازی، مودال دسترسی و شمارش آیکون/دکو. لیست کامل کارت‌ها سمت سرور
-  // صفحه‌بندی می‌شود (ToolsView → list_tools). TOOLS_RAW همان آرایه سبک است.
+  window.CSRF_TOKEN = CSRF_TOKEN; // needed to send the X-CSRF-Token header in admin.js
+  // "Lite" version of all tools (id/title/badge/iconKey/deco/is_public) — for
+  // sorting, the access modal, and icon/deco counts. The full card list is
+  // paginated server-side (ToolsView → list_tools). TOOLS_RAW is the same lite array.
   const tools      = <?= $toolsLite ?>;
   const TOOLS_RAW  = tools;
   window.tools     = tools;

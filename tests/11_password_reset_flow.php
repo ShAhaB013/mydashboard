@@ -6,8 +6,8 @@ $BASE = $cfg['test']['base_url'];
 
 Assert::group('11_password_reset_flow');
 
-// این فایل به ایمیل واقعی نیاز ندارد: وقتی SMTP در تنظیمات فعال نیست،
-// Mailer::devCodeAllowed() → dev_code مستقیما در پاسخ API برمی‌گردد.
+// This file doesn't need a real email: when SMTP is disabled in settings,
+// Mailer::devCodeAllowed() → dev_code is returned directly in the API response.
 $smtpEnabled = DB::run("SELECT svalue FROM app_settings WHERE skey='smtp_enabled'")->fetchColumn();
 if ($smtpEnabled === '1' && !($cfg['test']['allow_real_email'] ?? false)) {
     Assert::warn('smtp_enabled=1 است و TESTS_ALLOW_EMAIL تنظیم نشده — این فایل ممکن است ایمیل واقعی بفرستد یا dev_code را نبیند؛ فایل رد شد');
@@ -46,7 +46,7 @@ Assert::test('forgot_password ایمیل نامعتبر → field=email', functi
 $code = null;
 Assert::test('verify_reset_code با کد صحیح → ok:true', function () use ($BASE, $email, &$code) {
     $http = new HttpClient($BASE);
-    // دریافت کد تازه (بدون throttle قبلی چون کاربر و آدرس این تست جداست از تست بالا در صورت اجرای مستقل)
+    // get a fresh code (no prior throttle since this test's user/address is separate from the one above when run standalone)
     $fp = $http->postJson('/api.php?action=forgot_password', ['email' => $email], [], false);
     $code = $fp['json']['dev_code'] ?? null;
     if ($code === null) { Assert::warn('dev_code موجود نبود (شاید throttle) — رد شد'); return; }

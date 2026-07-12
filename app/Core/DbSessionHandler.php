@@ -2,26 +2,26 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// DbSessionHandler — ذخیره‌سازی نشست در دیتابیس (به‌جای فایل)
+// DbSessionHandler — stores sessions in the database (instead of files)
 // ───────────────────────────────────────────────────────────
-// چرا دیتابیس؟ روی هاست اشتراکی (cPanel) ذخیره‌سازی فایلی نشست
-// محدود و ناپایدار است: پاکسازی تهاجمی /tmp، محدودیت inode،
-// نبود مسیر نوشتنی مطمئن، و عدم اشتراک بین چند سرور. این هندلر
-// نشست‌ها را در جدول `sessions` نگه می‌دارد.
+// Why the database? On shared hosting (cPanel), file-based session storage
+// is limited and unreliable: aggressive /tmp cleanup, inode limits, no
+// guaranteed writable path, and no sharing across multiple servers. This
+// handler keeps sessions in the `sessions` table.
 //
-// نکته کلیدی کارایی: خواندن «بدون قفل» است (بدون SELECT ... FOR UPDATE).
-// در نتیجه چند درخواست هم‌زمان یک کاربر (مثلا bootstrap + notifications +
-// unread_count که با هم لود می‌شوند) روی هم قفل نمی‌شوند — برخلاف هندلر
-// فایلی پیش‌فرض PHP که فایل نشست را تا پایان درخواست قفل می‌کند.
-// بهای این انتخاب: در شرایط رقابتی نادر «آخرین نویسنده برنده است»
-// (همان رفتار درایور database در Laravel).
+// Key performance point: reads are lock-free (no SELECT ... FOR UPDATE).
+// So concurrent requests from the same user (e.g. bootstrap + notifications
+// + unread_count loading together) don't block each other — unlike PHP's
+// default file handler, which locks the session file for the whole request.
+// The tradeoff: in rare race conditions, "last writer wins"
+// (the same behavior as Laravel's database session driver).
 //
-// SessionUpdateTimestampHandlerInterface برای پشتیبانی lazy_write:
-// اگر داده نشست تغییر نکند، فقط last_seen (آخرین فعالیت) به‌روز می‌شود.
+// SessionUpdateTimestampHandlerInterface is implemented to support
+// lazy_write: if the session data hasn't changed, only last_seen is updated.
 //
-// سقف مطلق TTL: expires_at فقط در INSERT اول (لحظه‌ی login) ست می‌شود و در
-// نوشتن‌های بعدی تمدید نمی‌شود — یعنی نشست دقیقاً session_ttl_hours ساعت پس
-// از ورود منقضی می‌شود، صرف‌نظر از میزان فعالیت کاربر.
+// Absolute TTL ceiling: expires_at is set only on the first INSERT (at
+// login) and is never extended on later writes — so the session expires
+// exactly session_ttl_hours after login, regardless of user activity.
 // ═══════════════════════════════════════════════════════════
 
 class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface
@@ -53,7 +53,7 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
 
     public function write(string $id, string $data): bool
     {
-        // نشست خالی (مهمان‌ها) را ذخیره نکن تا جدول پر نشود.
+        // Don't store empty sessions (guests), to avoid bloating the table.
         if ($data === '') return true;
 
         $now = time();
@@ -67,10 +67,11 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
             ':exp'     => $now + $this->ttl,
         ];
         try {
-            // نکته کلیدی سقف مطلق: expires_at را فقط در INSERT اول (لحظه‌ی واقعی
-            // شروع نشست) ست می‌کنیم و در UPDATEهای بعدی دست‌نخورده می‌ماند —
-            // یعنی سقفِ عمر نشست از لحظه‌ی ورود ثابت است و با فعالیت کاربر جلو
-            // نمی‌رود (برخلاف last_seen که همچنان برای نمایش «آخرین فعالیت» به‌روز می‌شود).
+            // Absolute-ceiling note: expires_at is set only on the first INSERT
+            // (the real start of the session) and is left untouched on later
+            // UPDATEs — so the session's lifetime ceiling is fixed from login
+            // and doesn't advance with user activity (unlike last_seen, which
+            // is still updated to show "last activity").
             DB::run(
                 'INSERT INTO sessions (id, user_id, ip, user_agent, payload, last_seen, expires_at)
                  VALUES (:id, :uid, :ip, :ua, :payload, :seen, :exp)
@@ -107,7 +108,7 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
         }
     }
 
-    // ── lazy_write: اعتبارسنجی شناسه (use_strict_mode) ──
+    // ── lazy_write: ID validation (use_strict_mode) ──
     public function validateId(string $id): bool
     {
         try {
@@ -121,9 +122,9 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
         }
     }
 
-    // ── lazy_write: به‌روزرسانی آخرین فعالیت بدون بازنویسی payload ──
-    // expires_at عمداً دست نمی‌خورد؛ سقف مطلق TTL از لحظه‌ی INSERT اول (login)
-    // ثابت می‌ماند و با فعالیت کاربر تمدید نمی‌شود.
+    // ── lazy_write: updates last activity without rewriting the payload ──
+    // expires_at is intentionally left untouched; the absolute TTL ceiling
+    // from the first INSERT (login) stays fixed and isn't extended by activity.
     public function updateTimestamp(string $id, string $data): bool
     {
         $now = time();
@@ -140,9 +141,9 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
     }
 
     /**
-     * ساخت خودکار جدول در نخستین استفاده اگر وجود نداشته باشد.
-     * مناسب استقرار بدون-دردسر روی هاست اشتراکی (نیازی به اجرای دستی SQL نیست).
-     * فقط برای خطای «جدول یافت نشد» (SQLSTATE 42S02) عمل می‌کند و یک‌بار اجرا می‌شود.
+     * Auto-creates the table on first use if it doesn't exist.
+     * Enables hassle-free deployment on shared hosting (no manual SQL needed).
+     * Only triggers on a "table not found" error (SQLSTATE 42S02), and runs once.
      */
     private function ensureTable(\PDOException $e): bool
     {

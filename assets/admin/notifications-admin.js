@@ -1,6 +1,6 @@
 'use strict';
 
-// Toast — آیکون رنگی + عنوان + توضیح + دکمه بستن (هم‌ساختار با داشبورد/ورود/پنل مدیریت)
+// Toast — colored icon + title + description + close button (same structure as dashboard/login/admin panel)
 // Toast.show(message, type, title?) — type: success | error | warning | info
 const Toast = {
   _t: null,
@@ -45,7 +45,7 @@ async function apiCall(action, body = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// RTE — ویرایشگر متن غنی برای متن اعلان
+// RTE — rich text editor for the notification body
 // ═══════════════════════════════════════════════════════════
 const RTE = {
   MAX_CHARS: 20000,
@@ -58,19 +58,19 @@ const RTE = {
     this._el = document.getElementById('nf-body');
     if (!this._el) return;
 
-    // دکمه‌های فرمان (execCommand)
+    // command buttons (execCommand)
     document.querySelectorAll('#rteToolbar .rte-btn[data-cmd]').forEach(btn => {
-      btn.addEventListener('mousedown', e => e.preventDefault()); // حفظ انتخاب
+      btn.addEventListener('mousedown', e => e.preventDefault()); // preserve the selection
       btn.addEventListener('click', () => {
         this._el.focus();
-        // فرمان‌های ساختاری (bold/italic/underline/lists/...) تگ‌های تمیز تولید کنند
+        // make structural commands (bold/italic/underline/lists/...) produce clean tags
         try { document.execCommand('styleWithCSS', false, false); } catch {}
         document.execCommand(btn.dataset.cmd, false, null);
         this._sync();
       });
     });
 
-    // دکمه‌های جهت (RTL/LTR)
+    // direction buttons (RTL/LTR)
     document.querySelectorAll('#rteToolbar .rte-btn[data-dir]').forEach(btn => {
       btn.addEventListener('mousedown', e => e.preventDefault());
       btn.addEventListener('click', () => {
@@ -80,13 +80,13 @@ const RTE = {
       });
     });
 
-    // ── انتخاب‌گر رنگ بومی ──
+    // ── native color picker ──
     this._initColorInput();
 
-    // ذخیره انتخاب در هر تغییر داخل ویرایشگر
+    // save the selection on every change inside the editor
     this._el.addEventListener('keyup',   () => this._saveSelection());
     this._el.addEventListener('mouseup', () => this._saveSelection());
-    // مطمئن‌ترین راه: هر تغییر انتخاب در صفحه که داخل ویرایشگر باشد ذخیره شود
+    // the most reliable way: save on any page selection change that falls inside the editor
     document.addEventListener('selectionchange', () => {
       const sel = window.getSelection();
       if (sel && sel.rangeCount && this._el &&
@@ -96,12 +96,12 @@ const RTE = {
       }
     });
 
-    // رویدادهای ورودی
+    // input events
     this._el.addEventListener('input',  () => this._sync());
     this._el.addEventListener('keyup',  () => this._updateActive());
     this._el.addEventListener('mouseup',() => this._updateActive());
 
-    // میانبرها
+    // shortcuts
     this._el.addEventListener('keydown', e => {
       if (e.ctrlKey || e.metaKey) {
         const k = e.key.toLowerCase();
@@ -109,12 +109,12 @@ const RTE = {
       }
     });
 
-    // شروع هر انتخاب جدید در ویرایشگر → marker رنگ نهایی‌نشده‌ی قبلی را پاک‌سازی کن
-    // (وگرنه اگر دیالوگ رنگ بدون تایید بسته شده باشد، رنگ بعدی روی متن قبلی می‌نشیند)
+    // starting any new selection in the editor → finalize a leftover unfinalized color marker
+    // (otherwise, if the color dialog was closed without confirming, the next color lands on the old text)
     this._el.addEventListener('mousedown', () => { if (this._colorMarker) this._finalizeColorTarget(); });
     this._el.addEventListener('keydown',   () => { if (this._colorMarker) this._finalizeColorTarget(); });
 
-    // چسباندن (paste) به‌صورت متن ساده تا کدهای ناخواسته وارد نشوند
+    // paste as plain text so unwanted markup doesn't get pulled in
     this._el.addEventListener('paste', e => {
       e.preventDefault();
       const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -124,7 +124,7 @@ const RTE = {
     this._sync();
   },
 
-  // ── انتخاب‌گر رنگ بومی ساده (با حفظ درست انتخاب متن) ──
+  // ── simple native color picker (with correct text-selection preservation) ──
   _initColorInput() {
     const input  = document.getElementById('rteColor');
     const swatch = document.getElementById('rteColorSwatch');
@@ -134,14 +134,14 @@ const RTE = {
     input.value = this._lastColor;
     if (swatch) swatch.style.background = this._lastColor;
 
-    // درست قبل از باز شدن دیالوگ رنگ: انتخاب متن را در یک span موقت بپیچ
-    // هر دو رویداد پوشش داده می‌شود؛ محافظ ضدتکرار در _markColorTarget است
+    // right before the color dialog opens: wrap the text selection in a temporary span
+    // both events are covered; the anti-duplication guard lives in _markColorTarget
     const startMark = () => { this._saveSelection(); this._markColorTarget(); };
     input.addEventListener('pointerdown', startMark);
     input.addEventListener('mousedown',  startMark);
     input.addEventListener('click',      startMark);
 
-    // حین کشیدن در دیالوگ، رنگ روی همان محدوده علامت‌خورده اعمال می‌شود
+    // while dragging in the dialog, the color is applied to that same marked range
     const apply = () => {
       if (swatch) swatch.style.background = input.value;
       this._lastColor = input.value;
@@ -151,14 +151,14 @@ const RTE = {
     input.addEventListener('input',  apply);
     input.addEventListener('change', () => {
       apply();
-      // span رنگی را تثبیت کن (با کمی تاخیر تا blur تداخل نکند)
+      // finalize the color span (with a slight delay so blur doesn't interfere)
       setTimeout(() => this._finalizeColorTarget(), 0);
     });
   },
 
-  /* محدوده انتخاب‌شده را با یک span نشانه‌گذاری می‌کند تا با تغییر رنگ از بین نرود */
+  /* marks the selected range with a span so it survives the color change */
   _markColorTarget() {
-    // اگر marker از قبل وجود دارد (مثلا رویداد دوبار صدا شد) دوباره نساز
+    // if a marker already exists (e.g. the event fired twice), don't recreate it
     if (this._colorMarker && this._colorMarker.isConnected) return;
     this._colorMarker = null;
 
@@ -185,14 +185,14 @@ const RTE = {
     }
   },
 
-  /* رنگ را روی محتوای span نشانه‌گذاری‌شده اعمال می‌کند (بدون نیاز به انتخاب) */
+  /* applies the color to the marked span's content (no selection required) */
   _colorMarkedTarget(hex) {
     if (this._colorMarker && this._colorMarker.isConnected) {
       this._colorMarker.style.color = hex;
     }
   },
 
-  /* span رنگی را نهایی می‌کند (نشانه موقت را برمی‌دارد، رنگ می‌ماند) */
+  /* finalizes the color span (removes the temporary marker, the color stays) */
   _finalizeColorTarget() {
     const span = this._colorMarker;
     this._colorMarker = null;
@@ -200,7 +200,7 @@ const RTE = {
     if (span.style.color) {
       span.removeAttribute('data-color-marker');
     } else {
-      // رنگی اعمال نشده → span را باز کن
+      // no color was applied → unwrap the span
       const parent = span.parentNode;
       while (span.firstChild) parent.insertBefore(span.firstChild, span);
       parent.removeChild(span);
@@ -209,17 +209,17 @@ const RTE = {
   },
 
   _applyDir(dir) {
-    // جهت را روی بلوک فعلی اعمال کن
+    // apply the direction to the current block
     let node = window.getSelection().anchorNode;
     if (!node) return;
     if (node.nodeType === 3) node = node.parentNode;
-    // نزدیک‌ترین بلوک داخل ویرایشگر
+    // the nearest block inside the editor
     let block = node;
     while (block && block !== this._el && !/^(P|DIV|LI|UL|OL|H[1-6])$/.test(block.tagName)) {
       block = block.parentNode;
     }
     if (!block || block === this._el) {
-      // اگر بلوک مشخصی نبود، کل ویرایشگر را تنظیم کن
+      // if there's no specific block, set the whole editor
       this._el.setAttribute('dir', dir);
       this._el.style.textAlign = dir === 'rtl' ? 'right' : 'left';
     } else {
@@ -232,12 +232,12 @@ const RTE = {
     this._updateActive();
   },
 
-  // ── ذخیره/بازیابی انتخاب متن (برای color picker که فوکوس را می‌برد) ──
+  // ── save/restore text selection (for the color picker, which steals focus) ──
   _saveSelection() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
-    // فقط اگر انتخاب داخل ویرایشگر است ذخیره کن
+    // only save if the selection is inside the editor
     if (this._el && this._el.contains(range.commonAncestorContainer)) {
       this._savedRange = range.cloneRange();
     }
@@ -269,7 +269,7 @@ const RTE = {
 
   plainLength() {
     if (!this._el) return 0;
-    // طول متن قابل‌مشاهده (بدون تگ‌ها)
+    // visible text length (without tags)
     return (this._el.innerText || this._el.textContent || '').trim().length;
   },
 
@@ -281,12 +281,12 @@ const RTE = {
 
   getHTML() {
     if (!this._el) return '';
-    // اگر فقط فضای خالی است، رشته خالی برگردان
+    // if it's only whitespace, return an empty string
     if (this.plainLength() === 0 && !/<(img|br|hr)/i.test(this._el.innerHTML)) return '';
     return RTE.sanitize(this._el.innerHTML);
   },
 
-  // پاک‌سازی HTML (هماهنگ با سمت سرور)
+  // sanitize HTML (kept in sync with the server side)
   sanitize(html) {
     const ALLOWED_TAGS  = ['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','FONT'];
     const ALLOWED_ATTRS = ['style','dir','href','target','rel','color','align'];
@@ -407,7 +407,7 @@ const NM = {
     this._nextCursor   = pg.next_cursor ?? null;
     this._prevCursor    = pg.prev_cursor ?? null;
 
-    // اگر صفحه فعلی خالی شد (مثلا بعد از حذف آخرین آیتم صفحه)، یک صفحه عقب برو
+    // if the current page ended up empty (e.g. after deleting the page's last item), go back a page
     if (!this._notifications.length && this._page > 1) {
       return this.load(this._page - 1);
     }
@@ -415,7 +415,7 @@ const NM = {
     this._render();
   },
 
-  /** پیمایش فلش Prev/Next مجاور با cursor (keyset) — سریع در هر عمقی، برخلاف load(page) که OFFSET دارد */
+  /** adjacent Prev/Next arrow navigation via cursor (keyset) — fast at any depth, unlike load(page) which uses OFFSET */
   async loadCursor(cursor, dir) {
     if (this._loading || !cursor) return;
     this._loading = true;
@@ -438,7 +438,7 @@ const NM = {
     const pg = res.pagination || {};
     this._total       = pg.total       ?? this._notifications.length;
     this._pageCount    = pg.page_count  ?? 1;
-    this._page         = null; // در مسیر cursor شماره‌ی صفحه‌ی دقیق مشخص نیست
+    this._page         = null; // the exact page number is unknown on the cursor path
     this._nextCursor   = pg.next_cursor ?? null;
     this._prevCursor    = pg.prev_cursor ?? null;
 
@@ -475,15 +475,15 @@ const NM = {
     this._renderPagination();
   },
 
-  // ── Pagination (سمت سرور، هیبرید cursor+OFFSET) ────────
-  // فلش Prev/Next مجاور از cursor استفاده می‌کند (سریع در هر عمقی)؛ شماره‌ی
-  // صفحه و «برو به صفحه» از page=N (OFFSET) — طبق تصمیم هیبریدِ پروژه.
+  // ── Pagination (server-side, hybrid cursor+OFFSET) ────────
+  // Adjacent Prev/Next arrows use the cursor (fast at any depth); the page number and
+  // "go to page" use page=N (OFFSET) — per the project's hybrid design decision.
   _renderPagination() {
     const pag  = document.getElementById('notifPagination');
     const info = document.getElementById('notifPageInfo');
     const total     = this._total;
     const pageCount = this._pageCount;
-    const cur       = this._page; // ممکن است بعد از loadCursor() نامعلوم (null) باشد
+    const cur       = this._page; // may be unknown (null) after loadCursor()
     const shown     = this._notifications.length;
 
     if (total === 0) {
@@ -548,7 +548,7 @@ const NM = {
     pag.classList.remove('hidden');
   },
 
-  /** ساخت بازه شماره صفحات با ... وقتی تعداد صفحات زیاد است */
+  /** builds the page-number range with ... when there are many pages */
   _pageRange(cur, count) {
     if (count <= 7) {
       return Array.from({ length: count }, (_, i) => i + 1);
@@ -599,7 +599,7 @@ const NM = {
     this.goToInputValue();
   },
 
-  // ── جستجو (با debounce) ───────────────────────────────
+  // ── search (debounced) ───────────────────────────────
   onSearchInput(value) {
     const wrap = document.querySelector('.notif-search');
     if (wrap) wrap.classList.toggle('has-value', value.trim() !== '');
@@ -622,7 +622,7 @@ const NM = {
     this.load(1);
   },
 
-  // ── جستجوی پیشرفته ─────────────────────────────────────
+  // ── advanced search ─────────────────────────────────────
   toggleAdvanced() {
     const panel = document.getElementById('nmAdvPanel');
     const btn   = document.getElementById('nmAdvToggle');
@@ -664,7 +664,7 @@ const NM = {
     row.className = `notif-row${n.is_expired ? ' is-expired' : ''}`;
     row.dataset.id = n.id;
 
-    // شماره ردیف با احتساب صفحه‌بندی
+    // row number accounting for pagination
     const rowNum = (this._page - 1) * this._perPage + idx + 1;
 
     const pills = [];
@@ -673,7 +673,7 @@ const NM = {
     if (n.is_public)        pills.push(`<span class="pill pill-public">عمومی</span>`);
     if (n.target_all_users) pills.push(`<span class="pill pill-all">همه کاربران</span>`);
     (n.badges || []).forEach(b => pills.push(`<span class="pill pill-badge">${this._esc(b)}</span>`));
-    // تاریخ و ساعت انتشار و انقضا — برچسب‌دار و کنار هم
+    // publish and expiry date/time — labeled and side by side
     const _fmtDT = ms => new Date(ms).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
     pills.push(`<span class="pill pill-created" title="تاریخ و ساعت انتشار">انتشار: ${_fmtDT(n.created_at)}</span>`);
     if (n.expires_at) {
@@ -709,9 +709,9 @@ const NM = {
     return row;
   },
 
-  // ── helpers برای فرمت تاریخ ───────────────────────────
+  // ── date formatting helpers ───────────────────────────
   /**
-   * تبدیل Unix timestamp به تاریخ و ساعت جداگانه (به وقت محلی مرورگر)
+   * converts a Unix timestamp into separate date and time (in the browser's local time)
    */
   _tsToDateAndTime(ts) {
     if (!ts) return { date: '', time: '00:00' };
@@ -723,7 +723,7 @@ const NM = {
     };
   },
 
-  /** نمایش تاریخ خوانا زیر input */
+  /** displays a readable date below the input */
   _showExpiryDisplay(ts) {
     const wrap = document.getElementById('expiryDisplay');
     const txt  = document.getElementById('expiryDisplayText');
@@ -739,12 +739,12 @@ const NM = {
     }
   },
 
-  /** وقتی کاربر تاریخ یا ساعت انقضا را تغییر می‌دهد */
+  /** fires when the user changes the expiry date or time */
   onExpiryInput() {
     const date = document.getElementById('nf-expires-date').value;
     const time = document.getElementById('nf-expires-time').value || '00:00';
     if (date) {
-      // تبدیل به UTC timestamp برای نمایش صحیح
+      // convert to a UTC timestamp for correct display
       const localDt = new Date(`${date}T${time}:00`);
       if (!isNaN(localDt.getTime())) {
         this._showExpiryDisplay(Math.floor(localDt.getTime() / 1000));
@@ -805,7 +805,7 @@ const NM = {
       if (cb) cb.checked = true;
     });
 
-    // ── تنظیم تاریخ و ساعت انقضا ────────────────────────
+    // ── set the expiry date and time ────────────────────────
     if (n.expires_at) {
       const { date, time } = this._tsToDateAndTime(n.expires_at);
       document.getElementById('nf-expires-date').value = date;
@@ -827,7 +827,7 @@ const NM = {
     setTimeout(() => document.getElementById('nf-title').focus(), 100);
   },
 
-  // ── تعداد آیتم در هر صفحه (قابل تنظیم + ماندگار) ─────────
+  // ── items per page (configurable + persisted) ─────────────
   setPerPage(val) {
     const allowed = [10, 20, 50];
     let n = parseInt(val, 10);
@@ -847,19 +847,19 @@ const NM = {
     if (sel) sel.value = String(n);
   },
 
-  // ── ردیابی تغییرات ذخیره‌نشده (مثل فرم کارت‌ها) ──────────
+  // ── unsaved-changes tracking (same pattern as the tool cards form) ──────────
   _markDirty() { this._dirty = true; },
   _initDirty() {
     const modal = document.getElementById('notifFormModal');
     if (!modal) return;
-    // یک شنونده‌ی واحد: هر تغییر کاربر داخل فرم (متن، تاریخ، چک‌باکس،
-    // محتوای ویرایشگر، آپلود) فرم را «تغییر‌یافته» علامت می‌زند.
+    // a single listener: any user change inside the form (text, date, checkbox,
+    // editor content, upload) marks the form as "dirty".
     const mark = () => this._markDirty();
     modal.addEventListener('input',  mark);
     modal.addEventListener('change', mark);
   },
 
-  // ── شمارنده زنده کاراکتر عنوان اعلان (مثل RTE._updateCounter) ──
+  // ── live character counter for the notification title (same pattern as RTE._updateCounter) ──
   _updateTitleCounter() {
     const input = document.getElementById('nf-title');
     const cEl   = document.getElementById('titleCount');
@@ -876,7 +876,7 @@ const NM = {
   },
 
   closeForm(force = false) {
-    // اگر تغییر ذخیره‌نشده وجود دارد، با مودال سفارشی تایید بگیر
+    // if there are unsaved changes, confirm with the custom modal
     if (!force && this._dirty) {
       this._ask({
         title:    this._editId ? 'ویرایش اعلان' : 'افزودن اعلان',
@@ -925,14 +925,14 @@ const NM = {
     document.querySelectorAll('.badge-check-cb').forEach(c => c.disabled = hide);
   },
 
-  // ── آپلود تصویر (تک‌فایل، با نوار پیشرفت زنده) ────────
+  // ── image upload (single file, with a live progress bar) ────────
   handleFileSelect(file) {
     if (!file) return;
     if (!file.type.startsWith('image/')) { Toast.show('فقط فایل‌های تصویری مجاز هستند', 'error'); return; }
     if (file.size > 52_428_800)          { Toast.show('حجم فایل بیشتر از ۵۰ مگابایت است', 'error'); return; }
 
-    // نمایش فوری ردیف فایل + ساخت پیش‌نمایش کوچک خارج از thread اصلی
-    // (تصویر تمام‌اندازه را مستقیم به <img> نمی‌دهیم تا UI با عکس‌های سنگین فریز نشود)
+    // show the file row immediately + build a small preview off the main thread
+    // (we don't feed the full-size image directly to <img>, so heavy photos don't freeze the UI)
     this._showFileItem({ name: file.name });
     this._setPreviewFromFile(file);
     this._setFileState('uploading');
@@ -945,7 +945,7 @@ const NM = {
     this._xhr = xhr;
     xhr.open('POST', 'admin.php?api=upload_notification_image');
     xhr.setRequestHeader('X-CSRF-Token', CSRF_TOKEN);
-    xhr.timeout = 300_000; // ۵ دقیقه برای تصاویر بزرگ
+    xhr.timeout = 300_000; // 5 minutes, for large images
 
     xhr.upload.onprogress = e => {
       if (e.lengthComputable) {
@@ -961,7 +961,7 @@ const NM = {
         this._pendingThumb = data.thumbnail_path || null;
         this._setFileProgress(100, file.size, file.size);
         this._setFileState('done');
-        // پیش‌نمایش را به نسخه نهایی سرور سوییچ کن و objectURL را آزاد کن
+        // switch the preview to the final server version and free the objectURL
         document.getElementById('imgPreview').src = data.thumbnail_path || data.image_path;
         this._revokePreview();
         this._markDirty();
@@ -984,8 +984,8 @@ const NM = {
   },
   _basename(p) { return String(p || '').split('/').pop().split('\\').pop() || 'تصویر'; },
 
-  // ساخت پیش‌نمایش کوچک بدون فریز: createImageBitmap تصویر را خارج از thread
-  // اصلی decode و resize می‌کند، سپس یک بندانگشتی سبک (≈۲۰۰px) روی <img> می‌نشیند.
+  // builds a small preview without freezing: createImageBitmap decodes and resizes the
+  // image off the main thread, then a lightweight thumbnail (~200px) is placed on the <img>.
   async _setPreviewFromFile(file) {
     const img      = document.getElementById('imgPreview');
     const thumbBox = document.getElementById('imgFileThumb');
@@ -1005,9 +1005,9 @@ const NM = {
           thumbBox.classList.add('has-img');
           return;
         }
-      } catch (e) { /* افتادن به مسیر جایگزین */ }
+      } catch (e) { /* fall through to the fallback path */ }
     }
-    // جایگزین (مرورگر قدیمی): object URL مستقیم + decode غیرهمزمان
+    // fallback (older browsers): a direct object URL + async decode
     this._previewURL = URL.createObjectURL(file);
     img.src = this._previewURL;
     thumbBox.classList.add('has-img');
@@ -1040,7 +1040,7 @@ const NM = {
     item.classList.remove('is-uploading', 'is-done', 'is-error');
     item.classList.add('is-' + state);
     if (state === 'done') {
-      // در حالت کامل فقط حجم نهایی را نشان بده (نه «خوانده/کل»)
+      // once done, show only the final size (not "loaded/total")
       const sub = document.getElementById('imgFileSize');
       if (sub.textContent.includes('/')) sub.textContent = sub.textContent.split('/').pop().trim();
     }
@@ -1090,7 +1090,7 @@ const NM = {
     const allUsers    = allUsersChk ? '1' : '0';
     const badges      = [...document.querySelectorAll('.badge-check-cb:checked')].map(c => c.value);
 
-    // ترکیب date+time و تبدیل به UTC برای ذخیره صحیح صرف‌نظر از timezone سرور
+    // combine date+time and convert to UTC for correct storage regardless of server timezone
     const expiresDate = document.getElementById('nf-expires-date').value;
     const expiresTime = document.getElementById('nf-expires-time').value || '00:00';
     let expires = '';
@@ -1098,7 +1098,7 @@ const NM = {
     if (expiresDate) {
       expiresLocalDt = new Date(`${expiresDate}T${expiresTime}:00`);
       if (!isNaN(expiresLocalDt.getTime())) {
-        expires = expiresLocalDt.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM" در UTC
+        expires = expiresLocalDt.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM" in UTC
       }
     }
 
@@ -1155,7 +1155,7 @@ const NM = {
     }
   },
 
-  // ── Confirm dialog (عمومی: حذف / بستن فرم) ─────────────
+  // ── Confirm dialog (generic: delete / close form) ─────────────
   _askCb: null,
   _defaultConfirmIcon:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
@@ -1215,7 +1215,7 @@ const NM = {
   _openModal(id)  { document.getElementById(id).classList.add('open');    document.body.style.overflow = 'hidden'; },
   _closeModal(id) {
     document.getElementById(id).classList.remove('open');
-    // اگر مودال دیگری هنوز باز است (تایید روی فرم)، قفل اسکرول را نگه دار
+    // if another modal is still open (a confirm on top of the form), keep the scroll lock
     if (!document.querySelector('.modal-overlay.open')) document.body.style.overflow = '';
   },
   _esc(str)     { return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); },
@@ -1228,7 +1228,7 @@ const NM = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// اکشن‌ها (جایگزین on* برای CSP) — دیسپچرِ actions.js صدا می‌زند.
+// actions (replaces on* for CSP) — called by the actions.js dispatcher.
 // ═══════════════════════════════════════════════════════════
 if (window.Actions) {
   Actions.register({
@@ -1279,14 +1279,14 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   const open = document.querySelectorAll('.modal-overlay.open');
   if (!open.length) return;
-  const top = open[open.length - 1];   // آخرین = بالاترین
+  const top = open[open.length - 1];   // last = topmost
   if (top.id === 'notifConfirmModal')   NM.cancelConfirm();
   else if (top.id === 'notifFormModal') NM.closeForm();
 });
 
-// ── CustomSelect: ارتقای <select>های بومی به dropdown هماهنگ با تم ──
-// این صفحه admin.js را بارگذاری نمی‌کند، پس همان enhancer هم‌کلاس را اینجا داریم
-// تا dropdownهایش با بقیه پنل (settings/users) یکسان شوند (radius/آیتم/هاور/انتخاب).
+// ── CustomSelect: upgrades native <select>s into theme-matching dropdowns ──
+// This page doesn't load admin.js, so the same enhancer class is duplicated here
+// so its dropdowns match the rest of the panel (settings/users) — radius/spacing/hover/selection.
 const CSelect = {
   enhanceAll(root = document) { root.querySelectorAll('select:not([data-cs])').forEach(sel => this.enhance(sel)); },
   enhance(sel) {
@@ -1340,7 +1340,7 @@ document.addEventListener('click', () => document.querySelectorAll('.cselect.ope
 
 document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(); NM._initTitleCounter(); NM._initPerPage(); CSelect.enhanceAll(); NM.load(); });
 
-// ── افکت ripple (موج کلیک) — این صفحه admin.js را لود نمی‌کند پس هندلر اینجا تکرار می‌شود ──
+// ── ripple (click wave) effect — this page doesn't load admin.js, so the handler is duplicated here ──
 (function () {
   const SEL = '.btn, .hdr-btn, .btn-icon, .notif-row, .nm-adv-toggle,'
     + ' .cselect-option, .pg-btn, .nm-pag-btn, .pagination-btn, .pagination-goto-spin,'
@@ -1358,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(
     btn.appendChild(r);
     r.addEventListener('animationend', () => r.remove());
   });
-  // ناوبری لینک‌های هدر را ~160ms نگه می‌داریم تا ریپل دیده شود (prerender فوری است)
+  // delay header link navigation by ~160ms so the ripple is visible (prerender is instant)
   document.addEventListener('click', function (e) {
     const a = e.target.closest(SEL);
     if (!a || a.tagName !== 'A') return;
@@ -1370,15 +1370,15 @@ document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(
   });
 })();
 
-// هدر چسبان هنگام اسکرول (مشترک با theme.js): .is-stuck با اسکرول به پایین
+// sticky header on scroll (shared with theme.js): .is-stuck toggles on scrolling down
 (function () {
   const header = document.querySelector('.app-header');
   if (!header) return;
   let ticking = false;
   function update() {
     const y = window.scrollY;
-    // آستانه‌ی دوگانه (hysteresis) تا با نوسان چند پیکسلی اسکرول (مثلا اثر
-    // خودِ تغییر padding-top روی is-stuck) کلاس پشت‌هم toggle نشود و هدر نلرزد.
+    // dual threshold (hysteresis) so a few pixels of scroll jitter (e.g. the padding-top
+    // change from is-stuck itself) doesn't repeatedly toggle the class and make the header shake.
     if (y > 24) header.classList.add('is-stuck');
     else if (y < 8) header.classList.remove('is-stuck');
     ticking = false;

@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/version.php';
-// Bootstrap مشترک: autoload + config + DB + session (نشست دیتابیسی نیازمند اتصال DB است)
+// Shared bootstrap: autoload + config + DB + session (DB-backed session needs a DB connection)
 $config = require __DIR__ . '/bootstrap.php';
 
-// وضعیت ورود را سمت سرور می‌خوانیم تا هدر بدون «پرش به حالت مهمان» رندر شود
+// Read login state server-side so the header renders without a "flash to guest state"
 $isLoggedIn  = UserSession::check();
 $displayName = $isLoggedIn ? UserSession::displayName() : '';
 $username    = $isLoggedIn ? (string) ($_SESSION['username'] ?? '') : '';
@@ -11,8 +11,8 @@ $email       = $isLoggedIn ? (string) ($_SESSION['email'] ?? '') : '';
 $isAdmin     = $isLoggedIn && UserSession::isAdmin();
 $menuName    = $displayName !== '' ? $displayName : $username;
 
-// توکن CSRF برای هر کاربرِ لاگین‌شده — لازم برای درخواست‌های حالت‌تغییردهنده‌ی
-// api.php (logout / mark_read / mark_all_read) و نیز مدیریت اینلاینِ ادمین.
+// CSRF token for every logged-in user — needed for state-changing requests to
+// api.php (logout / mark_read / mark_all_read) as well as inline admin management.
 $csrfToken = UserSession::check() ? UserSession::ensureCsrfToken() : '';
 
 $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
@@ -43,7 +43,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   <script src="/assets/js/theme.js?v=<?= $v_theme ?>" defer></script>
   <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
   <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
-  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
@@ -67,14 +67,13 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
       <h1 class="app-header__title">داشبورد مجموعه ابزارهای کمکی</h1>
       <div class="header-actions">
 
-        <!-- دکمه جستجو (همیشه آیکون) — با کلیک نوار جستجوی تمام‌عرض باز می‌شود -->
+        <!-- Search button (always an icon) — clicking opens the full-width search bar -->
         <button type="button" class="hdr-btn" id="searchToggle" title="جستجو" aria-label="جستجوی ابزار" aria-controls="toolsGrid">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
           </svg>
         </button>
 
-        <!-- دکمه تم -->
         <button
           class="theme-toggle"
           id="themeToggle"
@@ -98,7 +97,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
           </span>
         </button>
 
-        <!-- ── زنگ اعلان‌ها ── -->
+        <!-- ── Notification bell ── -->
         <div id="notifBellWrap">
 
           <button
@@ -116,7 +115,6 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
             <span class="notif-bell-badge" id="notifBellBadge" aria-live="polite" aria-atomic="true"></span>
           </button>
 
-          <!-- dropdown -->
           <div
             class="notif-dropdown"
             id="notifDropdown"
@@ -134,7 +132,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
               </span>
             </div>
 
-            <!-- آیتم‌ها توسط JS ساخته می‌شوند -->
+            <!-- Items are built by JS -->
             <div class="notif-drop-body" id="notifDropdownBody" role="list">
               <div class="sk-list-item" aria-hidden="true">
                 <div class="sk sk-list-icon"></div>
@@ -152,7 +150,6 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
             <div class="notif-drop-footer">
 
-              <!-- صفحه‌بندی -->
               <div id="notifPagination" class="notif-drop-pagination" style="display:none;" aria-label="صفحه‌بندی اعلان‌ها">
                 <button class="notif-pag-arrow" id="notifPrevBtn" aria-label="صفحه قبل" disabled>
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -167,7 +164,6 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
                 </button>
               </div>
 
-              <!-- مشاهده همه -->
               <a href="/notifications" class="notif-drop-view-all">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                   <path d="M9 18l6-6-6-6"/>
@@ -179,9 +175,9 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
           </div>
         </div>
-        <!-- /زنگ اعلان‌ها -->
+        <!-- /Notification bell -->
 
-        <!-- ناحیه auth — وضعیت اولیه سمت سرور رندر می‌شود (بدون پرش هنگام رفرش) -->
+        <!-- Auth area — initial state is rendered server-side (no flash on refresh) -->
         <div class="auth-area">
 
           <a class="auth-btn" id="authBtn" href="/login" aria-label="ورود به حساب کاربری"<?= $isLoggedIn ? ' style="display:none;"' : '' ?>>
@@ -257,7 +253,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
       </div>
 
-      <!-- نوار جستجوی تمام‌عرض (سبک تلگرام) — با #searchToggle باز/بسته می‌شود -->
+      <!-- Full-width search bar (Telegram-style) — opened/closed via #searchToggle -->
       <div class="header-search" id="headerSearch" role="search">
         <svg class="header-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
@@ -330,9 +326,9 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   </main>
 
   <!-- ══════════════════════════════════════════════════════
-       مودال جزئیات اعلان
-       برای همه کاربران (مهمان و لاگین‌شده) قابل نمایش است
-       محتوا توسط NotifDetail.open(n) در script.js پر می‌شود
+       Notification detail modal
+       Visible to all users (guest and logged-in)
+       Content is filled by NotifDetail.open(n) in script.js
        ══════════════════════════════════════════════════════ -->
   <div
     class="notif-detail-overlay"
@@ -343,7 +339,6 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
     <div class="notif-detail-box">
 
-      <!-- هدر -->
       <div class="notif-detail-head">
         <h2 class="notif-detail-head-title" id="ndTitle"></h2>
         <button
@@ -357,24 +352,20 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
         </button>
       </div>
 
-      <!-- بدنه -->
       <div class="notif-detail-body">
 
-        <!-- تصویر — JS نمایش/مخفی می‌کند -->
+        <!-- Image — shown/hidden by JS -->
         <div class="notif-detail-img-wrap" id="ndImageWrap" style="display:none;">
           <img id="ndImage" class="js-lightbox" src="" alt="" loading="lazy">
         </div>
 
-        <!-- محتوا -->
         <div class="notif-detail-content">
 
-          <!-- متن اعلان -->
           <div
             class="notif-detail-body-text"
             id="ndBody"
             style="display:none;"></div>
 
-          <!-- متادیتا -->
           <div class="notif-detail-meta">
 
             <div class="notif-detail-meta-row">
@@ -400,14 +391,13 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
         </div>
       </div>
 
-      <!-- فوتر -->
       <div class="notif-detail-foot">
         <button
           class="notif-detail-close-btn"
           data-act="notifDetailClose">
           بستن
         </button>
-        <!-- لینک تاریخچه — فقط برای کاربران لاگین‌شده نمایش داده می‌شود -->
+        <!-- History link — shown only to logged-in users -->
         <a
           href="/notifications"
           class="notif-detail-view-all"
@@ -423,14 +413,14 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
     </div>
   </div>
-  <!-- /مودال جزئیات اعلان -->
+  <!-- /Notification detail modal -->
 
   <footer class="app-footer">
     <span class="app-version" dir="ltr"><?= htmlspecialchars(app_version_label()) ?></span>
   </footer>
 
 <?php if ($isAdmin): ?>
-  <!-- ══ مودال افزودن/ویرایش ابزار (فقط ادمین) ══ -->
+  <!-- ══ Add/edit tool modal (admin only) ══ -->
   <div class="tm-overlay" id="toolModal" aria-hidden="true">
     <div class="tm-dialog" role="dialog" aria-modal="true" aria-labelledby="tmHeadTitle">
       <div class="tm-head">
@@ -529,7 +519,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
     </div>
   </div>
 
-  <!-- ══ مودال تایید حذف (فقط ادمین) ══ -->
+  <!-- ══ Delete confirmation modal (admin only) ══ -->
   <div class="tm-overlay tm-confirm" id="toolConfirm" aria-hidden="true">
     <div class="tm-dialog tm-dialog-sm" role="dialog" aria-modal="true" aria-labelledby="tmConfirmTitle">
       <div class="tm-head">
@@ -562,7 +552,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
     </div>
   </div>
 
-  <!-- ══ مودال تایید تغییرات ذخیره‌نشده ══ -->
+  <!-- ══ Unsaved changes confirmation modal ══ -->
   <div class="tm-overlay" id="toolUnsaved" aria-hidden="true">
     <div class="tm-dialog tm-dialog-sm" role="dialog" aria-modal="true">
       <div class="tm-head">
@@ -591,7 +581,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   </div>
 <?php endif; ?>
 
-  <!-- ظرف Toast داشبورد (خطاهای ذخیره/حذف ابزار و…) -->
+  <!-- Dashboard toast container (save/delete tool errors, etc.) -->
   <div class="toast-wrap" id="toastWrap" aria-live="assertive"></div>
 
   <script src="/assets/js/lightbox.js?v=<?= $v_lb ?>" defer></script>

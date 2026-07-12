@@ -2,16 +2,16 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// AuthController — احراز هویت (عمومی، بدون CSRF — مسیر api.php)
+// AuthController — authentication (public, no CSRF — api.php route)
 //   login / forgot_password / verify_reset_code / reset_password / change_password
-// کاربران فقط توسط ادمین ساخته می‌شوند؛ ثبت‌نام عمومی وجود ندارد (ورود با
-// نام‌کاربری). بازیابی رمز عبور self-service با کد OTP ایمیلی امکان‌پذیر است.
+// Users are only created by an admin; there's no public sign-up (login is by
+// username). Self-service password recovery via emailed OTP code is available.
 // ═══════════════════════════════════════════════════════════
 
 class AuthController
 {
-    // هشِ ساختگیِ ثابت (bcrypt معتبر) برای یکنواخت‌سازیِ زمانِ password_verify
-    // وقتی نام‌کاربری وجود ندارد. رمزِ واقعیِ متناظری ندارد.
+    // Fixed dummy hash (valid bcrypt) to equalize password_verify's timing
+    // when the username doesn't exist. Has no corresponding real password.
     private const DUMMY_HASH = '$2y$12$1A99m6tDXImsUdH2uSUnEOaFiQv3EnhFEAlrx1FaqIe9XGMqDNnvK';
 
     // ── login ────────────────────────────────────────────────
@@ -23,7 +23,7 @@ class AuthController
             return;
         }
 
-        // لایه‌ی اول: محدودیت مبتنی بر IP (حمله از یک منبع).
+        // First layer: IP-based rate limiting (attack from a single source).
         $limiter = new RateLimiter('user');
 
         if ($limiter->isBanned()) {
@@ -45,31 +45,31 @@ class AuthController
             return;
         }
 
-        // ورود فقط با نام‌کاربری
+        // Login by username only
         $row = DB::run(
             'SELECT * FROM users WHERE username = :username AND is_active = 1',
             [':username' => $identity]
         )->fetch();
 
-        // زمان‌ثابت: اگر کاربر یافت نشد، password_verify روی یک هشِ ساختگی اجرا می‌شود
-        // تا اختلافِ زمانِ پاسخ، وجود/عدم‌وجودِ نام‌کاربری را لو ندهد (ضدِ enumeration).
+        // Constant-time: if the user isn't found, password_verify still runs against a dummy hash
+        // so the response-time difference doesn't leak whether the username exists (anti-enumeration).
         $hash    = ($row && isset($row['password_hash'])) ? $row['password_hash'] : self::DUMMY_HASH;
         $isValid = password_verify($password, $hash);
 
         if ($row && $isValid) {
-            // ارتقای تدریجی هش‌های قدیمی به cost فعلی (۱۲) هنگام ورود موفق.
-            // بدون این، کاربرانِ قدیمی cost=10 می‌مانند و اختلافِ زمانی با DUMMY_HASH
-            // (cost=12) کانالِ enumeration باز می‌گذارد. اینجا زمانی که رمزِ خام در
-            // دست است، هش با cost جدید بازنویسی می‌شود.
+            // Gradually upgrade old hashes to the current cost (12) on successful login.
+            // Without this, old users would stay at cost=10 and the timing difference vs
+            // DUMMY_HASH (cost=12) would leave an enumeration channel open. Here, while
+            // we still have the raw password, the hash is rewritten with the new cost.
             if (password_needs_rehash($row['password_hash'], PASSWORD_BCRYPT, ['cost' => UserModel::BCRYPT_COST])) {
                 (new UserModel())->changePassword((int) $row['id'], $password);
             }
-            // پاکسازی سشن‌های قبلی همین کاربر از همین مرورگر (بدون قیدِ IP).
-            // چرا بدون IP؟ روی موبایل/شبکه‌های پویا IP کاربر مکررا عوض می‌شود؛
-            // اگر IP در کلید باشد، ورود مجددِ همان مرورگر با IP جدید، نشستِ قبلی
-            // را پاک نمی‌کند و آن نشست تا پایان TTL به‌صورت «روح» زنده می‌ماند.
-            // کلیدِ user_id + user_agent همان مرورگر را دقیق شناسایی می‌کند و
-            // نشستِ قبلی‌اش را جایگزین می‌کند (به‌جای انباشتِ نشست‌های تکراری).
+            // Clean up this user's previous sessions from this same browser (no IP constraint).
+            // Why no IP? On mobile/dynamic networks the user's IP changes frequently;
+            // if IP were part of the key, logging in again from the same browser with a new IP
+            // wouldn't clear the previous session, and that session would live on as a "ghost"
+            // until its TTL expires. The user_id + user_agent key precisely identifies the
+            // same browser and replaces its previous session (instead of piling up duplicates).
             $uid = (int) $row['id'];
             $ua  = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
             try {
@@ -87,7 +87,7 @@ class AuthController
             $_SESSION['email']        = $row['email'] ?? '';
             $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
             $_SESSION['login_time']   = time();
-            // توکن CSRF در همین سشن واحد ساخته می‌شود (پنل ادمین از همین می‌خواند)
+            // CSRF token is generated in this single session (the admin panel reads it from here)
             UserSession::ensureCsrfToken();
             $limiter->reset();
 
@@ -103,7 +103,7 @@ class AuthController
     }
 
     // ── forgot_password ──────────────────────────────────────
-    // ارسال کد OTP بازیابی به ایمیل یک کاربر فعال (پاسخ یکنواخت ضد افشای وجود ایمیل).
+    // Send a recovery OTP code to an active user's email (uniform response, anti email-existence disclosure).
     public function forgotPassword(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -126,11 +126,12 @@ class AuthController
             'resend_cooldown' => $base,
         ];
 
-        // محدودیت سمت‌سرور (مقاوم در برابر ریلود/بازکردن دوباره صفحه) — مستقل از وجود
-        // کاربر اعمال می‌شود تا هم بازکردن دوباره صفحه دور زده نشود و هم وجود/عدم ایمیل لو نرود.
+        // Server-side throttle (resistant to reload/reopening the page) — applied independently
+        // of the user's existence so it can't be bypassed by reopening the page, and so email
+        // existence isn't leaked either.
         $retry = ResendThrottle::retryAfter('reset', $email, $base);
         if ($retry > 0) {
-            $resp['retry_after'] = $retry;          // کلاینت شمارش معکوس را با همین مقدار نشان می‌دهد؛ ایمیلی ارسال نمی‌شود
+            $resp['retry_after'] = $retry;          // Client shows the countdown using this value; no email is sent
             echo json_encode($resp, JSON_UNESCAPED_UNICODE);
             return;
         }
@@ -143,15 +144,15 @@ class AuthController
             $userModel->setResetCode((int) $user['id'], $codeHash, time() + SettingsModel::getInt('code_ttl', 60, 86400, 600));
             $mail = Mailer::sendCode($email, $code, 'reset');
             if (!$mail['ok'] && Mailer::devCodeAllowed()) {
-                $resp['dev_code'] = $code; // فقط وقتی ارسال واقعی ناموفق بوده و محیط محلی است
+                $resp['dev_code'] = $code; // only when the real send failed and it's a local environment
             }
         }
-        ResendThrottle::record('reset', $email); // برای همه ایمیل‌ها (یکنواخت، ضد افشای وجود کاربر)
+        ResendThrottle::record('reset', $email); // for every email (uniform, anti user-existence disclosure)
         echo json_encode($resp, JSON_UNESCAPED_UNICODE);
     }
 
     // ── verify_reset_code ────────────────────────────────────
-    // مرحله میانی فراموشی رمز: فقط درستی کد را می‌سنجد (بدون مصرف/پاک‌کردن کد).
+    // Intermediate step of password recovery: only checks the code's validity (doesn't consume/clear it).
     public function verifyResetCode(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -186,12 +187,12 @@ class AuthController
             echo json_encode(['ok' => false, 'field' => 'code', 'msg' => 'کد بازیابی نادرست است'], JSON_UNESCAPED_UNICODE);
             return;
         }
-        // کد درست است — مصرف نمی‌شود؛ کاربر به مرحله «رمز جدید» می‌رود.
+        // Code is correct — it isn't consumed; the user moves to the "new password" step.
         echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
     }
 
     // ── reset_password ───────────────────────────────────────
-    // تایید کد بازیابی + تنظیم رمز جدید + ورود خودکار (هم‌راستا با session-setting فعلی login())
+    // Verify recovery code + set new password + auto-login (aligned with login()'s current session-setting)
     public function resetPassword(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -238,7 +239,7 @@ class AuthController
             return;
         }
 
-        // موفق → تنظیم رمز جدید، پاک‌سازی کد، و ورود خودکار (عینِ بلوکِ session-setting در login())
+        // Success → set new password, clear the code, and auto-login (same as the session-setting block in login())
         $userModel->changePassword((int) $user['id'], $password);
         $userModel->clearResetCode((int) $user['id']);
 
@@ -323,8 +324,8 @@ class AuthController
     }
 
     // ── update_my_name ───────────────────────────────────────
-    // خودِ کاربرِ لاگین‌شده نام/نام‌خانوادگی خودش را ویرایش می‌کند
-    // (username/phone/email/role از این مسیر قابل تغییر نیستند).
+    // The logged-in user edits their own first/last name
+    // (username/phone/email/role cannot be changed via this route).
     public function updateMyName(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

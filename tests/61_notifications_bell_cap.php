@@ -7,7 +7,7 @@ $ACC  = $cfg['test']['accounts'];
 
 Assert::group('61_notifications_bell_cap');
 
-// ۱۲۰ اعلان عمومی مصنوعی (بیشتر از BELL_CAP=100) با ترکیب خوانده/ناخوانده برای زد_تست_یوزر
+// 120 synthetic public notifications (more than BELL_CAP=100) with a read/unread mix for the test user
 $passU = $ACC['user']['password'];
 $uid   = (int) DB::run('SELECT id FROM users WHERE username=:u', [':u' => $ACC['user']['username']])->fetchColumn();
 
@@ -17,10 +17,10 @@ for ($i = 0; $i < 120; $i++) {
     $id = Fixtures::createNotification([
         'title' => Fixtures::uniq('bell' . $i),
         'is_public' => 1, 'target_all_users' => 1,
-        'created_at' => date('Y-m-d H:i:s', $now - $i), // نزولی، جدیدترین اول
+        'created_at' => date('Y-m-d H:i:s', $now - $i), // descending, newest first
     ]);
     $ids[] = $id;
-    // نیمی از آن‌ها را از قبل خوانده‌شده علامت بزن
+    // mark half of them as already read
     if ($i % 2 === 0) {
         DB::run('INSERT INTO notification_reads (user_id, notification_id, read_at) VALUES (:u,:n,NOW())', [':u' => $uid, ':n' => $id]);
     }
@@ -47,18 +47,18 @@ Assert::test('فید زنگوله کاربر لاگین‌شده هرگز بیش
         if (($it['is_read'] ?? false) === true) {
             $seenRead = true;
         } elseif ($seenRead) {
-            $orderOk = false; // یک ناخوانده بعد از یک خوانده دیده شد → ترتیب غلط
+            $orderOk = false; // an unread item was seen after a read one → wrong order
         }
     }
     Assert::true($orderOk, 'همه‌ی آیتم‌های ناخوانده باید قبل از خوانده‌ها بیایند');
 });
 
-// حذف اعلان‌ها به‌صورت خودکار ردیف‌های notification_reads وابسته را هم پاک می‌کند (ON DELETE CASCADE)
+// deleting notifications automatically clears the dependent notification_reads rows too (ON DELETE CASCADE)
 foreach ($ids as $id) DB::run('DELETE FROM notifications WHERE id=:id', [':id' => $id]);
 Fixtures::deleteNotificationsByPrefix();
 
 Assert::test('فید زنگوله: منقضی+خوانده حذف می‌شود، منقضی+ناخوانده و فعال+خوانده باقی می‌مانند', function () use ($BASE, $ACC, $uid) {
-    $past = time() - 3600; // منقضی
+    $past = time() - 3600; // expired
 
     $expiredRead   = Fixtures::createNotification(['title' => Fixtures::uniq('exp_read'), 'is_public' => 1, 'target_all_users' => 1, 'expires_at' => $past]);
     $expiredUnread = Fixtures::createNotification(['title' => Fixtures::uniq('exp_unread'), 'is_public' => 1, 'target_all_users' => 1, 'expires_at' => $past]);

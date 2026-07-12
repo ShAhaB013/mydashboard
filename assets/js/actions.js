@@ -1,22 +1,23 @@
 'use strict';
 // ═══════════════════════════════════════════════════════════
-// actions.js — دیسپچرِ سراسریِ event-delegation
+// actions.js — global event-delegation dispatcher
 // ───────────────────────────────────────────────────────────
-// جایگزینِ هندلرهای inline (onclick/onchange/oninput) تا CSP بتواند
-// script-src را بدون 'unsafe-inline' اجرا کند. عناصر به‌جای on* از
-// data-attribute استفاده می‌کنند و منطق در یک رجیستریِ مرکزی ثبت می‌شود.
+// Replaces inline handlers (onclick/onchange/oninput) so CSP can enforce
+// script-src without 'unsafe-inline'. Elements use data-attributes instead
+// of on*, and the logic is registered in one central registry.
 //
-// نگاشتِ رویداد → attribute (جدا برای هر نوع تا کلیک روی چک‌باکس با
-// رویدادِ change دوباره شلیک نشود):
+// Event → attribute mapping (kept separate per type so a click on a
+// checkbox doesn't also fire again for the change event):
 //   click   → data-act
 //   change  → data-change
 //   input   → data-input
 //   submit  → data-submit
-//   keydown → data-keydown (هندلر خودش باید e.key را چک کند)
+//   keydown → data-keydown (the handler itself must check e.key)
 //
-// هر عنصر یک اکشن دارد؛ دیسپچر نزدیک‌ترین [data-*] را می‌یابد و هندلرِ
-// ثبت‌شده را با (el, event) صدا می‌زند. چون شنونده روی document است،
-// عناصرِ تولیدشده‌ی داینامیک هم بدونِ سیم‌کشیِ جداگانه پوشش می‌گیرند.
+// Each element has one action; the dispatcher finds the closest [data-*]
+// and calls the registered handler with (el, event). Since the listener is
+// on document, dynamically generated elements are covered without needing
+// separate wiring.
 // ═══════════════════════════════════════════════════════════
 window.Actions = (function () {
   const reg = {};
@@ -34,7 +35,7 @@ window.Actions = (function () {
   });
 
   return {
-    // ثبتِ گروهی اکشن‌ها: Actions.register({ name: (el, e) => {...} })
+    // Batch-registers actions: Actions.register({ name: (el, e) => {...} })
     register: function (map) { Object.assign(reg, map); return this; },
   };
 })();

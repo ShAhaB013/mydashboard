@@ -2,26 +2,26 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// NotificationController — هندل کردن API اعلان‌ها
+// NotificationController — handles the notifications API
 // ═══════════════════════════════════════════════════════════
 
 class NotificationController
 {
     private const MAX_BYTES       = 52_428_800; // 50 MB
-    private const MAX_BODY_CHARS  = 20_000;      // سقف کاراکتر متن اعلان (بدون احتساب تگ‌ها)
+    private const MAX_BODY_CHARS  = 20_000;      // cap on notification body character count (tags not counted)
     private const UPLOAD_DIR_NAME = 'uploads/notifications';
-    // توجه امنیتی: image/svg+xml عمداً حذف شده است. SVG یک سند اجراپذیر
-    // (XML + <script>/onload) است و توسط GD پردازش نمی‌شود، پس خام ذخیره و
-    // با Content-Type: image/svg+xml سرو می‌شد؛ باز کردن مستقیم URL آن =
-    // Stored XSS در مبدأ سایت. حذف از لیست مجاز، این سطح حمله را می‌بندد.
+    // Security note: image/svg+xml is deliberately excluded. SVG is an executable
+    // document (XML + <script>/onload) and isn't processed by GD, so it would be stored
+    // raw and served with Content-Type: image/svg+xml; opening its URL directly =
+    // stored XSS on the site's own origin. Removing it from the allowlist closes this attack surface.
     private const ALLOWED_MIMES   = [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp',
         'image/avif', 'image/bmp',
         'image/tiff', 'image/x-icon', 'image/heic', 'image/heif',
     ];
 
-    // نگاشتِ MIME → پسوند: منبع یگانه‌ی حقیقت برای پسوند فایلِ ذخیره‌شده.
-    // نامِ فایلِ کاربر هیچ‌گاه در تعیین پسوند دخالت نمی‌کند (جلوگیری از .phtml/.php).
+    // MIME → extension map: the single source of truth for the stored file's extension.
+    // The user's filename never influences the extension (prevents .phtml/.php tricks).
     private const MIME_EXT_MAP    = [
         'image/jpeg'   => 'jpg',  'image/png'  => 'png',
         'image/gif'    => 'gif',  'image/webp' => 'webp',
@@ -47,10 +47,10 @@ class NotificationController
     // ── Admin CRUD ──────────────────────────────────────────
 
     /**
-     * لیست ادمین. دو مسیر ورودی موازی:
-     *   - page=N (OFFSET سنتی) → برای کلیک روی شماره‌ی صفحه یا «برو به صفحه»
-     *   - cursor=...&dir=next|prev (keyset) → برای فلش Prev/Next مجاور، سریع در هر عمقی
-     * پاسخ همیشه هر دو نوع متادیتا را برمی‌گرداند تا UI از هرکدام لازم بود استفاده کند.
+     * Admin list. Two parallel input paths:
+     *   - page=N (traditional OFFSET) → for clicking a page number or "go to page"
+     *   - cursor=...&dir=next|prev (keyset) → for the adjacent Prev/Next arrows, fast at any depth
+     * The response always returns both kinds of metadata so the UI can use whichever it needs.
      */
     public function list(): void
     {
@@ -76,10 +76,10 @@ class NotificationController
         if ($rawCursor !== '') {
             $cursor = Cursor::decode($rawCursor);
             $rows   = $this->model->allForAdminKeyset($cursor, $dir, $perPage, $search, $filters);
-            // allForAdminKeyset تا perPage+1 ردیف برمی‌گرداند (کپِ has_more داخلی که دیگر
-            // اینجا لازم نیست چون has_next/has_prev با peek جداگانه محاسبه می‌شود). ردیف
-            // اضافه در dir=next انتهای آرایه است؛ در dir=prev (که برگردانده‌شده نمایش داده
-            // می‌شود) ابتدای آرایه است — پس برش جهت‌دار لازم است.
+            // allForAdminKeyset returns up to perPage+1 rows (an internal has_more hint that's
+            // no longer needed here since has_next/has_prev are computed with a separate peek).
+            // The extra row is at the end of the array for dir=next; for dir=prev (which gets
+            // reversed for display) it's at the start — so a direction-aware slice is needed.
             $rows = $dir === 'prev' ? array_slice($rows, -$perPage) : array_slice($rows, 0, $perPage);
             $page = null;
         } else {
@@ -87,7 +87,7 @@ class NotificationController
             $rows = $this->model->allForAdminPaginated($page, $perPage, $search, $filters);
         }
 
-        // دریافت همه badgeها در یک کوئری به‌جای N کوئری جداگانه
+        // Fetch all badges in one query instead of N separate queries
         $ids       = array_map(static fn($r) => (int) $r['id'], $rows);
         $badgesMap = $this->model->getBadgesForIds($ids);
 
@@ -97,9 +97,10 @@ class NotificationController
             $result[] = NotificationModel::toFrontend($row, $badgesMap[$id] ?? []);
         }
 
-        // has_next/has_prev با یک «نگاه» سبک (LIMIT 1) در هر جهت از لبه‌های صفحه‌ی
-        // فعلی — واضح‌تر و کم‌خطرتر از استنتاج از نتیجه‌ی کوئری اصلی است؛ این
-        // endpoint فقط ادمین/کم‌تکرار است، پس هزینه‌ی دو کوئری کوچک اضافه ناچیز است.
+        // has_next/has_prev are computed with a lightweight "peek" (LIMIT 1) in each direction
+        // from the edges of the current page — clearer and lower-risk than inferring it from
+        // the main query's result; this endpoint is admin-only/low-frequency, so the cost of
+        // two extra small queries is negligible.
         $nextCursor = $prevCursor = null;
         if (!empty($rows)) {
             $first = $rows[0];
@@ -197,9 +198,9 @@ class NotificationController
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             Response::error('Method Not Allowed'); return;
         }
-        // اگر حجم کل درخواست از post_max_size سرور بیشتر باشد، PHP کل $_POST و $_FILES را
-        // خالی می‌کند. این حالت را جدا تشخیص بده تا به‌جای پیام گمراه‌کننده «فایلی انتخاب نشده»،
-        // علت واقعی (محدودیت حجم سرور) را نشان دهیم.
+        // If the total request size exceeds the server's post_max_size, PHP empties both
+        // $_POST and $_FILES entirely. Detect this case separately so we show the real cause
+        // (server size limit) instead of the misleading "no file selected" message.
         $contentLen = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
         if ($contentLen > 0 && empty($_FILES) && empty($_POST)) {
             $postMax = $this->iniBytes((string) ini_get('post_max_size'));
@@ -239,18 +240,18 @@ class NotificationController
             Response::error('خطا در ذخیره‌سازی فایل'); return;
         }
 
-        // ── بهینه‌سازی و تولید thumbnail ────────────────────
+        // ── optimization and thumbnail generation ────────────────────
         $processed = ImageProcessor::process($dest, $this->uploadDir, $this->uploadUrl);
 
         if ($processed['full'] !== null) {
-            // پردازش موفق — فایل اصلی حذف، نسخه‌های WebP جایگزین می‌شوند
+            // Processing succeeded — original file removed, replaced by WebP versions
             @unlink($dest);
             Response::ok([
                 'image_path'     => $processed['full'],
                 'thumbnail_path' => $processed['thumb'],
             ]);
         } else {
-            // GD در دسترس نیست یا فرمت پشتیبانی نمی‌شود — فایل اصلی نگه داشته می‌شود
+            // GD isn't available or the format isn't supported — the original file is kept
             Response::ok([
                 'image_path'     => $this->uploadUrl . '/' . $filename,
                 'thumbnail_path' => null,
@@ -278,15 +279,15 @@ class NotificationController
             Response::error('عنوان اعلان نباید بیشتر از ۲۰۰ کاراکتر باشد'); return null;
         }
 
-        // ── پاک‌سازی متن غنی (HTML) ──────────────────────────
-        // محدودیت بر اساس طول متن قابل‌مشاهده (بدون تگ‌ها)
+        // ── sanitize rich text (HTML) ──────────────────────────
+        // Limit is based on the visible text length (tags excluded)
         $body      = $this->sanitizeBody((string) $body);
         $plainLen  = mb_strlen(trim(strip_tags($body)));
         if ($plainLen > self::MAX_BODY_CHARS) {
             Response::error('متن اعلان نباید بیشتر از ' . self::MAX_BODY_CHARS . ' کاراکتر باشد'); return null;
         }
 
-        // ── تبدیل datetime-local به Unix timestamp ──────────
+        // ── convert datetime-local to Unix timestamp ──────────
         $expiresAt = 0;
         if ($expiresRaw !== '') {
             $ts = $this->parseDatetimeLocal($expiresRaw);
@@ -316,16 +317,16 @@ class NotificationController
     }
 
     /**
-     * پاک‌سازی متن غنی اعلان.
-     * فقط تگ‌ها و ویژگی‌های امن (bold/italic/underline/color/align/rtl-ltr/list)
-     * نگه داشته می‌شوند تا از XSS جلوگیری شود.
+     * Sanitize the notification's rich text.
+     * Only safe tags and attributes (bold/italic/underline/color/align/rtl-ltr/list)
+     * are kept to prevent XSS.
      */
     private function sanitizeBody(string $html): string
     {
         $html = trim($html);
         if ($html === '') return '';
 
-        // اگر DOM در دسترس نبود، fallback ساده: فقط تگ‌های مجاز
+        // If DOM isn't available, simple fallback: only allowed tags
         if (!class_exists('DOMDocument')) {
             return trim(strip_tags($html, '<b><strong><i><em><u><br><p><div><span><ul><ol><li><a><font>'));
         }
@@ -336,7 +337,7 @@ class NotificationController
 
         $dom = new DOMDocument('1.0', 'UTF-8');
         libxml_use_internal_errors(true);
-        // پیچیدن در wrapper با اعلان UTF-8 برای حفظ کاراکترهای فارسی
+        // Wrapped with a UTF-8 declaration to preserve Persian characters
         $dom->loadHTML(
             '<?xml encoding="UTF-8"><div id="__root__">' . $html . '</div>',
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
@@ -347,18 +348,18 @@ class NotificationController
         if (!$root) return trim(strip_tags($html, '<b><strong><i><em><u><br><p><div><span><ul><ol><li><a><font>'));
 
         $clean = function (\DOMNode $node) use (&$clean, $allowedTags, $allowedAttr, $allowedCss) {
-            // پیمایش روی کپی فرزندان (چون ممکن است حذف/جایگزین شوند)
+            // Iterate over a copy of the children (since they may be removed/replaced)
             foreach (iterator_to_array($node->childNodes) as $child) {
                 if ($child->nodeType === XML_ELEMENT_NODE) {
                     /** @var \DOMElement $child */
                     $tag = strtolower($child->nodeName);
                     if (!in_array($tag, $allowedTags, true)) {
-                        // تگ غیرمجاز: متن داخلی را جایگزین کن
+                        // Disallowed tag: replace it with its inner text
                         $text = $child->ownerDocument->createTextNode($child->textContent);
                         $child->parentNode->replaceChild($text, $child);
                         continue;
                     }
-                    // پاک‌سازی ویژگی‌ها
+                    // Sanitize attributes
                     foreach (iterator_to_array($child->attributes) as $attr) {
                         $name = strtolower($attr->name);
                         if (!in_array($name, $allowedAttr, true)) {
@@ -392,14 +393,14 @@ class NotificationController
                     }
                     $clean($child);
                 } elseif ($child->nodeType !== XML_TEXT_NODE) {
-                    // کامنت و سایر گره‌ها حذف شوند
+                    // Remove comments and other node types
                     $node->removeChild($child);
                 }
             }
         };
         $clean($root);
 
-        // استخراج innerHTML از root
+        // Extract innerHTML from root
         $out = '';
         foreach ($root->childNodes as $c) {
             $out .= $dom->saveHTML($c);
@@ -408,10 +409,10 @@ class NotificationController
     }
 
     /**
-     * پارس datetime-local با timezone صریح UTC
-     * JS مقدار را به UTC تبدیل می‌کند، PHP هم با UTC می‌خواند
+     * Parse datetime-local with an explicit UTC timezone
+     * JS converts the value to UTC, and PHP reads it as UTC too
      *
-     * @return int|false timestamp یا false در صورت خطا
+     * @return int|false timestamp, or false on error
      */
     private function parseDatetimeLocal(string $raw): int|false
     {
@@ -420,9 +421,9 @@ class NotificationController
 
         $utc = new DateTimeZone('UTC');
 
-        // فرمت‌های پشتیبانی‌شده
+        // Supported formats
         $formats = [
-            'Y-m-d\TH:i',      // 2025-05-10T10:30     ← خروجی JS (UTC)
+            'Y-m-d\TH:i',      // 2025-05-10T10:30     ← JS output (UTC)
             'Y-m-d\TH:i:s',    // 2025-05-10T10:30:00
             'Y-m-d H:i',       // 2025-05-10 10:30
             'Y-m-d H:i:s',     // 2025-05-10 10:30:00
@@ -465,9 +466,10 @@ class NotificationController
     }
 
     /**
-     * پسوندِ امنِ فایلِ ذخیره‌شده — همیشه از MIMEِ تشخیص‌داده‌شده (محتوا) مشتق
-     * می‌شود، نه از نام فایلِ کاربر. این کار مانع آپلودِ polyglot با پسوندِ
-     * اجراپذیر (.php/.phtml) می‌شود و امنیت را از اتکا به .htaccess جدا می‌کند.
+     * Safe extension for the stored file — always derived from the detected
+     * (content-based) MIME type, never from the user's filename. This prevents
+     * polyglot uploads with an executable extension (.php/.phtml) and decouples
+     * security from relying on .htaccess.
      */
     private function safeExtension(string $mime): string
     {
@@ -487,8 +489,8 @@ class NotificationController
         if (!is_dir($this->uploadDir)) {
             if (!mkdir($this->uploadDir, 0755, true)) return false;
         }
-        // نوشتنِ idempotentِ .htaccess امن (منبع یگانه در ImageProcessor؛ فقط اگر
-        // نبود یا کهنه بود بازنویسی می‌شود تا نسخه‌های قدیمی هم ارتقا یابند).
+        // Idempotent write of a safe .htaccess (single source of truth in ImageProcessor;
+        // rewritten only if missing or stale, so older versions get upgraded too).
         ImageProcessor::writeUploadHtaccess($this->uploadDir);
         return true;
     }
@@ -512,7 +514,7 @@ class NotificationController
         };
     }
 
-    /** تبدیل مقدار کوتاه‌نوشت php.ini (مثل «8M» یا «512K») به بایت */
+    /** Convert a php.ini shorthand value (like "8M" or "512K") to bytes */
     private function iniBytes(string $val): int
     {
         $val = trim($val);

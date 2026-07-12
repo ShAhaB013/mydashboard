@@ -1,16 +1,16 @@
 <?php
 require_once __DIR__ . '/version.php';
 
-// ── گارد سمت‌سرور: صفحه حساب فقط برای کاربر لاگین‌کرده ──
-// بدون این، صفحه کامل رندر می‌شد و سپس JS ریدایرکت می‌کرد (فلش/پرش زشت).
-// با ریدایرکت سمت‌سرور پیش از هر خروجی، مهمان اصلا صفحه را نمی‌بیند.
+// ── Server-side guard: account page is for logged-in users only ──
+// Without this, the full page would render and then JS would redirect (ugly flash/jump).
+// With a server-side redirect before any output, a guest never sees the page at all.
 $config = require __DIR__ . '/bootstrap.php';
 if (!UserSession::check()) {
     header('Location: /');
     exit;
 }
 
-// توکن CSRF برای درخواست‌های حالت‌تغییردهنده‌ی api.php (change_password / terminate_my_*)
+// CSRF token for state-changing requests to api.php (change_password / terminate_my_*)
 $csrfToken = UserSession::ensureCsrfToken();
 
 $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
@@ -34,7 +34,7 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
   <link rel="stylesheet" href="/assets/css/style.css?v=<?= $v_css ?>">
   <script src="/assets/js/theme.js?v=<?= $v_theme ?>" defer></script>
   <script src="/assets/js/tooltip.js?v=<?= asset_v(__DIR__ . '/assets/js/tooltip.js') ?>" defer></script>
-  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
@@ -52,7 +52,7 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 </head>
 <body class="profile-wrap">
 
-  <!-- ── هدر یکپارچه (سبک تلگرام) — نوار شناور ── -->
+  <!-- ── Unified header (Telegram-style) — floating bar ── -->
   <header class="app-header">
     <div class="app-header__inner">
       <div class="app-header__lead"><h1 class="app-header__title">حساب کاربری</h1></div>
@@ -70,7 +70,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
     <div class="profile-card">
 
-      <!-- هدر کارت -->
       <div class="profile-card-head is-loading" id="profileCardHead">
         <div class="profile-avatar" id="profileAvatar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -86,10 +85,8 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
         </div>
       </div>
 
-      <!-- بدنه کارت -->
       <div class="profile-card-body">
 
-        <!-- ── نوار تب‌ها ── -->
         <div class="profile-tabs" id="profileTabs" role="tablist">
           <span class="profile-tab-indicator" id="profileTabIndicator" aria-hidden="true"></span>
           <button type="button" class="profile-tab active" role="tab" aria-selected="true"
@@ -109,7 +106,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           </button>
         </div>
 
-        <!-- ── تب: مشخصات کاربری ── -->
         <div class="profile-tab-panel is-loading" id="tabPanel-name" role="tabpanel" aria-labelledby="tabBtn-name">
         <section class="profile-section">
           <div class="profile-section-aside">
@@ -121,7 +117,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           </div>
           <div class="profile-section-body">
 
-        <!-- نام -->
         <div class="field" data-state="idle">
           <label class="field-label" for="firstName">نام</label>
           <div class="field-box">
@@ -130,7 +125,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
-        <!-- نام‌خانوادگی -->
         <div class="field" data-state="idle">
           <label class="field-label" for="lastName">نام‌خانوادگی</label>
           <div class="field-box">
@@ -139,7 +133,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
-        <!-- دکمه ویرایش -->
         <button class="profile-submit-btn" id="nameSubmitBtn" data-act="submitUpdateName">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -151,7 +144,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
         </section>
         </div>
 
-        <!-- ── تب: تغییر رمز عبور ── -->
         <div class="profile-tab-panel" id="tabPanel-password" role="tabpanel" aria-labelledby="tabBtn-password" hidden>
         <section class="profile-section">
           <div class="profile-section-aside">
@@ -163,7 +155,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           </div>
           <div class="profile-section-body">
 
-        <!-- رمز فعلی -->
         <div class="field" data-state="idle">
           <label class="field-label" for="currentPassword">رمز عبور فعلی</label>
           <div class="field-box" dir="ltr">
@@ -179,7 +170,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
-        <!-- رمز جدید -->
         <div class="field" data-state="idle">
           <label class="field-label" for="newPassword">رمز عبور جدید</label>
           <div class="field-box" dir="ltr">
@@ -196,7 +186,7 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
             </button>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
-          <!-- چک‌لیست زنده‌ی قوانین رمز عبور (هنگام focus/تایپ به‌روز می‌شود) -->
+          <!-- Live password rules checklist (updates on focus/typing) -->
           <div class="pass-rules" id="passRules" aria-live="polite" hidden>
             <div class="pass-rules-title">قوانین رمز عبور</div>
             <ul class="pass-rules-list">
@@ -209,7 +199,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           </div>
         </div>
 
-        <!-- تکرار رمز جدید -->
         <div class="field" data-state="idle">
           <label class="field-label" for="confirmPassword">تکرار رمز عبور جدید</label>
           <div class="field-box" dir="ltr">
@@ -225,7 +214,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
-        <!-- دکمه ذخیره -->
         <button class="profile-submit-btn" id="profileSubmitBtn" data-act="submitChangePassword">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <polyline points="20 6 9 17 4 12"/>
@@ -236,7 +224,6 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
         </section>
         </div>
 
-        <!-- ── تب: نشست‌های فعال (دستگاه‌ها) — مانند تلگرام ── -->
         <div class="profile-tab-panel" id="tabPanel-sessions" role="tabpanel" aria-labelledby="tabBtn-sessions" hidden>
         <section class="profile-section">
           <div class="profile-section-aside">
@@ -274,7 +261,7 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
   </main>
 
-  <!-- ظرف Toast صفحه پروفایل -->
+  <!-- Profile page toast container -->
   <div class="toast-wrap" id="toastWrap" aria-live="assertive"></div>
 
   <script nonce="<?= csp_nonce() ?>">window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>

@@ -1,30 +1,31 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// admin.php — نقطه ورود پنل مدیریت
-// ورود واحد: همان سشن کاربر (dash_user). فقط کاربرهای role='admin'
-// اجازه ورود دارند. سطح دسترسی روی هر درخواست به‌صورت تازه از DB
-// چک می‌شود (به مقدار کش‌شده در سشن اتکا نمی‌کنیم).
+// admin.php — entry point for the admin panel
+// Single login: same user session (dash_user). Only role='admin'
+// users are allowed in. Access level is re-checked fresh from the DB
+// on every request (we don't rely on the cached value in the session).
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);
 
-// ── Bootstrap مشترک: autoload + config + DB + session ────
+// ── Shared bootstrap: autoload + config + DB + session ────
 $config = require __DIR__ . '/bootstrap.php';
 
-// ── نسخه پروژه (Single Source of Truth) ─────────────────
+// ── Project version (single source of truth) ─────────────
 require_once __DIR__ . '/version.php';
 
-// مرز مدیریت خطای سراسری برای کل پنل ادمین (API + صفحات):
-// هر Throwable ناگرفته در لاگ سرور ثبت و پاسخ تمیز (JSON برای API، متن برای صفحه)
-// برمی‌گردد — به‌جای لو دادن stack trace به کاربر.
+// Global error boundary for the whole admin panel (API + pages):
+// any uncaught Throwable is logged server-side and a clean response
+// (JSON for API, plain text for pages) is returned — instead of
+// leaking a stack trace to the user.
 try {
 
 $request = new Request();
 
 $isApi = (bool) $request->query('api');
 
-// ── خروج ─────────────────────────────────────────────────
-// فقط با POST + توکن CSRF معتبر (جلوگیری از CSRF-logout با GET مثل <img src=?logout>).
-// خروجِ عادیِ کاربر از منوی داشبورد با api.php?action=logout انجام می‌شود.
+// ── Logout ─────────────────────────────────────────────────
+// POST + valid CSRF token only (prevents CSRF-logout via GET like <img src=?logout>).
+// Normal user logout from the dashboard menu goes through api.php?action=logout.
 if (isset($_GET['logout'])) {
     $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? '');
     $real = $_SESSION['csrf_token'] ?? '';
@@ -35,8 +36,8 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// ── گیت احراز هویت + سطح دسترسی (مرجع: سرور) ─────────────
-// 1) باید لاگین باشد، 2) role فعلی در DB باید admin و فعال باشد.
+// ── Auth gate + access level (source of truth: server) ───
+// 1) must be logged in, 2) current role in DB must be admin and active.
 $adminUser = null;
 if (UserSession::check()) {
     $adminUser = (new UserModel())->findById(UserSession::id());
@@ -55,15 +56,15 @@ if (!$isAdmin) {
         );
         exit;
     }
-    // صفحه: کاربر غیرمجاز/مهمان → داشبورد عمومی (ورود همان‌جاست)
+    // Page: unauthorized/guest user → public dashboard (login is there)
     header('Location: /');
     exit;
 }
 
-// توکن CSRF را تضمین کن (سشن‌های قدیمی ممکن است نداشته باشند)
+// Ensure a CSRF token exists (old sessions may not have one)
 UserSession::ensureCsrfToken();
 
-// ── ساخت وابستگی‌ها ──────────────────────────────────────
+// ── Build dependencies ────────────────────────────────────
 $iconDb    = new JsonStore($config['files']['icons']);
 $decoDb    = new JsonStore($config['files']['decos']);
 
@@ -74,10 +75,10 @@ $userModel         = new UserModel();
 $accessModel       = new AccessModel();
 $notificationModel = new NotificationModel();
 
-// ── مسیریابی API ─────────────────────────────────────────
+// ── API routing ────────────────────────────────────────────
 if ($isApi) {
 
-    // ── تایید CSRF: همه درخواست‌های API نیازمند هدر معتبرند ──
+    // ── CSRF validation: every API request needs a valid header ──
     $sentToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
     $realToken = $_SESSION['csrf_token'] ?? '';
     if ($realToken === '' || !is_string($sentToken) || !hash_equals($realToken, $sentToken)) {
@@ -114,7 +115,7 @@ if ($isApi) {
     exit;
 }
 
-// ── مسیریابی صفحات ───────────────────────────────────────
+// ── Page routing ───────────────────────────────────────────
 $page = $request->query('page');
 
 if ($page === 'notifications') {
@@ -126,9 +127,9 @@ if ($page === 'notifications') {
 }
 
 if ($page === 'users') {
-    // فهرست کاربران با AJAX (list_users) بارگذاری می‌شود — سمت سرور فقط داده‌های اولیه صفحه را می‌سازد.
+    // User list is loaded via AJAX (list_users) — server only builds initial page data.
     $sessionTtlHours = SettingsModel::getInt('session_ttl_hours', 1, 720, 24);
-    // مودال دسترسی به «همه ابزارها» نیاز دارد — نسخه سبک تزریق می‌شود
+    // Access modal needs "all tools" — a lite version is injected
     $toolsLite  = json_encode(ToolModel::toLite($toolModel->all()), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
     $csrfToken  = $_SESSION['csrf_token'] ?? '';
     require __DIR__ . '/app/Views/users_view.php';
@@ -142,19 +143,20 @@ if ($page === 'settings') {
     exit;
 }
 
-// ── آماده‌سازی داده برای داشبورد اصلی ────────────────────
-// لیست ابزارها سمت کلاینت صفحه‌بندی می‌شود (admin.js)، ولی بخش‌های
-// کاربران/آیکون/دکو/دسترسی به داده کامل نیاز دارند، پس همه پاس می‌شوند.
+// ── Prepare data for the main dashboard ───────────────────
+// Tools list is paginated client-side (admin.js), but the users/icons/
+// decos/access sections need the full data, so everything is passed.
 $tools     = $toolModel->all();
 $icons     = $iconModel->all();
 $decosData = $decoModel->all();
 
-// لیست ابزارها سمت سرور صفحه‌بندی می‌شود (admin.js → list_tools)؛ پس به‌جای
-// تزریق کل دیتاست کامل + خام تکراری، فقط یک نسخه «سبک» از همه ابزارها
-// تزریق می‌شود (برای مرتب‌سازی/دسترسی/شمارش آیکون‌ودکو) و کاربران اصلا.
+// Tools list is paginated server-side (admin.js → list_tools); so instead
+// of injecting the full dataset plus a duplicate raw copy, only a "lite"
+// version of all tools is injected (for sorting/access/icon+deco counts),
+// and users not at all.
 $toolsLite  = json_encode(ToolModel::toLite($tools), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $toolsTotal = count($tools);
-$usersTotal = $userModel->countAll();    // فقط شمارش (بدون واکشی کل کاربران)
+$usersTotal = $userModel->countAll();    // count only (no full user fetch)
 $iconsJson  = json_encode($icons,     JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $decosJson  = json_encode($decosData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $csrfToken  = $_SESSION['csrf_token'] ?? '';

@@ -19,8 +19,8 @@ class DB
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
-            // ↓ تثبیت charset و collation روی هر اتصال جدید
-            // حتی اگر تنظیمات سرور cPanel عوض شود، این خط برنده است
+            // ↓ pins charset/collation on every new connection —
+            // wins even if the cPanel server defaults change
             PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci',
         ]);
     }

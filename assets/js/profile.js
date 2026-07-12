@@ -1,6 +1,6 @@
     const API_URL = 'api.php';
 
-    /* ── Theme: جلوگیری از فلش اولیه (FOUC) ── */
+    /* ── Theme: prevents the initial flash (FOUC) ── */
     (function () {
       const saved      = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -8,23 +8,23 @@
         document.documentElement.setAttribute('data-theme', 'dark');
       }
     })();
-    /* سوییچ تم بدون لگ + همگام بین تب‌ها در theme.js انجام می‌شود. */
+    /* Lag-free theme switching + cross-tab sync are handled in theme.js. */
 
-    /* تا کاربر مشغول ویرایش نام/نام‌خانوادگی است، پول دوره‌ای نباید مقدار
-       تایپ‌شده‌ی هنوز ذخیره‌نشده را رونویسی کند. */
+    /* While the user is editing first/last name, the periodic poll must not
+       overwrite the still-unsaved typed value. */
     let nameFieldsDirty = false;
-    /* آخرین مقدار تایید‌شده از سرور — برای تشخیص «بدون تغییر» هنگام ثبت. */
+    /* Last value confirmed from the server — used to detect "no change" on submit. */
     let originalFirstName = '';
     let originalLastName  = '';
 
-    /* ── نمایش اطلاعات کاربر ── */
+    /* ── Display user info ── */
     async function loadProfile() {
       try {
         const res  = await fetch(`${API_URL}?action=me`);
         const data = await res.json();
 
         if (!data.ok || !data.logged_in) {
-          // اگه لاگین نیست برگرد به صفحه اصلی
+          // If not logged in, go back to the main page
           window.location.href = 'index.php';
           return;
         }
@@ -52,13 +52,12 @@
       }
     }
 
-    /* ── نمایش/مخفی کردن رمز ── */
+    /* ── Show/hide password ── */
     function togglePass(inputId, btn) {
       const input = document.getElementById(inputId);
       const isPass = input.type === 'password';
       input.type = isPass ? 'text' : 'password';
 
-      // تغییر آیکون
       btn.innerHTML = isPass
         ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
              <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
@@ -71,20 +70,20 @@
            </svg>`;
     }
 
-    /* ── قوانین رمز عبور + تولید رمز تصادفی: از ماژول مشترک password-policy.js ── */
+    /* ── Password rules + random password generation: from the shared password-policy.js module ── */
     function pwMeetsPolicy(val) { return PasswordPolicy.meets(val); }
     function updatePassRules(val) { PasswordPolicy.updateChecklist('passRules', val); }
     function genPassword(el) {
       PasswordPolicy.generate(el.dataset.target, el.dataset.confirm, 'passRules');
       const p = document.getElementById(el.dataset.target);
       if (p && window.Field) Field.set(p, 'success', 'رمز مناسب است');
-      // رمز تولیدشده در فیلد تکرار هم کپی می‌شود؛ پس باکس تکرار هم باید سبز شود
-      // (وگرنه با خطای قبلیِ «یکسان نیست» قرمز باقی می‌ماند).
+      // The generated password is also copied into the confirm field, so it must turn green too
+      // (otherwise it would stay red from the earlier "mismatch" error).
       const c = el.dataset.confirm && document.getElementById(el.dataset.confirm);
       if (c && window.Field) Field.set(c, 'success', 'یکسان است');
     }
 
-    /* خطای اعتبارسنجی فقط زیر باکس همان فیلد (نه Toast) */
+    /* Validation error only below the field itself (not Toast) */
     function fieldErr(id, msg) {
       if (window.Field) Field.set(id, 'error', msg);
       else if (window.Toast) Toast.show(msg, 'error');
@@ -92,14 +91,14 @@
       if (el) el.focus();
     }
 
-    /* ── ارسال فرم ── */
+    /* ── Form submission ── */
     async function submitChangePassword() {
       const currentPassword = document.getElementById('currentPassword').value;
       const newPassword     = document.getElementById('newPassword').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
       const btn             = document.getElementById('profileSubmitBtn');
 
-      // اعتبارسنجی فقط زیر باکس همان فیلد (field-msg) — بازخورد نهایی از طریق Toast
+      // Validation only below the field itself (field-msg) — final feedback via Toast
       if (!currentPassword) { fieldErr('currentPassword', 'رمز عبور فعلی الزامی است'); return; }
       if (!newPassword)     { fieldErr('newPassword', 'رمز عبور جدید الزامی است'); return; }
       if (!confirmPassword) { fieldErr('confirmPassword', 'تکرار رمز عبور الزامی است'); return; }
@@ -119,7 +118,6 @@
 
         if (data.ok) {
           if (window.Toast) Toast.show('رمز عبور با موفقیت تغییر کرد', 'success', 'ویرایش موفق');
-          // پاک کردن فیلدها
           document.getElementById('currentPassword').value = '';
           document.getElementById('newPassword').value     = '';
           document.getElementById('confirmPassword').value = '';
@@ -142,7 +140,7 @@
       `;
     }
 
-    /* ── ارسال فرم نام و نام‌خانوادگی — بازخورد از طریق Toast مشترک پروژه ── */
+    /* ── Submit the first/last name form — feedback via the project's shared Toast ── */
     async function submitUpdateName() {
       const firstName = document.getElementById('firstName').value.trim();
       const lastName  = document.getElementById('lastName').value.trim();
@@ -151,7 +149,7 @@
       if (!firstName) { fieldErr('firstName', 'نام الزامی است'); return; }
       if (!lastName)  { fieldErr('lastName', 'نام‌خانوادگی الزامی است'); return; }
 
-      // بدون تغییر نسبت به مقدار فعلی → درخواستی به سرور ارسال نمی‌شود.
+      // No change from the current value → no request is sent to the server.
       if (firstName === originalFirstName && lastName === originalLastName) {
         if (window.Toast) Toast.show('تغییری برای ذخیره وجود ندارد', 'info');
         return;
@@ -197,8 +195,8 @@
     (function () {
       const fn = document.getElementById('firstName');
       const ln = document.getElementById('lastName');
-      // با شروع تایپ دوباره، وضعیت خطای قبلی (باکس قرمز) پاک می‌شود — هم‌الگو
-      // با فیلدهای تب تغییر رمز عبور.
+      // As soon as typing resumes, the previous error state (red box) is cleared — same
+      // pattern as the change-password tab's fields.
       const markDirty = (el) => {
         nameFieldsDirty = true;
         if (window.Field) Field.set(el, document.activeElement === el ? 'focus' : 'idle');
@@ -207,7 +205,7 @@
       if (ln) ln.addEventListener('input', () => markDirty(ln));
     })();
 
-    /* ── تب‌ها ── */
+    /* ── Tabs ── */
     const ProfileTabs = {
       _order: ['name', 'password', 'sessions'],
       init() {
@@ -246,7 +244,7 @@
     };
     ProfileTabs.init();
 
-    /* ── Enter برای submit (وابسته به فیلد فعال) ── */
+    /* ── Enter to submit (depends on the active field) ── */
     document.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       const id = document.activeElement && document.activeElement.id;
@@ -254,16 +252,16 @@
       if (id === 'firstName' || id === 'lastName') submitUpdateName();
     });
 
-    /* ── اعتبارسنجی زنده فیلدها ── */
+    /* ── Live field validation ── */
     if (window.Field) {
       const $ = (id) => document.getElementById(id);
-      // با Field.set به حالت focus/idle می‌رویم — این کار پیامِ خطای قبلی را هم پاک
-      // می‌کند (رفعِ باگ: خطا پس از شروعِ تایپ باقی می‌ماند).
+      // Field.set moves to focus/idle state — this also clears the previous error
+      // message (fixes a bug where the error stayed after typing resumed).
       const setFocusIdle = (el) => Field.set(el, document.activeElement === el ? 'focus' : 'idle');
 
       const curPass = $('currentPassword'), newPass = $('newPassword'), confPass = $('confirmPassword');
 
-      // هر تایپ در «رمز فعلی» خطای قبلی‌اش را پاک می‌کند (این فیلد اعتبارسنجی زنده ندارد).
+      // Any typing in "current password" clears its previous error (this field has no live validation).
       if (curPass) curPass.addEventListener('input', () => setFocusIdle(curPass));
 
       const syncConfirm = (onBlur) => {
@@ -275,14 +273,14 @@
         else setFocusIdle(confPass);
       };
       if (newPass) {
-        // نمایش چک‌لیست به‌محضِ focus (حتی خالی) تا کاربر قوانین را ببیند.
+        // Show the checklist as soon as it's focused (even if empty), so the user sees the rules.
         newPass.addEventListener('focus', () => updatePassRules(newPass.value));
         newPass.addEventListener('input', () => {
           const v = newPass.value;
           updatePassRules(v);
           if (!v) setFocusIdle(newPass);
           else if (pwMeetsPolicy(v)) Field.set(newPass, 'success', 'رمز مناسب است');
-          else setFocusIdle(newPass);   // حین تایپِ ناقص، خطای قبلی پاک می‌شود
+          else setFocusIdle(newPass);   // while typing is incomplete, clear the previous error
           syncConfirm(false);
         });
         newPass.addEventListener('blur', () => {
@@ -297,7 +295,7 @@
       }
     }
 
-    /* ── نشست‌های فعال (دستگاه‌ها) — مانند تلگرام ── */
+    /* ── Active sessions (devices) — Telegram-like ── */
     function _escHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -383,7 +381,7 @@
       } catch {} finally { if (btn) btn.disabled = false; }
     }
 
-    /* ── اکشن‌ها (جایگزین on* برای CSP) ── */
+    /* ── Actions (replaces on* handlers, for CSP) ── */
     if (window.Actions) {
       Actions.register({
         togglePass:               (el) => togglePass(el.dataset.target, el),
@@ -395,13 +393,13 @@
       });
     }
 
-    /* ── init ── */
+    /* ── Init ── */
     loadProfile();
     loadMySessions();
 
-    /* اگر ادمین یا خودِ کاربر (از تب دیگر) نام/ایمیل را ویرایش کند، بدون
-       نیاز به خروج/ورود مجدد، حداکثر تا ~۳۰ ثانیه بعد در همین صفحه به‌روز می‌شود.
-       بازه با جیتر تصادفی (۲۵ تا ۳۰ ثانیه) تا pollهای تب‌های مختلف هم‌فاز نشوند. */
+    /* If an admin or the user themself (from another tab) edits the name/email, this
+       page updates itself within ~30 seconds, without needing to log out/in again.
+       The interval has random jitter (25 to 30 seconds) so different tabs' polls don't sync up. */
     (function pollTick() {
       setTimeout(() => {
         if (!document.hidden) loadProfile();

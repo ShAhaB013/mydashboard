@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// SessionController — مدیریت نشست‌های همزمان کاربران (فقط ادمین).
-// فهرست نشست‌های فعال و پایان‌دادن (terminate) به آن‌ها.
+// SessionController — manages users' concurrent sessions (admin only).
+// Lists active sessions and terminates them.
 // ═══════════════════════════════════════════════════════════
 
 class SessionController
@@ -15,7 +15,7 @@ class SessionController
         $this->request = $request;
     }
 
-    /** فهرست نشست‌های فعال (همه، یا فیلترشده با user_id) */
+    /** List of active sessions (all, or filtered by user_id) */
     public function list(): void
     {
         $uid  = $this->request->inputInt('user_id', 0);
@@ -39,7 +39,7 @@ class SessionController
         Response::ok(['sessions' => $out, 'current_id' => $cur]);
     }
 
-    /** پایان‌دادن به یک نشست مشخص */
+    /** End a specific session */
     public function terminate(): void
     {
         $id = $this->request->input('session_id');
@@ -51,7 +51,7 @@ class SessionController
         Response::ok(['msg' => 'نشست پایان یافت']);
     }
 
-    /** پایان همه نشست‌های یک کاربر (خروج اجباری از همه دستگاه‌ها) */
+    /** End all sessions of a user (forced logout from all devices) */
     public function terminateUser(): void
     {
         $uid = $this->request->inputInt('user_id', 0);
@@ -59,20 +59,20 @@ class SessionController
             Response::error('کاربر نامعتبر است');
             return;
         }
-        // اگر هدف، خود ادمین جاری است، نشست فعلی را نگه دار تا از پنل بیرون نیفتد.
+        // If the target is the current admin, keep the current session so they aren't kicked out of the panel.
         $except = ($uid === UserSession::id()) ? session_id() : null;
         $n = SessionModel::terminateUser($uid, $except);
         Response::ok(['msg' => "{$n} نشست پایان یافت", 'count' => $n]);
     }
 
-    /** پایان همه نشست‌های دیگر (به‌جز نشست جاری ادمین) */
+    /** End all other sessions (except the current admin session) */
     public function terminateOthers(): void
     {
         $n = SessionModel::terminateOthers(session_id());
         Response::ok(['msg' => "{$n} نشست دیگر پایان یافت", 'count' => $n]);
     }
 
-    /** ذخیره مدت فعال‌بودن نشست کاربران (ساعت) — کنترل درون‌خطی پنل نشست‌ها */
+    /** Save users' session active-duration (hours) — inline control in the sessions panel */
     public function saveTtl(): void
     {
         $hours = $this->request->inputInt('session_ttl_hours', 0);

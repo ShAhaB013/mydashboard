@@ -1,5 +1,5 @@
-    /* ── Theme: فقط جلوگیری از فلش اولیه (FOUC) ──
-       سوییچ بدون لگ + همگام بین تب‌ها در theme.js انجام می‌شود. */
+    /* ── Theme: only prevents the initial flash (FOUC) ──
+       Lag-free switching + cross-tab sync are handled in theme.js. */
     (function () {
       const saved = localStorage.getItem('theme');
       const dark  = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -7,9 +7,9 @@
         document.documentElement.setAttribute('data-theme', 'dark');
     })();
 
-    /* ── پاک‌سازی HTML اعلان در سمت کلاینت (دفاع لایه‌دوم) ──
-       فقط تگ‌ها و ویژگی‌های امن مجاز هستند؛ هر چیز دیگری حذف می‌شود.
-       متن اصلی روی سرور هم پاک‌سازی می‌شود؛ این فقط لایه احتیاطی است. */
+    /* ── Client-side sanitization of notification HTML (second defense layer) ──
+       Only safe tags and attributes are allowed; everything else is stripped.
+       The source text is also sanitized server-side; this is just a precautionary layer. */
     function sanitizeNotifHtml(html) {
       const ALLOWED_TAGS  = ['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A'];
       const ALLOWED_ATTRS = ['style','dir','href','target','rel'];
@@ -20,7 +20,7 @@
         [...node.childNodes].forEach(child => {
           if (child.nodeType === 1) { // element
             if (!ALLOWED_TAGS.includes(child.tagName)) {
-              // تگ غیرمجاز: محتوای متنی‌اش را نگه دار، خود تگ را حذف کن
+              // Disallowed tag: keep its text content, remove the tag itself
               const text = document.createTextNode(child.textContent || '');
               child.replaceWith(text);
               return;
@@ -29,7 +29,7 @@
               const name = attr.name.toLowerCase();
               if (!ALLOWED_ATTRS.includes(name)) { child.removeAttribute(attr.name); return; }
               if (name === 'style') {
-                // فقط چند ویژگی استایل امن
+                // Only a handful of safe style properties
                 const safe = [];
                 child.getAttribute('style').split(';').forEach(decl => {
                   const [k, v] = decl.split(':').map(s => (s || '').trim().toLowerCase());
@@ -50,7 +50,7 @@
             if (child.tagName === 'A') { child.setAttribute('target','_blank'); child.setAttribute('rel','noopener noreferrer'); }
             walk(child);
           } else if (child.nodeType !== 3) {
-            child.remove(); // کامنت و غیره
+            child.remove(); // comments and the like
           }
         });
       };
@@ -61,7 +61,7 @@
     /* ── Notification Panel ── */
     const NP = {
 
-      // ── خواندن نگاشت {id: read_ts} با سازگاری با فرمت قدیمی (آرایه) ──
+      // ── Reads the {id: read_ts} map, with compatibility for the old (array) format ──
       _getGuestReadMap() {
         try {
           const raw = localStorage.getItem('notif_read_ids');
@@ -84,8 +84,8 @@
         } catch { /* silent */ }
       },
 
-      // ── اعمال وضعیت خوانده‌شده مهمان روی ردیف‌ها ──────
-      // سه حالت ممکن: نخوانده‌شده / خوانده‌شده اما ویرایش‌شده / خوانده‌شده و فعلی
+      // ── Applies the guest's read state to the rows ──────
+      // Three possible states: unread / read but since edited / read and current
       initGuestReadState() {
         try {
           const map = this._getGuestReadMap();
@@ -94,7 +94,7 @@
             if (!n) return;
 
             const readTs = map[id];
-            if (readTs === undefined) return;   // هرگز خوانده نشده → تگ «جدید» بماند
+            if (readTs === undefined) return;   // never read → keep the "new" tag
 
             const updatedTs = n.updated_at ? Math.floor(new Date(n.updated_at).getTime() / 1000) : 0;
             const isCurrent = (readTs === 0 || readTs >= updatedTs);
@@ -104,13 +104,13 @@
             const unreadPill = row.querySelector('.npill-unread');
 
             if (isCurrent) {
-              // خوانده‌شده و فعلی: حذف کامل تگ
+              // Read and current: remove the tag entirely
               n.is_read   = true;
               n.is_edited = false;
               row.classList.remove('unread');
               if (unreadPill) unreadPill.remove();
             } else {
-              // خوانده‌شده اما بعد از آن ویرایش شده: تغییر تگ به «ویرایش شده»
+              // Read, but edited since: change the tag to "edited"
               n.is_read   = false;
               n.is_edited = true;
               if (unreadPill) {
@@ -126,21 +126,21 @@
         const n = NOTIFS[id];
         if (!n) return;
 
-        // وضعیت قبل از علامت‌گذاری — برای نمایش در پیلز مودال
+        // State before marking — for display in the modal's pills
         const wasEdited = !!n.is_edited;
 
-        // ── علامت‌گذاری خوانده‌شده (هم «جدید» هم «ویرایش شده») ───
+        // ── Mark as read (covers both "new" and "edited") ───
         if (!n.is_read) {
           n.is_read   = true;
           n.is_edited = false;
-          // بروزرسانی ظاهر ردیف
+          // Update the row's appearance
           const row = document.querySelector(`.notif-row[data-id="${id}"]`);
           if (row) {
             row.classList.remove('unread');
             const pill = row.querySelector('.npill-unread, .npill-edited');
             if (pill) pill.remove();
           }
-          // لاگین‌کرده: API | مهمان: localStorage
+          // Logged in: API | guest: localStorage
           if (IS_LOGGED_IN) {
             fetch('api.php?action=mark_read', {
               method:  'POST',
@@ -156,10 +156,9 @@
           }
         }
 
-        // عنوان
         document.getElementById('ndTitle').textContent = n.title || '';
 
-        // متن (HTML غنی — پاک‌سازی‌شده در سمت سرور، دوباره در سمت کلاینت)
+        // Body (rich HTML — sanitized server-side, and again client-side)
         const textEl = document.getElementById('ndText');
         if (n.body) {
           textEl.innerHTML     = sanitizeNotifHtml(n.body);
@@ -169,7 +168,7 @@
           textEl.innerHTML     = '';
         }
 
-        // تصویر — بارگذاری پیشرونده (thumbnail → full)
+        // Image — progressive loading (thumbnail → full)
         const imgWrap = document.getElementById('ndImageWrap');
         const img     = document.getElementById('ndImage');
         if (n.image) {
@@ -177,20 +176,20 @@
           imgWrap.classList.add('img-loading');
           img.alt           = n.title || '';
           img.style.cssText = '';
-          img.dataset.full  = n.image;   // مبنای نمایش تمام‌صفحه (lightbox)
+          img.dataset.full  = n.image;   // basis for full-screen display (lightbox)
 
           if (n.thumbnail) {
-            // thumbnail موجود: فوری نشان بده (blurred)
+            // Thumbnail available: show it immediately (blurred)
             img.src             = n.thumbnail;
             img.style.filter    = 'blur(10px)';
             img.style.transform = 'scale(1.04)';
           } else {
-            // بدون thumbnail: img مخفی — shimmer دیده می‌شود
+            // No thumbnail: img hidden — shimmer is shown instead
             img.src           = '';
             img.style.display = 'none';
           }
 
-          // لود تصویر اصلی در پس‌زمینه
+          // Load the full image in the background
           const loader   = new Image();
           loader.onload  = async () => {
             try { await loader.decode(); } catch {}
@@ -213,17 +212,16 @@
           delete img.dataset.full;
         }
 
-        // متادیتا
         this._buildMeta(n, wasEdited);
 
-        // نمایش
+        // Show
         const overlay = document.getElementById('ndOverlay');
         const ndBody = overlay.querySelector('.nd-body');
         if (ndBody) ndBody.scrollTop = 0;
         overlay.classList.add('open');
         document.body.style.overflow = 'hidden';
-        // فوکوس روی خود کادر (نه دکمه ضربدر) تا کادر فوکوس روی ✕ نیفتد،
-        // ولی Escape و دسترسی‌پذیری حفظ شود.
+        // Focus the box itself (not the close button) so focus doesn't land on
+        // the ✕, while still preserving Escape and accessibility.
         const box = overlay.querySelector('.nd-box');
         if (box) box.focus({ preventScroll: true });
       },
@@ -231,7 +229,7 @@
       close() {
         document.getElementById('ndOverlay').classList.remove('open');
         document.body.style.overflow = '';
-        // پاکسازی state بارگذاری پیشرونده
+        // Reset progressive-loading state
         const img     = document.getElementById('ndImage');
         const imgWrap = document.getElementById('ndImageWrap');
         if (img)     { img.src = ''; img.style.cssText = ''; delete img.dataset.full; }
@@ -242,7 +240,6 @@
         const meta = document.getElementById('ndMeta');
         meta.innerHTML = '';
 
-        // تاریخ ایجاد
         const created = new Date(n.created_at);
         const dateRow = this._metaRow(
           '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
@@ -250,7 +247,6 @@
         );
         meta.appendChild(dateRow);
 
-        // تاریخ انقضا
         if (n.expires_at) {
           const exp = new Date(n.expires_at * 1000);
           const expRow = this._metaRow(
@@ -299,7 +295,7 @@
       },
     };
 
-    /* ── بستن modal ── */
+    /* ── Close modal ── */
     document.getElementById('ndCloseBtn').addEventListener('click',    () => NP.close());
     document.getElementById('ndCloseAction').addEventListener('click', () => NP.close());
 
@@ -313,10 +309,10 @@
       }
     });
 
-    // برای مهمان: اعمال وضعیت خوانده‌شده از localStorage روی ردیف‌ها
+    // For guests: apply the read state from localStorage to the rows
     if (!IS_LOGGED_IN) NP.initGuestReadState();
 
-    /* ── اکشن‌ها (جایگزین on* برای CSP) ── */
+    /* ── Actions (replaces on* handlers, for CSP) ── */
     if (window.Actions) {
       Actions.register({
         npOpen:     (el) => NP.open(parseInt(el.dataset.id, 10)),
@@ -335,9 +331,9 @@
       });
     }
 
-    // ── Hover preload: لود تصویر هنگام hover روی ردیف ──────
-    // وقتی mouse روی ردیف می‌رود، لود تصویر شروع می‌شود تا
-    // هنگام کلیک "مشاهده" از cache سرو شود
+    // ── Hover preload: loads the image on row hover ──────
+    // When the mouse enters a row, image loading starts so it
+    // can be served from cache when the user clicks "view"
     document.querySelectorAll('.notif-row[data-id]').forEach(row => {
       let timer;
       row.addEventListener('mouseenter', () => {
@@ -345,17 +341,17 @@
           const n = NOTIFS[parseInt(row.dataset.id)];
           if (n?.image && !n._preloaded) {
             n._preloaded = true;
-            // preload هر دو نسخه
+            // Preload both versions
             if (n.thumbnail) new Image().src = n.thumbnail;
             new Image().src = n.image;
           }
-        }, 120); // تاخیر کوتاه تا از hover تصادفی جلوگیری شود
+        }, 120); // short delay to avoid accidental hovers
       }, { passive: true });
       row.addEventListener('mouseleave', () => clearTimeout(timer), { passive: true });
     });
 
-/* ══ پنل جستجوی پیشرفته + custom selectها (بلوک دوم پیشین) ══ */
-    /* باز/بستن پنل جستجوی پیشرفته */
+/* ══ Advanced search panel + custom selects (former second block) ══ */
+    /* Open/close the advanced search panel */
     (function () {
       const btn   = document.getElementById('notifAdvToggle');
       const panel = document.getElementById('notifAdvPanel');
@@ -367,15 +363,15 @@
       });
     })();
 
-    /* جلوگیری از جستجو وقتی باکس جستجو خالی است (و فیلتری هم فعال نیست) */
+    /* Prevents searching when the search box is empty (and no filter is active either) */
     (function () {
       const form = document.querySelector('.notif-search-form');
       if (!form) return;
       const q = document.getElementById('notif-q');
       const val = el => (el && el.value ? el.value.trim() : '');
       form.addEventListener('submit', e => {
-        // فقط دکمه جستجو (و Enter داخل فرم) را گارد می‌کنیم؛
-        // دکمه «اعمال فیلتر» و تغییر تعداد در هر صفحه دست‌نخورده می‌ماند.
+        // We only guard the search button (and Enter inside the form);
+        // the "apply filter" button and per-page count change are left untouched.
         const submitter = e.submitter;
         const isFilterApply = submitter && submitter.classList.contains('notif-adv-apply');
         if (isFilterApply) return;
@@ -390,8 +386,8 @@
       });
     })();
 
-    /* dropdown سفارشی: لیست بومی select را با لیستی هماهنگ با تم پروژه جایگزین می‌کند
-       (select اصلی برای ارسال فرم و دسترس‌پذیری در DOM می‌ماند) */
+    /* Custom dropdown: replaces the native select's list with one matching the project theme
+       (the original select stays in the DOM for form submission and accessibility) */
     (function () {
       const CHEV = '<svg class="cselect-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
 
@@ -439,7 +435,7 @@
           label.textContent = select.options[i].textContent;
           menu.querySelectorAll('.cselect-opt').forEach((el, k) => el.setAttribute('aria-selected', k === i ? 'true' : 'false'));
           close();
-          // change → onchange بومی (مثلا submit خودکار «تعداد در هر صفحه») را فعال می‌کند
+          // change → triggers the native onchange (e.g. auto-submitting "items per page")
           select.dispatchEvent(new Event('change', { bubbles: true }));
         }
 

@@ -2,26 +2,26 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// NotificationModel — تمام عملیات دیتابیس برای اعلان‌ها
+// NotificationModel — all database operations for notifications
 // ═══════════════════════════════════════════════════════════
 
 class NotificationModel
 {
-    // حداقل طول عبارت جستجو برای استفاده از ایندکس FULLTEXT (باید با
-    // innodb_ft_min_token_size روی سرور MySQL هماهنگ باشد؛ عبارات کوتاه‌تر
-    // به LIKE سقوط می‌کنند چون FULLTEXT اصلاً آن‌ها را توکنایز نکرده است)
+    // Minimum search term length to use the FULLTEXT index (must match
+    // innodb_ft_min_token_size on the MySQL server; shorter terms
+    // fall back to LIKE since FULLTEXT never tokenized them at all)
     private const FTS_MIN_TOKEN = 3;
 
-    // سقف فید محدود زنگوله (bell) — رکوردهای قدیمی‌تر از صفحه‌ی تاریخچه در دسترس می‌مانند
+    // Cap on the bell's limited feed — records older than this remain reachable from the history page
     private const BELL_CAP = 100;
 
     // ── Visibility Queries ──────────────────────────────────
 
     /**
-     * اعلان‌های قابل نمایش برای بازدیدکننده مهمان
-     * همه عمومی‌ها (فعال + منقضی) برمی‌گردند با flag is_expired —
-     * فرانت‌اند، منقضی‌شده‌های خوانده‌شده را از لیست حذف می‌کند
-     * تا badge برای منقضی‌شده‌های ناخوانده حفظ شود.
+     * Notifications visible to a guest visitor.
+     * All public ones (active + expired) are returned with an is_expired flag —
+     * the frontend removes read/expired ones from the list
+     * so the badge is preserved for unread/expired ones.
      */
     public function allForGuest(): array
     {
@@ -38,17 +38,17 @@ class NotificationModel
     }
 
     /**
-     * زیرکوئری UNION سه‌شاخه‌ی «اعلان‌های قابل‌دسترسِ» یک کاربر
-     * (public ∪ target_all_users ∪ badge-matched) — به‌جای یک JOIN سه‌جدولی
-     * + شرط OR که هیچ ترکیبی از ایندکس نمی‌تواند بهینه‌اش کند (index merge
-     * فقط برای OR روی یک جدول کار می‌کند)، هر شاخه با ایندکس اختصاصی خودش
-     * (idx_pub_created / idx_target_created / badge join) اسکن می‌شود.
-     * UNION (نه UNION ALL) خودش ردیف‌های تکراری بین شاخه‌ها را حذف می‌کند
-     * چون ستون‌های انتخابی برای یک ردیف مشترک عینا یکسان‌اند.
+     * Three-branch UNION subquery for the notifications "accessible" to a user
+     * (public ∪ target_all_users ∪ badge-matched) — instead of a three-table JOIN
+     * + OR condition that no index combination could optimize (index merge
+     * only works for OR on a single table), each branch is scanned with its own
+     * dedicated index (idx_pub_created / idx_target_created / badge join).
+     * UNION (not UNION ALL) itself removes duplicate rows between branches
+     * since the selected columns for a shared row are exactly identical.
      *
-     * @param string $cols ستون‌های انتخابی (n.* یا فقط زیرمجموعه‌ی لازم)
-     * @param string $uidParam نام پارامتر PDO برای user_id (باید بین فراخوان‌ها یکتا باشد)
-     * @param int|null $limitPerBranch اگر ست شود، هر شاخه جداگانه LIMIT می‌خورد (فید محدود زنگوله)
+     * @param string $cols selected columns (n.* or just the needed subset)
+     * @param string $uidParam PDO parameter name for user_id (must be unique across calls)
+     * @param int|null $limitPerBranch if set, each branch gets its own LIMIT (the bell's limited feed)
      */
     private function accessibleUnionSql(string $cols, string $uidParam, ?int $limitPerBranch = null): string
     {
@@ -66,13 +66,13 @@ class NotificationModel
     }
 
     /**
-     * اعلان‌های قابل نمایش برای کاربر لاگین‌کرده (فید محدود زنگوله)
-     * شامل: عمومی + همه کاربران + badge مطابق دسترسی کاربر
+     * Notifications visible to a logged-in user (the bell's limited feed).
+     * Includes: public + all-users + badge matching the user's access.
      *
-     * برای مقیاس بزرگ به آخرین BELL_CAP مورد محدود می‌شود (هر شاخه جداگانه
-     * تا BELL_CAP کاندید می‌دهد، سپس با اولویت ناخوانده‌ها مرتب و دوباره
-     * به BELL_CAP برش می‌خورد) — دسترسی به رکوردهای قدیمی‌تر از این پنجره
-     * از صفحه‌ی تاریخچه (/notifications، historyForUser) تامین می‌شود، نه از اینجا.
+     * Capped at the most recent BELL_CAP items at scale (each branch yields up
+     * to BELL_CAP candidates, then sorted with unread priority and trimmed back
+     * to BELL_CAP) — access to records older than this window is provided by
+     * the history page (/notifications, historyForUser), not here.
      */
     public function allActiveForUser(int $userId): array
     {
@@ -96,8 +96,8 @@ class NotificationModel
     }
 
     /**
-     * نسخه‌ی سبک (فقط id/created_at) فید مهمان — برای محاسبه‌ی ارزان‌قیمتِ ETag
-     * پیش از اجرای کوئری کامل + serialize (که فقط وقتی چیزی واقعا عوض شده لازم است).
+     * Lightweight version (id/created_at only) of the guest feed — for a cheap ETag
+     * computation before running the full query + serialize (only needed when something actually changed).
      */
     public function guestFingerprint(): array
     {
@@ -107,10 +107,11 @@ class NotificationModel
     }
 
     /**
-     * نسخه‌ی سبک (id/updated_at/is_read) فید کاربر — همان منطق انتخاب/کپ/مرتب‌سازی
-     * allActiveForUser را با کمترین ستون‌ها تکرار می‌کند تا فینگرپرینت واقعا هر تغییری
-     * (اعلان جدید/ویرایش‌شده، خروج از پنجره‌ی BELL_CAP، یا تغییر read-state خودِ کاربر)
-     * را ببیند — بر خلاف یک امضای تقریبی مثل MAX(updated_at)+COUNT(*) که read-state را نمی‌بیند.
+     * Lightweight version (id/updated_at/is_read) of the user feed — repeats the same
+     * selection/cap/sort logic as allActiveForUser with the fewest columns so the fingerprint
+     * actually sees every change (new/edited notification, falling out of the BELL_CAP window,
+     * or the user's own read-state change) — unlike an approximate signature like
+     * MAX(updated_at)+COUNT(*), which doesn't see read-state.
      */
     public function activeUserFingerprint(int $userId): array
     {
@@ -132,20 +133,19 @@ class NotificationModel
     }
 
     /**
-     * ساخت شرط جستجوی متنی — فقط وقتی $search خالی نباشد به SQL اضافه می‌شود
-     * (هم‌سو با buildHistoryFilters که فیلترهای خالی را اصلاً به کوئری اضافه
-     * نمی‌کند، تا مسیر پرتکرارِ «مرور بدون جستجو» درگیر اسکن جدول نشود).
+     * Build the text search clause — only added to the SQL when $search is non-empty
+     * (consistent with buildHistoryFilters, which never adds empty filters to the query,
+     * so the hot path of "browsing without search" doesn't trigger a table scan).
      *
-     * برای عبارت‌های به‌اندازه‌کافی بلند از ایندکس FULLTEXT (BOOLEAN MODE،
-     * تطبیق پیشوند کلمه) استفاده می‌شود؛ برای عبارت‌های کوتاه‌تر از حد توکن
-     * سرور، MATCH...AGAINST چیزی برنمی‌گرداند، پس به LIKE قبلی سقوط می‌کنیم.
-     * توجه: این یعنی معنای جستجو برای عبارت‌های بلند از «substring دلخواه»
-     * به «تطبیق کلمه/پیشوند کلمه» تغییر می‌کند.
+     * For long-enough terms, the FULLTEXT index is used (BOOLEAN MODE, word-prefix
+     * matching); for terms shorter than the server's token minimum, MATCH...AGAINST
+     * returns nothing, so we fall back to the previous LIKE. Note: this means search
+     * semantics for long terms shift from "arbitrary substring" to "word/word-prefix match".
      */
     /**
-     * $suffix: چون با ATTR_EMULATE_PREPARES=false نمی‌توان یک نام پارامتر را در یک
-     * کوئری تکرار کرد، فراخوان‌هایی که این شرط را چندبار در یک کوئری (مثلا سه شاخه‌ی
-     * UNION) به کار می‌برند باید suffix متفاوت بدهند تا نام‌های :ftq/:like و... یکتا بمانند.
+     * $suffix: since ATTR_EMULATE_PREPARES=false doesn't allow repeating a parameter name
+     * in one query, callers that use this clause multiple times in a single query (e.g. the
+     * three UNION branches) must pass a different suffix so the :ftq/:like etc. names stay unique.
      */
     private function buildSearchClause(string $search, array &$params, string $alias = 'n', string $suffix = ''): string
     {
@@ -164,10 +164,10 @@ class NotificationModel
     }
 
     /**
-     * تبدیل عبارت جستجوی کاربر به کوئری امنِ BOOLEAN MODE — عملگرهای
-     * ویژه‌ی این حالت (+ - * " ( ) ~ < >) حذف می‌شوند تا کاربر نتواند
-     * عملگر غیرمنتظره تزریق کند، و هر کلمه با * پسوندی می‌شود (تطبیق پیشوند)
-     * تا تجربه‌ی جستجوی زنده به رفتار قبلی LIKE نزدیک بماند.
+     * Convert the user's search term into a safe BOOLEAN MODE query — this mode's
+     * special operators (+ - * " ( ) ~ < >) are stripped so the user can't inject
+     * an unexpected operator, and each word gets a * suffix (prefix matching)
+     * to keep the live-search experience close to the old LIKE behavior.
      */
     private function buildBooleanQuery(string $search): string
     {
@@ -178,8 +178,8 @@ class NotificationModel
     }
 
     /**
-     * ساخت شرط‌های جستجوی پیشرفته (تاریخ ایجاد + وضعیت انقضا).
-     * پارامترها به آرایه $params اضافه می‌شوند و رشته SQL برگردانده می‌شود.
+     * Build the advanced filter clauses (created date + expiry status).
+     * Parameters are added to the $params array and the SQL string is returned.
      * $filters: ['date_from'=>'Y-m-d','date_to'=>'Y-m-d','status'=>'active|expired']
      */
     private function buildHistoryFilters(array $filters, array &$params, string $alias = 'n', string $suffix = ''): string
@@ -208,11 +208,11 @@ class NotificationModel
     }
 
     /**
-     * تاریخچه‌ی مهمان با پیمایش keyset (فلش Prev/Next مجاور — سریع در هر عمقی،
-     * بر خلاف historyForGuest که OFFSET سنتی دارد و برای «رفتن به صفحه‌ی N» است).
+     * Guest history with keyset pagination (adjacent Prev/Next arrows — fast at any
+     * depth, unlike historyForGuest, which uses traditional OFFSET and is for "go to page N").
      * @param array{created_at:string,id:int}|null $cursor
-     * @param string $dir 'next' (قدیمی‌تر) یا 'prev' (جدیدتر)
-     * @return array ممکن است تا perPage+1 ردیف داشته باشد (ردیف اضافه = نشانه‌ی «صفحه‌ی بعد/قبل هست»؛ caller آن را جدا می‌کند)
+     * @param string $dir 'next' (older) or 'prev' (newer)
+     * @return array may have up to perPage+1 rows (the extra row signals "there's a next/prev page"; the caller strips it)
      */
     public function historyForGuestKeyset(?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
     {
@@ -248,9 +248,9 @@ class NotificationModel
     }
 
     /**
-     * تاریخچه‌ی کاربر با پیمایش keyset — همان استدلال کپ-هر-شاخه‌ی historyForUser
-     * (ردیف در جایگاه p از یک شاخه‌ی مرتب‌شده فقط اگر p<=cap می‌تواند در نتیجه‌ی
-     * سراسری باشد) با اضافه‌شدن شرط cursor به هر شاخه.
+     * User history with keyset pagination — same per-branch-cap reasoning as historyForUser
+     * (a row at position p in a sorted branch can only be in the global result if p<=cap),
+     * with a cursor condition added to each branch.
      */
     public function historyForUserKeyset(int $userId, ?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
     {
@@ -309,7 +309,7 @@ class NotificationModel
     }
 
     /**
-     * لیست ادمین با پیمایش keyset (معادل allForAdminPaginated برای فلش Prev/Next مجاور)
+     * Admin list with keyset pagination (the keyset equivalent of allForAdminPaginated, for adjacent Prev/Next arrows)
      */
     public function allForAdminKeyset(?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
     {
@@ -345,8 +345,8 @@ class NotificationModel
     }
 
     /**
-     * تاریخچه اعلان‌های عمومی برای مهمان — با صفحه‌بندی و جستجو
-     * شامل اعلان‌های منقضی‌شده هم می‌شود (تاریخچه کامل)
+     * Public notification history for a guest — with pagination and search.
+     * Also includes expired notifications (full history).
      */
     public function historyForGuest(int $page, int $perPage, string $search = '', array $filters = []): array
     {
@@ -359,7 +359,7 @@ class NotificationModel
         $searchSql = $this->buildSearchClause($search, $params);
         $filterSql = $this->buildHistoryFilters($filters, $params);
 
-        // LIMIT/OFFSET به‌صورت عدد صحیح اعتبارسنجی‌شده مستقیم در کوئری تزریق می‌شوند
+        // LIMIT/OFFSET are validated integers, injected directly into the query
         $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
 
         return DB::run(
@@ -374,9 +374,6 @@ class NotificationModel
         )->fetchAll();
     }
 
-    /**
-     * تعداد کل اعلان‌های عمومی برای صفحه‌بندی مهمان
-     */
     public function historyCountForGuest(string $search = '', array $filters = []): int
     {
         $params    = [];
@@ -393,23 +390,18 @@ class NotificationModel
     }
 
     /**
-     * تاریخچه اعلان‌ها برای کاربر (شامل منقضی‌شده‌ها) با صفحه‌بندی
-     * جهت صفحه notifications.php
-     */
-    /**
-     * تاریخچه صفحه‌بندی‌شده برای کاربر لاگین‌کرده.
+     * Paginated history for a logged-in user.
      *
-     * برخلاف allActiveForUser (که فید محدود زنگوله است)، این متد باید بتواند به
-     * هر عمقی از تاریخچه برسد؛ پس UNION را بدون کپ کلی نمی‌سازیم. اما محاسبه‌ی
-     * «۱۰ ردیف صفحه‌ی اول» با ساخت کل مجموعه‌ی قابل‌دسترس (که می‌تواند ده‌ها هزار
-     * ردیف باشد) و بعد LIMIT زدن، در مقیاس بزرگ به‌شدت کند است (اندازه‌گیری شد:
-     * ~1.7 ثانیه روی ۱۰۰هزار ردیف). راه‌حل: هر شاخه‌ی UNION را با فیلتر/جستجوی
-     * خودش، ORDER BY created_at DESC و LIMIT (offset+perPage) کپ می‌کنیم — چون
-     * یک ردیف در جایگاه p از یک لیستِ مرتب‌شده‌ی نزولی نمی‌تواند در top-(offset+perPage)
-     * سراسری (اجتماع چند لیست مرتب) باشد مگر p <= offset+perPage. این کپ فقط تا
-     * عمقی که واقعا لازم است (OFFSET صفحه‌ی درخواستی) بزرگ می‌شود؛ برای پیمایش
-     * عمیق (شماره صفحه‌ی خیلی بزرگ) مسیر کرسر/keyset (فاز ۳) استفاده می‌شود که
-     * اصلا به این کپ وابسته نیست.
+     * Unlike allActiveForUser (which is the bell's limited feed), this method must be able to
+     * reach any depth of history; so we don't build the UNION with an overall cap. But computing
+     * "the first 10 rows" by building the entire accessible set (which can be tens of thousands
+     * of rows) and then applying LIMIT is extremely slow at scale (measured: ~1.7s on 100k rows).
+     * Solution: cap each UNION branch with its own filter/search, ORDER BY created_at DESC and
+     * LIMIT (offset+perPage) — because a row at position p in a descending sorted list can't be
+     * in the global top-(offset+perPage) (the union of several sorted lists) unless p <= offset+perPage.
+     * This cap only grows as deep as actually needed (the requested page's OFFSET); for deep
+     * pagination (very large page numbers) the cursor/keyset path (phase 3) is used instead,
+     * which doesn't depend on this cap at all.
      */
     public function historyForUser(int $userId, int $page, int $perPage, string $search = '', array $filters = []): array
     {
@@ -450,12 +442,9 @@ class NotificationModel
         )->fetchAll();
     }
 
-    /**
-     * تعداد کل برای صفحه‌بندی تاریخچه
-     */
     public function historyCountForUser(int $userId, string $search = '', array $filters = []): int
     {
-        // فقط ستون‌های لازم برای شمارش/فیلتر (نه n.* کامل) — COUNT سبک‌تر
+        // Only the columns needed for counting/filtering (not the full n.*) — a lighter COUNT
         $union  = $this->accessibleUnionSql('n.id, n.title, n.body, n.created_at, n.expires_at', 'uid1');
         $params = [':uid1' => $userId];
         $searchSql = $this->buildSearchClause($search, $params, 'u');
@@ -470,11 +459,11 @@ class NotificationModel
     // ── Unread Tracking ─────────────────────────────────────
 
     /**
-     * تعداد اعلان‌های خوانده‌نشده برای کاربر
+     * Count of unread notifications for a user.
      *
-     * شرط انقضا حذف شده: اعلان‌های منقضی‌شده‌ای که هنوز این کاربر آن‌ها
-     * را نخوانده نیز شمرده می‌شوند، تا badge تا زمان خوانده شدن باقی
-     * بماند حتی پس از انقضا.
+     * No expiry condition: expired notifications the user hasn't read yet
+     * are still counted, so the badge stays until the user reads them,
+     * even after expiry.
      */
     public function unreadCount(int $userId): int
     {
@@ -489,9 +478,6 @@ class NotificationModel
         )->fetchColumn();
     }
 
-    /**
-     * علامت‌گذاری یک اعلان به عنوان خوانده‌شده
-     */
     public function markRead(int $userId, int $notificationId): void
     {
         DB::run(
@@ -503,10 +489,10 @@ class NotificationModel
     }
 
     /**
-     * علامت‌گذاری همه اعلان‌های قابل دسترس کاربر به عنوان خوانده‌شده
+     * Mark all of a user's accessible notifications as read.
      *
-     * شرط انقضا حذف شده: همه اعلان‌های قابل دسترس (شامل منقضی‌شده‌ها)
-     * به‌عنوان خوانده‌شده ثبت می‌شوند تا badge کاملا صفر شود.
+     * No expiry condition: all accessible notifications (including expired ones)
+     * are recorded as read so the badge drops fully to zero.
      */
     public function markAllRead(int $userId): void
     {
@@ -521,9 +507,7 @@ class NotificationModel
 
     // ── Admin Queries ───────────────────────────────────────
 
-    /**
-     * اعلان‌های پنل ادمین با صفحه‌بندی واقعی سمت سرور و جستجوی اختیاری
-     */
+    /** Admin panel notifications with real server-side pagination and optional search */
     public function allForAdminPaginated(int $page, int $perPage, string $search = '', array $filters = []): array
     {
         $page    = max(1, $page);
@@ -548,9 +532,6 @@ class NotificationModel
         )->fetchAll();
     }
 
-    /**
-     * تعداد کل اعلان‌ها برای صفحه‌بندی ادمین (با جستجوی اختیاری)
-     */
     public function countForAdmin(string $search = '', array $filters = []): int
     {
         $params    = [];
@@ -567,8 +548,8 @@ class NotificationModel
     }
 
     /**
-     * دریافت badgeهای چند اعلان در یک کوئری (رفع مشکل N+1)
-     * خروجی: [notification_id => [badge, badge, ...]]
+     * Fetch badges for multiple notifications in one query (avoids the N+1 problem)
+     * Output: [notification_id => [badge, badge, ...]]
      */
     public function getBadgesForIds(array $ids): array
     {
@@ -591,9 +572,6 @@ class NotificationModel
         return $map;
     }
 
-    /**
-     * یافتن اعلان با ID
-     */
     public function findById(int $id): ?array
     {
         $row = DB::run(
@@ -603,9 +581,6 @@ class NotificationModel
         return $row ?: null;
     }
 
-    /**
-     * دریافت badge های هدف یک اعلان
-     */
     public function getBadges(int $notificationId): array
     {
         return array_column(
@@ -620,18 +595,16 @@ class NotificationModel
     // ── Admin Write Operations ──────────────────────────────
 
     /**
-     * حذف میکروکش فید مهمان — در انتهای هر عملیات نوشتن ادمین صدا می‌شود
-     * تا اعلان جدید/ویرایش‌شده بلافاصله (بدون انتظار TTL) به مهمان‌ها برسد.
-     * (تغییر read-state کاربران روی فید مهمان اثری ندارد و invalidate نمی‌خواهد)
+     * Invalidate the guest feed micro-cache — called at the end of every admin write
+     * so a new/edited notification reaches guests immediately (without waiting for the TTL).
+     * (Users' read-state changes have no effect on the guest feed and don't need invalidation)
      */
     private static function flushGuestCache(): void
     {
         MicroCache::forget('notif-guest');
     }
 
-    /**
-     * ایجاد اعلان جدید — برگرداندن ID ایجادشده
-     */
+    /** Create a new notification — returns the created ID */
     public function create(array $data): int
     {
         DB::run(
@@ -658,12 +631,9 @@ class NotificationModel
         return $id;
     }
 
-    /**
-     * ویرایش اعلان موجود
-     */
     public function update(int $id, array $data): bool
     {
-        // اگه image_path در data نباشه، تصویر را دست‌نخورده بذار
+        // If image_path isn't in data, leave the image untouched
         $hasImage = array_key_exists('image_path', $data);
 
         if ($hasImage) {
@@ -705,16 +675,13 @@ class NotificationModel
             );
         }
 
-        // بازنویسی badge های هدف
         $this->setBadges($id, $data['badges'] ?? []);
 
         self::flushGuestCache();
         return true;
     }
 
-    /**
-     * حذف اعلان (cascade روی badge ها و reads)
-     */
+    /** Delete a notification (cascades to badges and reads) */
     public function delete(int $id): bool
     {
         DB::run('DELETE FROM notifications WHERE id = :id', [':id' => $id]);
@@ -722,9 +689,7 @@ class NotificationModel
         return true;
     }
 
-    /**
-     * حذف تصویر یک اعلان (فقط مسیر DB — حذف فایل در Controller)
-     */
+    /** Clear a notification's image (DB path only — file deletion happens in the Controller) */
     public function clearImage(int $id): void
     {
         DB::run(
@@ -736,9 +701,7 @@ class NotificationModel
 
     // ── Badge Management ────────────────────────────────────
 
-    /**
-     * بازنویسی کامل badge های هدف یک اعلان
-     */
+    /** Fully rewrite a notification's target badges */
     private function setBadges(int $notificationId, array $badges): void
     {
         DB::run(
@@ -754,7 +717,7 @@ class NotificationModel
             'INSERT IGNORE INTO notification_badges (notification_id, badge) VALUES (:nid, :badge)'
         );
 
-        // فقط badge های معتبر (موجود در tools) را ثبت کن
+        // Only record valid badges (existing in tools)
         $validBadges = $this->getAvailableBadges();
         foreach ($badges as $badge) {
             $badge = (string) $badge;
@@ -764,9 +727,7 @@ class NotificationModel
         }
     }
 
-    /**
-     * لیست badge های موجود در سیستم (از جدول tools)
-     */
+    /** List of badges available in the system (from the tools table) */
     public function getAvailableBadges(): array
     {
         return array_column(
@@ -779,9 +740,7 @@ class NotificationModel
 
     // ── Helpers ─────────────────────────────────────────────
 
-    /**
-     * تبدیل ردیف DB به فرمت قابل ارسال به فرانت‌اند
-     */
+    /** Convert a DB row to the format sent to the frontend */
     public static function toFrontend(array $row, array $badges = []): array
     {
         return [

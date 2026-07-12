@@ -10,7 +10,7 @@ Assert::group('36_admin_notifications_upload_xss');
 $tmpDir = sys_get_temp_dir() . '/dastest_uploads';
 if (!is_dir($tmpDir)) mkdir($tmpDir, 0755, true);
 
-// PNG معتبر ۱×۱ پیکسل (base64)
+// valid 1x1 pixel PNG (base64)
 $validPngB64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 file_put_contents($tmpDir . '/valid.png', base64_decode($validPngB64));
 
@@ -20,7 +20,7 @@ file_put_contents($tmpDir . '/shell.php', $phpPayload);
 $svgPayload = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
 file_put_contents($tmpDir . '/evil.svg', $svgPayload);
 
-// polyglot: هدر GIF89a + کد PHP در ادامه
+// polyglot: GIF89a header followed by PHP code
 file_put_contents($tmpDir . '/polyglot.gif', "GIF89a" . $phpPayload);
 
 $uploadedPaths = [];
@@ -39,7 +39,7 @@ Assert::test('آپلود PNG معتبر → موفق و پسوند مشتق از
 
 Assert::test('عکس PNG با پسوند جعلی .php (اما محتوای واقعی PNG) → پسوند ذخیره‌شده هرگز php نیست', function () use ($BASE, $ACC, $tmpDir, &$uploadedPaths) {
     $http = admin_http($BASE, $ACC);
-    // محتوای واقعی PNG است اما نام فایل .php — سرور باید پسوند را از MIME واقعی مشتق کند نه از نام فایل
+    // content is genuinely PNG but the filename is .php — the server must derive the extension from the real MIME type, not the filename
     $res = $http->uploadFile('/admin.php?api=upload_notification_image', 'image', $tmpDir . '/valid.png', 'image/png', 'disguise.php');
     if (($res['json']['ok'] ?? false) === true) {
         $path = (string) ($res['json']['image_path'] ?? '');
@@ -81,12 +81,12 @@ Assert::test('آپلود بدون فایل → پیام خطای تمیز نه 5
     Assert::jsonFail($res, 'درخواست بدون فایل باید ok:false بدهد');
 });
 
-// ── پاک‌سازی فایل‌های واقعی آپلودشده روی دیسک ──
+// ── clean up the actual files uploaded to disk ──
 foreach ($uploadedPaths as $p) {
     if ($p === '') continue;
     $full = dirname(__DIR__) . $p;
     if (is_file($full)) @unlink($full);
-    // نسخه thumbnail احتمالی
+    // possible thumbnail version
     $thumb = dirname($full) . '/thumbs/' . basename($full);
     if (is_file($thumb)) @unlink($thumb);
 }

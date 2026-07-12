@@ -6,9 +6,9 @@ $BASE = $cfg['test']['base_url'];
 
 Assert::group('60_rate_limit_concurrency');
 
-// این فایل عمدا آخر از همه اجرا می‌شود چون login_rate_limit واقعی روی 127.0.0.1
-// (کلاینت تست) را دستکاری می‌کند. finally همیشه ردیف را پاک می‌کند تا دولوپر
-// از لاگین واقعی خودش روی همین ماشین قفل نشود.
+// This file intentionally runs last because it manipulates the real login_rate_limit
+// row for 127.0.0.1 (the test client). It always clears the row in a finally block so
+// the developer doesn't get locked out of their own real login on this machine.
 
 function concurrentFailedLogins(string $base, int $n): void
 {
@@ -55,8 +55,8 @@ Assert::test('11 لاگین غلط پیاپی → یازدهمین تلاش 429 
 Fixtures::deleteRateLimitByIp('127.0.0.1', 'user');
 
 Assert::test('concurrency: ۸ لاگین غلط هم‌زمان (زیر آستانه بلاک) → شمارنده attempts دقیقا 8 است (بدون lost update)', function () use ($BASE) {
-    // عمدا کمتر از MAX_ATTEMPTS(=10) تا isBanned() کوتاه‌مدار نشود و recordFailure() برای همه‌ی
-    // درخواست‌ها واقعا اجرا شود؛ اینجا فقط اتمیک‌بودن شمارنده زیر سوال است.
+    // intentionally below MAX_ATTEMPTS(=10) so isBanned() doesn't short-circuit and recordFailure()
+    // actually runs for every request; this is purely testing the counter's atomicity.
     concurrentFailedLogins($BASE, 8);
     $row = DB::run("SELECT attempts FROM login_rate_limit WHERE ip='127.0.0.1' AND scope='user'")->fetch();
     Assert::true($row !== false, 'باید یک ردیف login_rate_limit برای 127.0.0.1 ساخته شده باشد');
@@ -82,5 +82,5 @@ Assert::test('بعد از تلاش‌های زیاد، حساب واقعی هم 
     Assert::statusEq($res, 429, 'محدودیت روی IP است، پس username واقعی هم باید مسدود باشد');
 });
 
-// ── پاک‌سازی نهایی: هرگز دولوپر را از لاگین واقعی خودش قفل نکن ──
+// ── final cleanup: never lock the developer out of their own real login ──
 Fixtures::deleteRateLimitByIp('127.0.0.1', 'user');

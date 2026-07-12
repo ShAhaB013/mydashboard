@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Cursor — کدگذاری/کدگشایی امنِ cursor صفحه‌بندی keyset بر پایه‌ی
-// زوج (created_at, id) — برای پیمایش Prev/Next مجاور در لیست‌های بزرگ
-// (بدون هزینه‌ی OFFSET در عمق‌های زیاد).
+// Cursor — safe encode/decode of keyset-pagination cursors based on the
+// (created_at, id) pair — for adjacent Prev/Next navigation in large lists
+// (without the cost of OFFSET at large depths).
 // ═══════════════════════════════════════════════════════════
 
 class Cursor
@@ -15,8 +15,8 @@ class Cursor
     }
 
     /**
-     * کدگشایی محافظه‌کارانه: هر ورودی نامعتبر/دستکاری‌شده به‌سادگی null برمی‌گرداند
-     * (یعنی «بدون cursor» / صفحه‌ی اول) — هرگز به کوئری خام نمی‌رسد.
+     * Conservative decoding: any invalid/tampered input simply returns null
+     * (i.e. "no cursor" / first page) — it never reaches a raw query.
      * @return array{created_at:string,id:int}|null
      */
     public static function decode(string $cursor): ?array

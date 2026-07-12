@@ -2,23 +2,23 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// Mailer — ارسال ایمیل از طریق SMTP (تنظیمات از پنل ادمین / SettingsModel)
-// اگر SMTP فعال/پیکربندی نشده باشد، ارسال انجام نمی‌شود و در محیط محلی
-// کد تایید به‌صورت dev در پاسخ API برمی‌گردد.
-// پیاده‌سازی SMTP با سوکت خام است (بدون وابستگی بیرونی): EHLO →
-// [STARTTLS] → AUTH LOGIN → MAIL FROM → RCPT TO → DATA.
+// Mailer — sends email via SMTP (settings come from the admin panel / SettingsModel)
+// If SMTP isn't enabled/configured, sending is skipped, and on local
+// environments the verification code is returned as "dev" in the API response.
+// SMTP is implemented with a raw socket (no external dependency): EHLO ->
+// [STARTTLS] -> AUTH LOGIN -> MAIL FROM -> RCPT TO -> DATA.
 // ═══════════════════════════════════════════════════════════
 
 class Mailer
 {
-    /** آیا روی محیط محلی هستیم؟ (برای نمایش کد جهت تست) */
+    /** Are we on a local environment? (so the code can be shown for testing) */
     public static function isLocal(): bool
     {
         $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
         return (bool) preg_match('/^(127\.0\.0\.1|localhost|::1)(:\d+)?$/i', $host);
     }
 
-    /** آیا SMTP فعال و حداقل host تنظیم شده است؟ */
+    /** Is SMTP enabled and at least the host configured? */
     public static function isConfigured(): bool
     {
         return SettingsModel::get('smtp_enabled') === '1'
@@ -26,9 +26,9 @@ class Mailer
     }
 
     /**
-     * آیا مجاز به افشای کد تایید در پاسخ API هستیم؟ (فقط برای توسعه محلی)
-     * وقتی SMTP پیکربندی نشده باشد، کد تایید در پاسخ API برمی‌گردد
-     * تا بدون ایمیل هم بتوان تست کرد.
+     * Are we allowed to expose the verification code in the API response? (local dev only)
+     * When SMTP isn't configured, the verification code is returned in the
+     * API response so testing is possible without email.
      */
     public static function devCodeAllowed(): bool
     {
@@ -36,7 +36,7 @@ class Mailer
     }
 
     /**
-     * ارسال کد تایید/بازیابی.
+     * Sends a verification/recovery code.
      * @return array{ok:bool, error:string}
      */
     public static function sendCode(string $to, string $code, string $purpose = 'register'): array
@@ -54,7 +54,7 @@ class Mailer
     }
 
     /**
-     * ارسال یک ایمیل متنی از طریق SMTP.
+     * Sends a plain-text email via SMTP.
      * @return array{ok:bool, error:string}
      */
     public static function send(string $to, string $subject, string $body): array
@@ -79,9 +79,9 @@ class Mailer
             $cfg['from'] = $cfg['user'];
         }
 
-        // اعتبارسنجی مجدد فرستنده درست پیش از ارسال (دفاع در عمق؛ مستقل از
-        // اعتبارسنجی زمان ذخیره در SettingsController) + پاک‌سازی کاراکترهای
-        // کنترلی از نام نمایشی (تزریق هدر/دستور SMTP).
+        // Re-validate the sender right before sending (defense in depth;
+        // independent of the save-time validation in SettingsController) +
+        // strip control characters from the display name (header/SMTP command injection).
         if (!filter_var($cfg['from'], FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'error' => 'آدرس فرستنده نامعتبر است'];
         }
@@ -94,7 +94,7 @@ class Mailer
         }
     }
 
-    // ── پیاده‌سازی SMTP ─────────────────────────────────────
+    // ── SMTP implementation ──────────────────────────────────
 
     /** @param array{host:string,port:int,secure:string,user:string,pass:string,from:string,fname:string} $cfg */
     private static function smtpSend(string $to, string $subject, string $body, array $cfg): array
@@ -115,7 +115,7 @@ class Mailer
             $data = '';
             while (($line = fgets($fp, 515)) !== false) {
                 $data .= $line;
-                // خطوط چندتایی: کاراکتر چهارم '-' یعنی ادامه دارد
+                // Multi-line response: a '-' as the 4th character means more lines follow
                 if (strlen($line) < 4 || $line[3] === ' ') break;
             }
             return $data;
@@ -142,7 +142,7 @@ class Mailer
         if (!$expect($read(), '220')) return $fail($err);
         if (!$expect($cmd('EHLO ' . $ehloHost), '250')) return $fail($err);
 
-        // STARTTLS برای حالت tls
+        // STARTTLS for tls mode
         if ($cfg['secure'] === 'tls') {
             if (!$expect($cmd('STARTTLS'), '220')) return $fail($err);
             if (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT
@@ -152,7 +152,7 @@ class Mailer
             if (!$expect($cmd('EHLO ' . $ehloHost), '250')) return $fail($err);
         }
 
-        // AUTH LOGIN (در صورت داشتن نام کاربری)
+        // AUTH LOGIN (if a username is set)
         if ($cfg['user'] !== '') {
             if (!$expect($cmd('AUTH LOGIN'), '334')) return $fail($err);
             if (!$expect($cmd(base64_encode($cfg['user'])), '334')) return $fail($err);
@@ -172,7 +172,7 @@ class Mailer
                   . 'Content-Transfer-Encoding: base64' . "\r\n"
                   . 'Date: ' . date('r') . "\r\n";
 
-        // نقطه‌گذاری ابتدای خط (dot-stuffing) لازم نیست چون بدنه base64 است
+        // No need for leading-dot stuffing since the body is base64
         $data = $headers . "\r\n" . chunk_split(base64_encode($body));
         fwrite($fp, $data . "\r\n.\r\n");
         if (!$expect($read(), '250')) return $fail($err);
@@ -182,7 +182,7 @@ class Mailer
         return ['ok' => true, 'error' => ''];
     }
 
-    /** کدگذاری هدر غیر-ASCII (RFC 2047) */
+    /** Encodes non-ASCII headers (RFC 2047) */
     private static function encodeHeader(string $text): string
     {
         if ($text === '' || preg_match('/^[\x20-\x7E]*$/', $text)) {

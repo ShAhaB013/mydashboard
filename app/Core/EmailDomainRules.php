@@ -1,25 +1,25 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// EmailDomainRules — بررسی ایستای دامنه ایمیل (بدون DNS)
-//   • فهرست TLDهای معتبر (باید هرازگاهی دستی به‌روزرسانی شود)
-//   • تشخیص غلط املایی رایج نسبت به دامنه‌های پرکاربرد ایمیل
+// EmailDomainRules — static email domain validation (no DNS)
+//   • list of valid TLDs (needs occasional manual updates)
+//   • common typo detection against popular email domains
 // ═══════════════════════════════════════════════════════════
 
 class EmailDomainRules
 {
-    // فهرست TLDهای رایج و شناخته‌شده (snapshot ایستا؛ کامل نیست ولی پوشش
-    // gTLDهای اصلی، ccTLDهای پرکاربرد و new gTLDهای رایج را می‌دهد).
+    // List of common, known TLDs (static snapshot; not exhaustive but covers
+    // the main gTLDs, popular ccTLDs, and common new gTLDs).
     private const VALID_TLDS = [
-        // gTLDs کلاسیک
+        // classic gTLDs
         'com', 'net', 'org', 'info', 'biz', 'name', 'pro', 'mobi', 'travel',
         'jobs', 'coop', 'aero', 'museum', 'int', 'edu', 'gov', 'mil',
-        // new gTLDs پرکاربرد
+        // popular new gTLDs
         'io', 'co', 'dev', 'app', 'xyz', 'me', 'tv', 'cc', 'online', 'site',
         'store', 'tech', 'shop', 'blog', 'cloud', 'digital', 'email', 'live',
         'news', 'space', 'website', 'world', 'club', 'design', 'agency',
         'company', 'group', 'studio', 'network', 'systems', 'solutions',
         'services', 'software', 'today', 'zone', 'academy', 'center', 'expert',
-        // ccTLDs پرکاربرد
+        // popular ccTLDs
         'ir', 'us', 'uk', 'de', 'fr', 'nl', 'ru', 'cn', 'jp', 'kr', 'in',
         'br', 'ca', 'au', 'es', 'it', 'ch', 'se', 'no', 'dk', 'fi', 'pl',
         'tr', 'ae', 'sa', 'eg', 'iq', 'af', 'pk', 'id', 'my', 'sg', 'th',
@@ -28,7 +28,7 @@ class EmailDomainRules
         'eu', 'asia',
     ];
 
-    // دامنه‌های پرکاربرد ایمیل برای تشخیص غلط املایی نزدیک
+    // Popular email domains, used to detect near-typos
     private const POPULAR_DOMAINS = [
         'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com',
         'live.com', 'ymail.com', 'aol.com', 'protonmail.com', 'zoho.com',
@@ -45,8 +45,8 @@ class EmailDomainRules
         return in_array($tld, self::VALID_TLDS, true);
     }
 
-    // نزدیک‌ترین دامنه‌ی محبوب را برمی‌گرداند اگر فاصله‌ی ادیت بین ۱ تا ۲ باشد
-    // (یعنی احتمالاً غلط املایی است، نه دامنه‌ای متفاوت و معتبر)
+    // Returns the closest popular domain if the edit distance is 1-2
+    // (i.e. likely a typo, not a genuinely different valid domain)
     public static function suggestCorrection(string $domain): ?string
     {
         $domain = strtolower($domain);

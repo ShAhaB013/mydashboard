@@ -1,7 +1,7 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// JsonStore — خواندن و نوشتن فایل‌های JSON (ذخیره‌ساز فایلی آیکون/انیمیشن)
-// نام پیشین: Database (با DB — اتصال MySQL — اشتباه گرفته می‌شد)
+// JsonStore — reads/writes JSON files (file-based storage for icons/animations)
+// Previous name: Database (was confused with DB — the MySQL connection)
 // ═══════════════════════════════════════════════════════════
 
 class JsonStore
@@ -13,7 +13,7 @@ class JsonStore
         $this->filePath = $filePath;
     }
 
-    /** خواندن همه رکوردها */
+    /** Reads all records */
     public function all(): array
     {
         if (!file_exists($this->filePath)) {
@@ -24,18 +24,18 @@ class JsonStore
         return is_array($data) ? $data : [];
     }
 
-    /** ذخیره همه رکوردها — atomic write + file lock */
+    /** Saves all records — atomic write + file lock */
     public function save(array $data): bool
     {
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         $tmp  = $this->filePath . '.tmp';
 
-        // نوشتن روی فایل موقت با قفل انحصاری
+        // Write to a temp file with an exclusive lock
         if (file_put_contents($tmp, $json, LOCK_EX) === false) {
             return false;
         }
 
-        // جایگزینی atomic — اگر rename شکست بخوره فایل اصلی سالم می‌مونه
+        // Atomic replace — if rename fails, the original file stays intact
         return rename($tmp, $this->filePath);
     }
 }

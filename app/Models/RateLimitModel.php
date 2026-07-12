@@ -2,16 +2,16 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// RateLimitModel — خواندن/مدیریت رکوردهای محدودیت تلاش ورود
-//   جدول login_rate_limit (کلید ترکیبی ip + scope)
-//   scope: 'user' = ورود کاربرها (api.php) ، 'admin' = پنل
+// RateLimitModel — reads/manages login-attempt limit records
+//   login_rate_limit table (composite key ip + scope)
+//   scope: 'user' = user login (api.php), 'admin' = admin panel
 // ═══════════════════════════════════════════════════════════
 
 class RateLimitModel
 {
     /**
-     * همه رکوردها به‌همراه وضعیت بلاک و زمان باقیمانده.
-     * مرتب‌سازی: بلاک‌های فعال بالا، سپس جدیدترین تلاش.
+     * All records along with block status and remaining time.
+     * Sorting: active blocks first, then most recent attempt.
      */
     public function all(): array
     {
@@ -34,7 +34,7 @@ class RateLimitModel
         return $rows;
     }
 
-    /** رفع انسداد دستی یک IP در یک scope (حذف کامل رکورد → شمارنده صفر می‌شود) */
+    /** Manually unblocks an IP in a scope (fully deletes the record -> counter resets to zero) */
     public function unblock(string $ip, string $scope): bool
     {
         $stmt = DB::run(
@@ -44,7 +44,7 @@ class RateLimitModel
         return $stmt->rowCount() > 0;
     }
 
-    /** پاک‌سازی همه رکوردهای منقضی (بدون بلاک فعال) */
+    /** Clears all expired records (no active block) */
     public function clearInactive(): int
     {
         $stmt = DB::run(

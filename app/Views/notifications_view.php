@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// View: notifications.php — مدیریت اعلان‌ها (صفحه مستقل)
+// View: notifications.php — notification management (standalone page)
 // ═══════════════════════════════════════════════════════════
 ?>
 <!DOCTYPE html>
@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="/assets/css/datepicker.css?v=<?= asset_v(__DIR__ . '/../../assets/css/datepicker.css') ?>">
   <link rel="stylesheet" href="/assets/admin/notifications-admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/notifications-admin.css') ?>">
   <link rel="stylesheet" href="/assets/css/pagination.css?v=<?= asset_v(__DIR__ . '/../../assets/css/pagination.css') ?>">
-  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
@@ -38,7 +38,6 @@
 </head>
 <body>
 
-<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
 <header class="app-header">
   <div class="app-header__inner">
     <div class="app-header__lead"><h1 class="app-header__title">مدیریت اعلان‌ها</h1></div>
@@ -96,7 +95,6 @@
     </button>
   </div>
 
-  <!-- پنل جستجوی پیشرفته -->
   <div class="nm-adv-panel" id="nmAdvPanel">
     <div class="nm-adv-field">
       <label for="nm-df">از تاریخ</label>
@@ -131,7 +129,6 @@
 
 </div>
 
-<!-- مودال افزودن / ویرایش -->
 <div class="modal-overlay" id="notifFormModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:600px;">
     <div class="modal-head">
@@ -156,7 +153,6 @@
       <div class="field">
         <label for="nf-body">متن</label>
 
-        <!-- نوار ابزار ویرایشگر -->
         <div class="rte-toolbar" id="rteToolbar" role="toolbar" aria-label="ابزار قالب‌بندی متن">
           <button type="button" class="rte-btn" data-cmd="bold" title="پررنگ (Ctrl+B)"><b>B</b></button>
           <button type="button" class="rte-btn" data-cmd="italic" title="مورب (Ctrl+I)"><i>I</i></button>
@@ -207,7 +203,7 @@
       <div class="field">
         <label>تصویر <span style="color:var(--text-3);font-weight:400;">(اختیاری — حداکثر ۵۰ مگابایت)</span></label>
 
-        <!-- ناحیه کشیدن‌ورها‌کردن / انتخاب فایل (تک‌فایل) -->
+        <!-- Drag-and-drop / file picker area (single file) -->
         <div class="file-up-zone" id="imgUploadZone">
           <input type="file" id="imgFileInput" accept="image/*" data-change="nmFileSelect">
           <div class="file-up-illus">
@@ -221,7 +217,6 @@
           <span class="file-up-hint">حداکثر حجم فایل ۵۰ مگابایت</span>
         </div>
 
-        <!-- ردیف فایل انتخاب‌شده -->
         <div class="file-item" id="imgFileItem" hidden>
           <div class="file-item-thumb" id="imgFileThumb">
             <img id="imgPreview" src="" alt="">
@@ -282,7 +277,7 @@
         </div>
       </div>
 
-      <!-- تاریخ و ساعت انقضا — دو input جداگانه برای سازگاری با همه مرورگرها -->
+      <!-- Expiry date and time — two separate inputs for cross-browser compatibility -->
       <div class="field">
         <label>
           تاریخ و ساعت انقضا
@@ -328,7 +323,6 @@
   </div>
 </div>
 
-<!-- مودال تایید (عمومی: حذف / بستن فرم) -->
 <div class="modal-overlay" id="notifConfirmModal" role="dialog" aria-modal="true" aria-labelledby="notifConfirmTitle">
   <div class="modal confirm-modal">
     <div class="modal-head">
@@ -357,7 +351,7 @@
   </div>
 </div>
 
-<!-- Toast (محتوا با JS ساخته می‌شود) -->
+<!-- Toast (content built by JS) -->
 <div class="toast" id="toast" aria-live="assertive"></div>
 
 <script nonce="<?= csp_nonce() ?>">

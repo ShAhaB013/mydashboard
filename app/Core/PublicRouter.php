@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// PublicRouter — مسیریابی endpointهای عمومی api.php (?action=…)
-// قرینه Router پنل ادمین، اما برای کنترلرهای عمومی (بدون CSRF).
+// PublicRouter — routes public api.php endpoints (?action=…)
+// Counterpart to the admin panel Router, but for public controllers (no CSRF).
 // ═══════════════════════════════════════════════════════════
 
 class PublicRouter
@@ -13,14 +13,14 @@ class PublicRouter
     private FeedController $feed;
 
     private const ROUTES = [
-        // ── داده/نشست ─────────────────────────────────────────
+        // ── data/session ──────────────────────────────────────
         'bootstrap'         => [AppController::class,  'bootstrap'],
         'assets'            => [AppController::class,  'assets'],
         'tools'             => [AppController::class,  'tools'],
         'me'                => [AppController::class,  'me'],
         'logout'            => [AppController::class,  'logout'],
 
-        // ── احراز هویت / حساب ─────────────────────────────────
+        // ── auth / account ─────────────────────────────────────
         'login'             => [AuthController::class, 'login'],
         'forgot_password'   => [AuthController::class, 'forgotPassword'],
         'verify_reset_code' => [AuthController::class, 'verifyResetCode'],
@@ -28,13 +28,13 @@ class PublicRouter
         'change_password'   => [AuthController::class, 'changePassword'],
         'update_my_name'    => [AuthController::class, 'updateMyName'],
 
-        // ── اعلان‌های عمومی ───────────────────────────────────
+        // ── public notifications ──────────────────────────────
         'notifications'     => [FeedController::class, 'notifications'],
         'unread_count'      => [FeedController::class, 'unreadCount'],
         'mark_read'         => [FeedController::class, 'markRead'],
         'mark_all_read'     => [FeedController::class, 'markAllRead'],
 
-        // ── نشست‌های فعال کاربر (خودش) ───────────────────────
+        // ── user's own active sessions ────────────────────────
         'my_sessions'                 => [AppController::class, 'mySessions'],
         'terminate_my_session'        => [AppController::class, 'terminateMySession'],
         'terminate_my_other_sessions' => [AppController::class, 'terminateMyOther'],

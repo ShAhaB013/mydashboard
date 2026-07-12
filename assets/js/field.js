@@ -1,18 +1,17 @@
 /* ═══════════════════════════════════════════════════════════
-   field.js — helper مشترک کامپوننت فیلد (.field)
-   مدیریت حالات: idle / focus / error / success / loading / disabled
-   استفاده:
-     Field.set(input, 'error',   'قالب ایمیل نامعتبر است');
-     Field.set(input, 'success', 'درست است');
-     Field.set(input, 'loading');          // در حال بررسی…
+   field.js — shared helper for the field component (.field)
+   Manages states: idle / focus / error / success / loading / disabled
+   Usage:
+     Field.set(input, 'error',   'Invalid email format');
+     Field.set(input, 'success', 'Looks good');
+     Field.set(input, 'loading');          // checking…
      Field.set(input, 'disabled');
      Field.clear(input);                    // → idle
-   `input` می‌تواند خود المنت یا id آن (رشته) باشد.
+   `input` can be the element itself or its id (a string).
    ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  // آیکون داخل کادر (۲۰px)
   const ICONS = {
     error:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="7.5" x2="12" y2="13"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/></svg>',
@@ -29,7 +28,7 @@
     return (el && el.closest) ? el.closest('.field') : null;
   }
 
-  /* ست‌کردن حالت یک فیلد + پیام/آیکون */
+  /* Sets a field's state + message/icon */
   function set(input, state, message) {
     const el    = resolve(input);
     const field = fieldOf(el);
@@ -37,14 +36,12 @@
 
     field.setAttribute('data-state', state);
 
-    // aria برای دسترس‌پذیری
     if (el) el.setAttribute('aria-invalid', state === 'error' ? 'true' : 'false');
 
-    // آیکون داخل کادر
     const status = field.querySelector('.field-status');
     if (status) status.innerHTML = ICONS[state] || '';
 
-    // پیام زیر فیلد (فقط برای error/success)
+    // Message below the field (error/success only)
     const msgEl = field.querySelector('.field-msg');
     if (msgEl) {
       const txt = msgEl.querySelector('.field-msg-text');
@@ -58,14 +55,13 @@
       }
     }
 
-    // قفل/بازکردن ورودی
     if (el && 'disabled' in el) el.disabled = (state === 'disabled');
   }
 
   function clear(input) { set(input, 'idle'); }
 
-  /* اتصال خودکار focus/blur: فقط وقتی فیلد در حالت idle/focus است،
-     تا verdict error/success/loading/disabled بازنویسی نشود. */
+  /* Auto-binds focus/blur: only while the field is in idle/focus state,
+     so an error/success/loading/disabled verdict never gets overwritten. */
   function bind(scope) {
     const root = scope || document;
     root.querySelectorAll('.field .field-input').forEach(inp => {

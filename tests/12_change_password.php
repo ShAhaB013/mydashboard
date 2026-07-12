@@ -19,7 +19,7 @@ Assert::test('change_password بدون لاگین → 401', function () use ($BA
 Assert::test('change_password بدون CSRF header (لاگین‌شده) → 403', function () use ($BASE, $username, $oldPass) {
     $http = new HttpClient($BASE);
     $http->loginAs($username, $oldPass);
-    $http->setCsrfToken(null); // عمدا حذف هدر CSRF
+    $http->setCsrfToken(null); // intentionally drop the CSRF header
     $res = $http->postJson('/api.php?action=change_password', [
         'current_password' => $oldPass, 'new_password' => 'ZzTest!New2026!', 'confirm_password' => 'ZzTest!New2026!',
     ]);

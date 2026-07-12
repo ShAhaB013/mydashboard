@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// DecoController — هندل کردن API انیمیشن‌های کارت
+// DecoController — handles the card-animation API
 // ═══════════════════════════════════════════════════════════
 
 class DecoController
@@ -16,7 +16,7 @@ class DecoController
         $this->request   = $request;
     }
 
-    /** ذخیره (افزودن یا ویرایش) انیمیشن */
+    /** Save (add or edit) an animation */
     public function save(): void
     {
         $key = $this->request->input('key');
@@ -37,7 +37,7 @@ class DecoController
             : Response::error('خطا در ذخیره انیمیشن');
     }
 
-    /** حذف انیمیشن */
+    /** Delete an animation */
     public function delete(): void
     {
         $key = $this->request->input('key');

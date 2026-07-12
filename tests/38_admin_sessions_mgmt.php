@@ -50,7 +50,7 @@ Assert::test('terminate_user_sessions روی خود ادمین → نشست جا
     $adminRow = Fixtures::findUserByUsername($ACC['admin']['username']);
     $res = $http->postJson('/admin.php?api=terminate_user_sessions', ['user_id' => $adminRow['id']]);
     Assert::jsonOk($res, 'terminate_user_sessions روی خود ادمین باید موفق باشد');
-    // اگر نشست جاری admin.php حذف شده بود، درخواست بعدی 401 می‌گرفت
+    // if the current admin.php session had been deleted, the next request would get 401
     $res2 = $http->get('/admin.php?api=list_sessions');
     Assert::jsonOk($res2, 'نشست جاری ادمین باید بعد از عملیات هنوز معتبر باشد (except session_id فعلی)');
 });

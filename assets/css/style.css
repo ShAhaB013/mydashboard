@@ -21,11 +21,11 @@
   --radius-xs: 10px;
   --radius-sm: 10px;
   --radius-lg: 10px;
-  --radius-pill: 999px; /* فقط کنترل‌های کاملا گرد و کپسولی: دکمه‌های auth، سگمنت پیشرفت، toggle */
+  --radius-pill: 999px; /* only for fully round/capsule controls: auth buttons, progress segments, toggle */
 
   --transition:        0.22s cubic-bezier(0.4,0,0.2,1);
   --transition-bounce: 0.32s cubic-bezier(0.34,1.56,0.64,1);
-  --theme-fade:        0.32s; /* مدت محو نرم تغییر تم (هماهنگ با theme.js) */
+  --theme-fade:        0.32s; /* smooth theme-fade duration (kept in sync with theme.js) */
   --header-h: 72px;
 
   --cat-img-color:#8b5cf6;  --cat-img-bg:rgba(139,92,246,.08);  --cat-img-border:rgba(139,92,246,.25);  --cat-img-shadow:rgba(139,92,246,.18);  --cat-img-light:#a78bfa;
@@ -89,23 +89,26 @@
 }
 
 /* =============================================================================
-   سوییچ تم — محو نرم و بدون لگ
-   مسیر اصلی (مرورگرهای جدید): View Transitions API در theme.js یک کراس‌فید
-   کل صفحه روی GPU انجام می‌دهد؛ زیر آن کلاس .theme-instant همه ترنزیشن‌های
-   هر-المان را خاموش می‌کند تا repaint موازی نباشد (روی داشبورد سنگین هم روان).
-   فالبک (مرورگر قدیمی): کلاس .theme-fade فقط سه ویژگی سطح را ترنزیشن می‌دهد.
-   با prefers-reduced-motion، محو غیرفعال و تعویض آنی می‌شود.
+   Theme switch — smooth fade, no lag
+   Primary path (modern browsers): the View Transitions API in theme.js does a
+   full-page GPU crossfade; underneath it, the .theme-instant class turns off
+   all per-element transitions so repaints don't run in parallel (stays smooth
+   even on a heavy dashboard).
+   Fallback (older browsers): the .theme-fade class only transitions three
+   surface properties.
+   With prefers-reduced-motion, the fade is disabled and the switch is instant.
    ============================================================================= */
-/* زیر اسنپ‌شات View Transition، هیچ ترنزیشن هر-المانی اجرا نشود */
+/* Under the View Transition snapshot, no per-element transitions should run */
 html.theme-instant * { transition: none !important; }
-/* مدت و منحنی کراس‌فید View Transition */
+/* Duration and easing curve of the View Transition crossfade */
 ::view-transition-old(root),
 ::view-transition-new(root) { animation-duration: .32s; animation-timing-function: ease; }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* فقط سه ویژگی سطح ترنزیشن می‌شوند تا روی صفحات سنگین (داشبورد با ده‌ها
-     کارت و SVG) هم بدون لگ بماند. fill/stroke/transform/opacity عمدا حذف
-     شده‌اند چون repaint SVGها روی موبایل/دیوایس ضعیف باعث افت فریم می‌شد. */
+  /* Only three surface properties are transitioned so it stays lag-free even
+     on heavy pages (dashboard with dozens of cards and SVGs). fill/stroke/
+     transform/opacity are deliberately excluded because repainting SVGs on
+     mobile/low-end devices was dropping frames. */
   html.theme-fade,
   html.theme-fade *,
   html.theme-fade *::before,
@@ -114,7 +117,7 @@ html.theme-instant * { transition: none !important; }
                 color            var(--theme-fade) ease,
                 border-color     var(--theme-fade) ease !important;
   }
-  /* آیکون آفتاب/ماه: جابه‌جایی نرم و فنری (مستثنا از قانون بالا) */
+  /* Sun/moon icon: smooth spring-like transition (exempt from the rule above) */
   html.theme-fade .theme-toggle-icon .icon-sun,
   html.theme-fade .theme-toggle-icon .icon-moon {
     transition: opacity .4s ease, transform .55s cubic-bezier(.34, 1.56, .64, 1) !important;
@@ -122,8 +125,9 @@ html.theme-instant * { transition: none !important; }
 }
 
 /* =============================================================================
-   انیمیشن اختصاصی آیکون تم زیر View Transitions — چرخش نرم آفتاب↔ماه
-   آیکون از snapshot ریشه جدا می‌شود و حرکت مستقل و روان می‌گیرد.
+   Dedicated theme-icon animation under View Transitions — smooth sun<->moon
+   rotation. The icon is separated from the root snapshot and gets its own
+   independent, smooth motion.
    ============================================================================= */
 @media (prefers-reduced-motion: no-preference) {
   .theme-toggle-icon { view-transition-name: theme-icon; }
@@ -151,7 +155,7 @@ html.theme-instant * { transition: none !important; }
   src: url('../../fonts/vazir-font/Vazir-Variable.woff2') format('woff2');
   font-weight: 100 900; font-style: normal; font-display: swap;
 }
-/* فونت عناوین (بخش‌های تیتر) — IRANSans Bold */
+/* Heading font (section titles) — IRANSans Bold */
 @font-face {
   font-family: 'HeadingFont';
   src: url('../../fonts/IRANSans/IRANSansWeb_Bold.woff') format('woff');
@@ -160,8 +164,9 @@ html.theme-instant * { transition: none !important; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
-/* اسکرول‌بار صفحه: باریک و ملایمِ هماهنگ با تم. وقتی محتوا کوتاه است و اسکرول
-   لازم نیست هیچ نوار/فضای رزروی سمت راست دیده نمی‌شود (بدون scrollbar-gutter). */
+/* Page scrollbar: thin and subtle, theme-matched. When content is short and
+   scrolling isn't needed, no bar/reserved space shows on the right (no
+   scrollbar-gutter). */
 html { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
 html::-webkit-scrollbar { width: 9px; }
 html::-webkit-scrollbar-track { background: transparent; }
@@ -190,8 +195,9 @@ body {
   background-color: var(--aurora-bg);
 }
 
-/* لایه Aurora — لایه ثابت کامپوزیت‌شده (به‌جای background-attachment:fixed که هنگام اسکرول
-   هر فریم repaint می‌شد و لگ می‌داد). translateZ(0) آن را به لایه GPU می‌برد تا اسکرول repaintش نکند. */
+/* Aurora layer — a fixed, composited layer (instead of background-attachment:fixed,
+   which repainted every frame during scroll and caused lag). translateZ(0) promotes
+   it to a GPU layer so scrolling doesn't repaint it. */
 body::before {
   content: '';
   position: fixed; inset: 0; z-index: 0;
@@ -206,7 +212,7 @@ body::before {
   transition: background 0.4s ease;
 }
 
-/* لایه نویز — ثابت و کامپوزیت‌شده */
+/* Noise layer — fixed and composited */
 body::after {
   content: '';
   position: fixed; inset: 0; z-index: 0;
@@ -221,27 +227,29 @@ body::after {
 header, main { position: relative; z-index: 1; }
 
 /* =============================================================================
-   Header — کامپوننت یکپارچه .app-header در بخش بالاتر تعریف شده است.
-   (قواعد قدیمی header/.header-container/h1 حذف شدند چون همه صفحات به
-   .app-header مهاجرت کرده‌اند.) .header-actions فقط ظرف دکمه‌های صفحه اصلی است.
+   Header — the unified .app-header component is defined further up.
+   (Old header/.header-container/h1 rules were removed since all pages have
+   migrated to .app-header.) .header-actions is just the button container for
+   the main page.
    ============================================================================= */
 .header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-inline-start: auto; }
 
 /* =============================================================================
-   هدر یکپارچه (سبک تلگرام) — مشترک با admin.css (پنل مدیریت)
-   نوار چسبان شیشه‌ای تمام‌عرض: [بازگشت] عنوان … [دکمه‌های آیکونی دایره‌ای]
-   هر تغییری اینجا باید در admin.css هم آینه شود.
+   Unified header (Telegram-style) — shared with admin.css (admin panel)
+   Full-width sticky glass bar: [Back] title ... [round icon buttons]
+   Any change here must be mirrored in admin.css.
    ============================================================================= */
-/* نوار شناور جمع‌وجور (pill): پس‌زمینه/قاب روی __inner است تا مثل یک کارت
-   گرد بالای صفحه شناور شود؛ پدینگ افقی __inner با پدینگ محتوای صفحه (main: 28px)
-   یکی است تا دکمه‌ها دقیقا با ستون محتوا هم‌تراز شوند. */
+/* Compact floating (pill) bar: background/border are on __inner so it floats
+   like a rounded card at the top of the page; __inner's horizontal padding
+   matches the page content padding (main: 28px) so the buttons align exactly
+   with the content column. */
 .app-header {
   position: sticky; top: 0; z-index: 100;
   padding-top: 12px; background: transparent;
   transition: padding-top 0.28s cubic-bezier(.4,0,.2,1), background 0.4s ease;
 }
 .app-header__inner {
-  position: relative; /* مرجع overlay جستجو (inset:0) تا دقیقا روی همین نوار بنشیند */
+  position: relative; /* positioning reference for the search overlay (inset:0) so it sits exactly on this bar */
   max-width: var(--page-w, 1100px); margin: 0 auto; height: 50px; padding: 0 var(--page-pad, 28px);
   display: flex; align-items: center; gap: 4px;
   background: var(--header-bg);
@@ -252,8 +260,9 @@ header, main { position: relative; z-index: 1; }
   transition: background 0.4s ease, border-color 0.4s ease,
               box-shadow 0.28s ease, border-radius 0.28s ease;
 }
-/* حالت چسبیده هنگام اسکرول (کلاس .is-stuck را اسکریپت اضافه می‌کند): گپ بالا حذف،
-   گوشه‌های بالا صاف می‌شوند تا نوار به لبه بچسبد، و یک سایه‌ی کم‌رنگ زیر آن می‌نشیند. */
+/* Stuck state on scroll (script adds the .is-stuck class): top gap removed,
+   top corners go flat so the bar sits flush against the edge, and a subtle
+   shadow sits beneath it. */
 .app-header.is-stuck { padding-top: 0; }
 .app-header.is-stuck .app-header__inner {
   border-top-left-radius: 0; border-top-right-radius: 0;
@@ -266,18 +275,18 @@ header, main { position: relative; z-index: 1; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   display: flex; align-items: center; gap: 9px; min-width: 0; margin: 0 6px;
 }
-/* نقطهٔ تزئینیِ کنار عنوان روی __inner گذاشته می‌شود، نه روی __title: چون __title
-   برای ellipsis عنوان‌های بلند overflow:hidden دارد و لبهٔ نقطهٔ گرد را می‌بُرید
-   (به‌ویژه وقتی چیدمان روی نیم‌پیکسل می‌نشست و اسکرول وجود نداشت). __inner
-   overflow:visible است پس نقطه کامل دیده می‌شود. */
+/* The decorative dot next to the title is placed on __inner, not on __title:
+   __title has overflow:hidden for ellipsis on long titles, which was clipping
+   the round dot's edge (especially when the layout landed on a half-pixel and
+   there was no scrollbar). __inner has overflow:visible so the dot shows fully. */
 .app-header__inner::before {
   content: ''; width: 8px; height: 8px; border-radius: 50%;
   background: var(--color-accent); flex-shrink: 0; align-self: center;
 }
 .app-header__actions { display: flex; align-items: center; gap: 2px; margin-inline-start: auto; flex-shrink: 0; }
-/* خوشه‌ی عنوان (عنوان + چیپ شمارنده) — در گوشه‌ی شروع (راست در RTL) می‌ماند */
+/* Title cluster (title + count chip) — stays at the leading edge (right in RTL) */
 .app-header__lead { display: flex; align-items: center; gap: 9px; min-width: 0; }
-/* شمارنده‌ی کنار عنوان (مثل تعداد اعلان‌ها) — جایگزین تایتل تکراری در بدنه */
+/* Counter next to the title (e.g. notification count) — replaces a duplicate title in the body */
 .app-header__count {
   flex-shrink: 0; font-size: 12px; font-weight: 700;
   background: var(--color-accent-bg); color: var(--color-accent);
@@ -285,7 +294,7 @@ header, main { position: relative; z-index: 1; }
   border-radius: var(--radius-sm); padding: 1px 9px; line-height: 1.7;
 }
 
-/* دکمه آیکونی دایره‌ای (سبک تلگرام) — مشترک با theme-toggle/bell/user */
+/* Round icon button (Telegram-style) — shared with theme-toggle/bell/user */
 .hdr-btn {
   position: relative; width: 40px; height: 40px; flex-shrink: 0; padding: 0;
   display: inline-flex; align-items: center; justify-content: center;
@@ -299,9 +308,10 @@ header, main { position: relative; z-index: 1; }
 .hdr-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .hdr-btn svg { width: 21px; height: 21px; flex-shrink: 0; }
 
-/* ── افکت ripple (موج کلیک، سبک تلگرام) — روی همه آیتم‌های تعاملی به‌جز کارت‌ها ──
-   استثناها: دکمه زنگ (بج اعلان بیرون از کادر است → overflow آن را می‌برد) و
-   کارت‌های ابزار (.card) که عمدا ریپل ندارند. مشترک با admin.css. */
+/* -- Ripple effect (click wave, Telegram-style) — on all interactive items except cards --
+   Exceptions: the bell button (the notification badge sits outside the box,
+   so overflow would clip it) and tool cards (.card), which intentionally have
+   no ripple. Shared with admin.css. */
 .hdr-btn, .user-menu-btn, .chip, .auth-btn, .user-menu-item,
 .notif-drop-item, .login-submit-btn, .profile-submit-btn, .login-tab,
 .pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-row, .notif-search-btn,
@@ -326,7 +336,7 @@ header, main { position: relative; z-index: 1; }
 @keyframes ripple { to { transform: scale(2.4); opacity: 0; } }
 
 /* =============================================================================
-   Theme Toggle Button — دایره آیکون‌دار
+   Theme Toggle Button — icon circle
    ============================================================================= */
 .theme-toggle {
   position: relative;
@@ -354,7 +364,7 @@ header, main { position: relative; z-index: 1; }
   display: flex; align-items: center; justify-content: center;
   pointer-events: none;
 }
-/* sun — در حالت light */
+/* sun — in light mode */
 .theme-toggle-icon .icon-sun {
   position: absolute;
   width: 17px; height: 17px;
@@ -363,7 +373,7 @@ header, main { position: relative; z-index: 1; }
   transform: scale(1) rotate(0deg);
   transition: opacity .4s ease, transform .55s cubic-bezier(.34, 1.56, .64, 1);
 }
-/* moon — در حالت dark */
+/* moon — in dark mode */
 .theme-toggle-icon .icon-moon {
   position: absolute;
   width: 17px; height: 17px;
@@ -384,7 +394,7 @@ header, main { position: relative; z-index: 1; }
 }
 
 /* =============================================================================
-   Back Button — دکمه بازگشت یکپارچه (هدر همه زیرصفحات)
+   Back Button — unified back button (header of all subpages)
    ============================================================================= */
 .btn-back {
   display: inline-flex; align-items: center; gap: 7px;
@@ -401,31 +411,31 @@ header, main { position: relative; z-index: 1; }
   color: var(--color-accent);
   border-color: var(--color-accent);
   background: var(--color-accent-bg);
-  transform: translateX(3px); /* RTL: حرکت نرم به‌سمت راست (جهت بازگشت) */
+  transform: translateX(3px); /* RTL: smooth motion to the right (direction of "back") */
 }
 .btn-back:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .btn-back svg { width: 15px; height: 15px; flex-shrink: 0; }
 @media (max-width: 480px) {
   .btn-back { padding: 0 11px; }
-  .btn-back .btn-back-label { display: none; } /* روی موبایل فقط آیکون */
+  .btn-back .btn-back-label { display: none; } /* icon only on mobile */
 }
 
 /* =============================================================================
-   Search — آیکون همیشگی (#searchToggle) + نوار جستجوی تمام‌عرض (سبک تلگرام)
-   با کلیک روی آیکون، نوار جستجو روی محتوای هدر باز می‌شود و کارت‌ها فیلتر می‌شوند.
+   Search — persistent icon (#searchToggle) + full-width search bar (Telegram-style)
+   Clicking the icon opens the search bar over the header content and filters the cards.
    ============================================================================= */
 .header-search {
   position: absolute; inset: 0;
   display: flex; align-items: center; gap: 6px;
   padding: 0 8px;
-  border-radius: inherit; /* رادیوس را از .app-header__inner می‌گیرد تا با همه‌ی حالت‌های هدر (شناور/چسبیده) هماهنگ بماند */
+  border-radius: inherit; /* inherits the radius from .app-header__inner so it stays consistent across all header states (floating/stuck) */
   overflow: hidden;
-  background: var(--color-bg-card); /* مات تا عنوان/دکمه‌های زیرش دیده نشوند */
+  background: var(--color-bg-card); /* opaque so the title/buttons underneath aren't visible through it */
   opacity: 0; visibility: hidden; transform: translateY(-8px);
   transition: opacity var(--transition), transform var(--transition), visibility var(--transition);
   z-index: 5;
 }
-/* دکمه جستجو با بوردر — هماهنگ با دکمه زنگ/تم */
+/* Bordered search button — consistent with the bell/theme buttons */
 #searchToggle { background: var(--color-bg-card); border: 1.5px solid var(--color-border); }
 #searchToggle:hover { border-color: var(--color-accent); }
 .app-header.searching .header-search { opacity: 1; visibility: visible; transform: none; }
@@ -437,9 +447,9 @@ header, main { position: relative; z-index: 1; }
   color: var(--color-text-primary);
 }
 .header-search input::placeholder { color: var(--color-text-muted); }
-/* دکمه پاک‌کردن متن (درون نوار) */
+/* Clear-text button (inside the bar) */
 .clear-button {
-  position: relative; flex-shrink: 0; /* relative تا موج ریپل داخل خود دکمه قرار گیرد */
+  position: relative; flex-shrink: 0; /* relative so the ripple wave stays contained inside the button */
   width: 22px; height: 22px; border-radius: 50%; background: var(--color-text-muted);
   border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
   padding: 0; opacity: 0; pointer-events: none; transform: scale(.85);
@@ -448,7 +458,7 @@ header, main { position: relative; z-index: 1; }
 .clear-button.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
 .clear-button:hover { background: var(--color-text-secondary); transform: scale(1.12); }
 .clear-button svg { width: 10px; height: 10px; stroke: #fff; fill: none; display: block; }
-/* دکمه بستن نوار جستجو — دایره‌ای مثل دکمه‌های هدر */
+/* Close search-bar button — round like the header buttons */
 .header-search-close {
   flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
   border: none; background: transparent; color: var(--color-text-secondary);
@@ -484,14 +494,16 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
 .section-title { font-family: 'HeadingFont', 'DashboardFont', sans-serif; font-size: 14px; font-weight: 600; color: var(--color-text-secondary); letter-spacing: .3px; text-transform: uppercase; }
 .section-count { font-size: 12px; font-weight: 600; background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); border-radius: var(--radius-sm); padding: 2px 9px; }
 
-/* Grid — کارت‌ها تمام‌عرض ناحیه محتوا را پر می‌کنند تا با هدر بخش (و دکمه مرتب‌سازی) هم‌تراز شوند */
-/* auto-fit (نه auto-fill): ستون‌های خالی جمع می‌شوند تا وقتی کارت‌ها کم‌اند و یک
-   ردیف پر نمی‌شود، به‌جای جاماندنِ فضای خالیِ یک‌طرفه، متقارن وسط بیایند.
-   max ستون = 1fr (نه طول ثابت) تا تعداد ستون‌ها از min=264 حساب شود و تراکم
-   گرید پر تغییری نکند (کروم برای طولِ ثابت تعداد را از max حساب می‌کند). */
+/* Grid — cards fill the full width of the content area so they align with the section header (and the reorder button) */
+/* auto-fit (not auto-fill): empty columns collapse so that when there are few
+   cards and a row isn't full, they center symmetrically instead of leaving
+   empty space on one side. Column max = 1fr (not a fixed length) so the
+   column count is computed from min=264 and the grid's fill density doesn't
+   change (Chrome computes the count from max when it's a fixed length). */
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(264px, 1fr)); gap: 18px; }
-/* سقف عرض کارت + وسط‌چینی داخل ستون: در گریدِ پر، کارت ستون را پر می‌کند؛ وقتی
-   کارت‌ها کم‌اند و ستون‌ها پهن می‌شوند، کارت از حدی پهن‌تر نشده و وسط ستون می‌نشیند. */
+/* Card width cap + centering within the column: in a full grid, the card
+   fills the column; when there are few cards and columns widen, the card
+   won't grow past this limit and centers within the column. */
 .grid > .card, .grid > .card-add-tile { width: 100%; max-width: 420px; margin-inline: auto; }
 
 /* =============================================================================
@@ -505,7 +517,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   box-shadow: 0 2px 10px rgba(15,23,42,.05);
   animation: cardIn .3s cubic-bezier(.4,0,.2,1) both;
 
-  /* ── بهینه‌سازی رندر برای لیست‌های بزرگ ── */
+  /* -- Render optimization for large lists -- */
   contain: layout paint style;
   content-visibility: auto;
   contain-intrinsic-size: auto 176px;
@@ -518,7 +530,7 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   --card-shadow:  var(--color-shadow-card);
 }
 
-/* will-change فقط هنگام تعامل — جلوگیری از مصرف بی‌مورد حافظه GPU */
+/* will-change only during interaction — avoids unnecessary GPU memory usage */
 .card:hover,
 .card:focus-visible,
 .card:hover::before,
@@ -526,22 +538,24 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   will-change: transform;
 }
 
-/* متوقف کردن انیمیشن‌های SVG برای کارت‌های خارج viewport — صرفه‌جویی CPU */
+/* Pause SVG animations for cards outside the viewport — saves CPU */
 .card.card--offscreen .card-deco-wrap *,
 .card.card--offscreen .card-corner-deco * {
   animation-play-state: paused !important;
 }
 
-/* حین اسکرول همه انیمیشن‌های deco موقتا متوقف می‌شوند تا repaintها با اسکرول
-   رقابت نکنند و صفحه روان بماند (js کلاس is-scrolling را روی <html> می‌گذارد). */
+/* During scroll, all deco animations are temporarily paused so repaints don't
+   compete with scrolling and the page stays smooth (JS adds the is-scrolling
+   class on <html>). */
 html.is-scrolling .card-deco-wrap *,
 html.is-scrolling .card-corner-deco * {
   animation-play-state: paused !important;
 }
 
-/* حالت «آرام» (تطبیقی): وقتی تعداد کارت‌ها از حد آستانه بیشتر شد، انیمیشن deco
-   به‌صورت پیش‌فرض ساکن است و فقط کارت زیر ماوس/فوکوس انیمیشن دارد — برای روانی
-   با ۵۰ تا ۱۰۰+ کارت. js کلاس grid--calm را روی گرید toggle می‌کند. */
+/* "Calm" (adaptive) mode: once the card count passes a threshold, deco
+   animations are idle by default and only the hovered/focused card animates
+   — keeps things smooth with 50 to 100+ cards. JS toggles the grid--calm
+   class on the grid. */
 .grid--calm .card-deco-wrap * {
   animation-play-state: paused !important;
 }
@@ -549,7 +563,7 @@ html.is-scrolling .card-corner-deco * {
 .grid--calm .card:focus-within .card-deco-wrap * {
   animation-play-state: running !important;
 }
-/* در حالت آرام هم حین اسکرول کارت hover‌شده متوقف می‌ماند */
+/* Even in calm mode, the hovered card stays paused during scroll */
 html.is-scrolling .grid--calm .card:hover .card-deco-wrap *,
 html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   animation-play-state: paused !important;
@@ -613,7 +627,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .card:hover .corner-dot-3{opacity:.30} .card:hover .corner-dot-4{opacity:.20}
 .card:hover .corner-dot-5{opacity:.14}
 
-/* Card content — متن و آیکون بالای لایه انیمیشن (deco) قرار می‌گیرند */
+/* Card content — text and icon sit above the deco animation layer */
 .card-icon, .card-badge, .card > h3, .card > p { position: relative; z-index: 1; }
 .card-icon {
   width: 44px; height: 44px; background: var(--card-bg); border: 1.5px solid var(--card-border);
@@ -644,7 +658,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .card:hover .card-arrow { opacity: 1; transform: translateX(0); background: var(--card-bg-h); }
 .card:focus-visible { outline: 2.5px solid var(--card-color); outline-offset: 3px; }
 
-/* Bottom deco — لایه زیرین انیمیشن (z-index: 0) که زیر متن قرار می‌گیرد */
+/* Bottom deco — the underlying animation layer (z-index: 0) that sits below the text */
 .card-deco-wrap {
   position: absolute; bottom: 0; left: 0; right: 0; height: 64px; z-index: 0;
   pointer-events: none; overflow: hidden;
@@ -683,7 +697,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 /* =============================================================================
    Skeleton & Empty State
    ============================================================================= */
-/* اسکلت هم‌ساختار با کارت واقعی (آیکون/بج/عنوان/خطوط) + shimmer جاروبی */
+/* Skeleton mirrors the real card's structure (icon/badge/title/lines) + sweeping shimmer */
 .skeleton-card {
   background: var(--color-bg-card); border: 1.5px solid var(--color-border);
   border-radius: var(--radius-lg); padding: 26px 24px 28px;
@@ -697,7 +711,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .skeleton-card .sk-title { width: 68%; height: 18px; margin-bottom: 14px; }
 .skeleton-card .sk-line  { width: 100%; height: 12px; margin-bottom: 9px; }
 .skeleton-card .sk-line--short { width: 52%; margin-bottom: 0; }
-/* جاروب نور روی هر قطعه (با تاخیر پلکانی برای حس موجی) */
+/* Light sweep over each piece (staggered delay for a wave-like feel) */
 .skeleton-card .sk::after {
   content: ''; position: absolute; inset: 0; transform: translateX(100%);
   background: linear-gradient(90deg, transparent, var(--sk-glow), transparent);
@@ -706,14 +720,14 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .skeleton-card .sk-badge::after { animation-delay: .08s; }
 .skeleton-card .sk-title::after { animation-delay: .16s; }
 .skeleton-card .sk-line::after  { animation-delay: .24s; }
-/* sentinel نامرئی برای لود تدریجی کارت‌ها */
+/* Invisible sentinel for progressive card loading */
 .grid-sentinel { grid-column: 1 / -1; height: 1px; }
 @media (prefers-reduced-motion: reduce) {
   .skeleton-card .sk::after { animation: none; }
   .skeleton-card { animation: shimmer 1.6s ease-in-out infinite; }
 }
 
-/* اسکلت ردیفی برای لیست‌ها (دراپ‌داون اعلان‌ها، نشست‌های حساب کاربری) */
+/* Row skeleton for lists (notifications dropdown, account sessions) */
 .sk-list-item {
   display: flex; align-items: center; gap: 12px; padding: 12px 16px;
   --sk-base: rgba(100,116,139,.13); --sk-glow: rgba(255,255,255,.55);
@@ -761,7 +775,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
    Responsive
    ============================================================================= */
 @media (max-width: 768px) {
-  /* هدر یکپارچه روی موبایل: عنوان + آیکون‌ها در یک ردیف؛ جستجو روی هدر باز می‌شود */
+  /* Unified header on mobile: title + icons in one row; search opens over the header */
   .app-header { padding-top: 8px; }
   .app-header__inner { height: 46px; padding: 0 14px; }
   .app-header__title { flex: 1; min-width: 0; font-size: 15px; margin: 0 4px; }
@@ -787,7 +801,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .clear-button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
 /* =============================================================================
-   Scrollbar سفارشی
+   Custom scrollbar
    ============================================================================= */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -798,7 +812,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .gen-line{stroke:var(--color-accent);opacity:.4;animation:pulseFade 3s ease-in-out infinite;}
 
 /* =============================================================================
-   انیمیشن‌های کارت — موج‌ها (waves)
+   Card animations — waves
    ============================================================================= */
 .wave{fill:none;stroke:var(--card-color);stroke-linecap:round;stroke-dasharray:12 8;animation:waveFlow 2s linear infinite}
 .wave-1{stroke-width:2;opacity:.7;animation-delay:0s}
@@ -807,7 +821,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes waveFlow{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
 
 /* =============================================================================
-   کد (code)
+   code
    ============================================================================= */
 .code-line{fill:var(--card-color);opacity:0;animation:codeType 3s ease-in-out infinite}
 .code-kw{fill:var(--card-color);opacity:0;animation:codeGlow 3s ease-in-out infinite}
@@ -817,7 +831,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes codeGlow{0%,100%{opacity:0}20%{opacity:.9}55%{opacity:.7}80%{opacity:0}}
 
 /* =============================================================================
-   رادار (radar)
+   radar
    ============================================================================= */
 .radar-bg{fill:none;stroke:var(--card-color);stroke-width:1;opacity:.2}
 .radar-cross{stroke:var(--card-color);stroke-width:.7;opacity:.18}
@@ -831,7 +845,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes radarPing{0%{opacity:0}5%{opacity:1}40%{opacity:.6}100%{opacity:0}}
 
 /* =============================================================================
-   مدار (orbit)
+   orbit
    ============================================================================= */
 .orb-ring{fill:none;stroke:var(--card-color);stroke-width:1;opacity:.25}
 .orb-center{fill:var(--card-color);opacity:.8;animation:pulseFade 2s ease-in-out infinite}
@@ -843,7 +857,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes orbitCCW{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
 
 /* =============================================================================
-   سیگنال (signal)
+   signal
    ============================================================================= */
 .sig-arc{fill:none;stroke:var(--card-color);stroke-linecap:round;opacity:0;animation:sigPulse 2.4s ease-out infinite}
 .sig-dot{fill:var(--card-color);animation:pulseFade 2.4s ease-in-out infinite}
@@ -853,7 +867,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes sigPulse{0%{opacity:0}25%{opacity:.9}65%{opacity:.5}100%{opacity:0}}
 
 /* =============================================================================
-   ذرات (particles)
+   particles
    ============================================================================= */
 .ptcl{fill:var(--card-color);opacity:0;animation:particleFloat 2.5s ease-out infinite}
 .pt-1{animation-delay:0s}.pt-2{animation-delay:.35s}.pt-3{animation-delay:.7s}.pt-4{animation-delay:1.05s}
@@ -861,7 +875,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes particleFloat{0%{opacity:0;transform:translateY(0) scale(1)}15%{opacity:.9;transform:translateY(-6px) scale(1.1)}100%{opacity:0;transform:translateY(-38px) scale(.3)}}
 
 /* =============================================================================
-   شبکه (grid)
+   grid
    ============================================================================= */
 .grid-ln{stroke:var(--card-color);stroke-width:.7;opacity:.15}
 .grid-cell{fill:var(--card-color);opacity:0;animation:gridBlink 3.5s ease-in-out infinite}
@@ -881,7 +895,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes dnaRung{0%,100%{opacity:0}30%{opacity:.7}55%{opacity:.5}}
 
 /* =============================================================================
-   ضربان (pulse/ECG)
+   pulse/ECG
    ============================================================================= */
 .ecg-line{fill:none;stroke:var(--card-color);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:280;stroke-dashoffset:280;animation:ecgDraw 2.8s ease-in-out infinite}
 .ecg-glow{fill:none;stroke:var(--card-color);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:280;stroke-dashoffset:280;opacity:.2;animation:ecgDraw 2.8s ease-in-out infinite}
@@ -890,7 +904,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes ecgPing{0%,50%{opacity:0;transform:scale(0)}55%{opacity:1;transform:scale(1.6)}70%{opacity:.6;transform:scale(1)}100%{opacity:0}}
 
 /* =============================================================================
-   ستاره‌ها / فضا (stars)
+   stars / space
    ============================================================================= */
 .star-dot{fill:var(--card-color);animation:starTwinkle 2s ease-in-out infinite}
 .sd-1{animation-delay:0s;r:2.5}.sd-2{animation-delay:.3s;r:1.5}.sd-3{animation-delay:.6s;r:2}
@@ -900,7 +914,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes starTwinkle{0%,100%{opacity:.1;transform:scale(.6)}50%{opacity:1;transform:scale(1.2)}}
 
 /* =============================================================================
-   لینک خارجی
+   external link
    ============================================================================= */
 .card-external-badge {
   position: absolute;
@@ -925,7 +939,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 
 /* =============================================================================
-   Auth Area — دکمه ورود/خروج در هدر
+   Auth Area — login/logout button in the header
    ============================================================================= */
 .auth-area {
   display: flex;
@@ -1068,8 +1082,8 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   flex-direction: column;
   gap: 6px;
 }
-/* لیبل متحرک Material: حالت استراحت = داخل باکس مثل placeholder،
-   با فوکوس یا پرشدن به لبه بالای کادر شناور می‌شود و آنجا می‌ماند */
+/* Material-style floating label: resting state = inside the box like a
+   placeholder; on focus or fill it floats up to the box's top edge and stays there */
 .login-input-wrap > label {
   position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
   z-index: 1; padding: 0 6px;
@@ -1105,7 +1119,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-bg);
 }
-/* رفع به‌هم‌ریختن تم هنگام Autofill مرورگر (پس‌زمینه زرد/آبی پیش‌فرض) */
+/* Fix theme breakage during browser autofill (default yellow/blue background) */
 .login-field input:-webkit-autofill,
 .login-field input:-webkit-autofill:hover,
 .login-field input:-webkit-autofill:focus,
@@ -1120,11 +1134,11 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-field input:-webkit-autofill:focus {
   border-color: var(--color-accent);
 }
-/* placeholder تا قبل از فوکوس پنهان است تا با لیبل استراحت‌کرده هم‌پوشانی نکند */
+/* Placeholder stays hidden until focus so it doesn't overlap the resting label */
 .login-field input::placeholder { color: transparent; }
 .login-field input:focus::placeholder { color: var(--color-text-muted); }
 
-/* نمایش/مخفی کردن رمز در مودال ورود */
+/* Show/hide password in the login modal */
 .login-pass-wrap { position: relative; }
 .login-pass-wrap input { padding-left: 42px; }
 .login-pass-toggle {
@@ -1137,7 +1151,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-pass-toggle:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .login-pass-toggle svg { width: 16px; height: 16px; pointer-events: none; }
 
-/* دکمه تولید رمز تصادفی (کنار دکمه چشم، سمت چپ فیلد) */
+/* Random password generator button (next to the eye button, at the field's left) */
 .login-pass-gen {
   position: absolute; left: 38px; top: 50%; transform: translateY(-50%);
   background: none; border: none; cursor: pointer; color: var(--color-text-muted);
@@ -1148,10 +1162,10 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-pass-gen:active { transform: translateY(-50%) scale(.9) rotate(-12deg); }
 .login-pass-gen:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .login-pass-gen svg { width: 16px; height: 16px; pointer-events: none; }
-/* فضای دو دکمه (چشم + تولید) در فیلد رمز ثبت‌نام */
+/* Space for both buttons (eye + generate) in the signup password field */
 .login-pass-wrap.has-gen input.has-icon { padding-left: 68px; }
 
-/* ── چک‌لیست زنده‌ی قوانین رمز عبور (مشترک: login.php/profile.php) ── */
+/* -- Live password-rules checklist (shared: login.php/profile.php) -- */
 .pass-rules {
   margin-top: 8px;
   padding: 12px 14px;
@@ -1194,12 +1208,12 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #ef4444;                 /* حالت رعایت‌نشده: قرمز */
+  color: #ef4444;                 /* unmet state: red */
   background: rgba(239, 68, 68, .12);
   transition: color var(--transition), background var(--transition);
 }
 .pass-rule-ic svg { width: 12px; height: 12px; }
-/* حالت رعایت‌شده: سبز + متنِ روشن‌تر */
+/* Met state: green + lighter text */
 .pass-rule.is-ok            { color: var(--color-text-secondary); }
 .pass-rule.is-ok .pass-rule-ic {
   color: #0ea472;
@@ -1214,7 +1228,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .login-error:empty { display: none; }
 
-/* دکمه متنی «فراموشی رمز» — درست زیر باکس رمز، چسبیده به سمت چپ (RTL → flex-end) */
+/* "Forgot password" text link — right under the password box, flush to the left (RTL -> flex-end) */
 .login-forgot-link {
   align-self: flex-end; margin: -10px 2px 0; padding: 2px;
   background: none; border: none; cursor: pointer;
@@ -1223,7 +1237,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .login-forgot-link:hover { color: var(--color-accent); }
 
-/* ── حالت خطا روی فیلدها (قاب قرمز) ── */
+/* -- Error state on fields (red border) -- */
 .login-input-wrap.has-error > input,
 .login-input-wrap.has-error > input:focus {
   border-color: #ef4444;
@@ -1237,7 +1251,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, .16);
 }
 
-/* ── Toast عمومی (ورود/ثبت‌نام + داشبورد): آیکون رنگی + عنوان + توضیح + بستن ── */
+/* -- General toast (login/signup + dashboard): colored icon + title + description + close -- */
 .toast-wrap {
   position: fixed; right: 24px; bottom: 24px; max-width: calc(100vw - 32px);
   display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
@@ -1255,7 +1269,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   box-shadow: 0 12px 32px rgba(0, 0, 0, .22);
   animation: toast-msg-in .25s cubic-bezier(.2, .8, .2, 1);
 }
-/* نوار پیشرفتِ زمانِ باقی‌مانده تا محو‌شدن خودکار toast */
+/* Progress bar for the time remaining until the toast auto-dismisses */
 .toast-msg-progress {
   position: absolute; bottom: 0; inset-inline: 0; height: 3px;
   background: currentColor; opacity: .3; transform-origin: right;
@@ -1270,10 +1284,11 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .toast-msg-icon svg { width: 16px; height: 16px; }
 .toast-msg-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 1px; }
 .toast-msg-title { font-size: 13px; font-weight: 700; }
-/* عمدا بدون unicode-bidi:plaintext: پیام‌ها معمولا با یک کلمه لاتین (نام
-   ابزار/کاربر) شروع می‌شوند و plaintext در آن صورت کل پاراگراف را با جهت
-   LTR تشخیص می‌دهد و چپ‌چین غلط می‌شود. جهت raست از dir=rtl والد ارث می‌رسد
-   و bidi استاندارد کلمه لاتین را داخل جمله‌ی فارسی درست جا می‌دهد. */
+/* Deliberately without unicode-bidi:plaintext: messages often start with a
+   Latin word (tool/user name), and plaintext would then detect the whole
+   paragraph as LTR and wrongly left-align it. The right-to-left direction is
+   inherited from the parent's dir=rtl, and standard bidi correctly places the
+   Latin word within the Persian sentence. */
 .toast-msg-text { font-size: 12.5px; font-weight: 500; line-height: 1.6; color: var(--color-text-secondary); }
 .toast-msg-close {
   flex: 0 0 auto; width: 22px; height: 22px; margin-inline-start: 2px;
@@ -1327,7 +1342,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 /* =============================================================================
-   صفحه ورود مجزا (login.php)
+   Standalone login page (login.php)
    ============================================================================= */
 .login-page {
   position: relative; z-index: 1;
@@ -1336,12 +1351,12 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   padding: 24px;
 }
 
-/* ── پس‌زمینه زنده صفحه ورود: گرادیانت نرم متحرک + حباب‌های شناور ── */
+/* -- Animated login-page background: soft moving gradient + floating bubbles -- */
 .login-bg {
   position: fixed; inset: 0; z-index: 0;
   overflow: hidden; pointer-events: none;
 }
-/* لایه گرادیانت نرم که آرام می‌چرخد (حس گرادیانت متحرک) */
+/* Soft gradient layer that slowly rotates (gives a moving-gradient feel) */
 .login-bg::before {
   content: ''; position: absolute; inset: -35%;
   background: conic-gradient(from 0deg,
@@ -1408,7 +1423,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   font-size: 17px; font-weight: 700; color: var(--color-text-primary);
   letter-spacing: -.3px; margin-top: 12px;
 }
-/* دوران آروم دنده مرکزی لوگو */
+/* Slow rotation of the logo's center gear */
 .login-logo-img #ll-gear {
   transform-box: fill-box; transform-origin: center;
   animation: ll-gear-spin 14s linear infinite;
@@ -1416,16 +1431,16 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @keyframes ll-gear-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .login-logo-img #ll-gear { animation: none; } }
 .login-logo[class*="pw-"] .login-logo-ring { opacity: 1; }
-/* هنگام فعال‌بودن نشانگر، border ثابت پنهان می‌شود تا رینگ تنها مرجع باشد */
+/* When the indicator is active, the static border is hidden so the ring is the only reference */
 .login-logo[class*="pw-"] { border-color: transparent; }
 .login-logo-ring circle { fill: none; stroke-width: 2.6; }
 .lr-track { stroke: rgba(127,127,127,.16); }
 .lr-fill {
   stroke: var(--color-accent); stroke-linecap: round;
-  stroke-dasharray: 100; stroke-dashoffset: 100;   /* pathLength=100 → واحد درصد */
+  stroke-dasharray: 100; stroke-dashoffset: 100;   /* pathLength=100 -> unit is percent */
   transition: stroke-dashoffset .55s cubic-bezier(.34, 1.4, .5, 1), stroke .4s ease;
 }
-/* سطوح قدرت رمز: پرشدن رینگ + رنگ آیکن + ته‌رنگ + بزرگ‌نمایی نرم */
+/* Password strength levels: ring fill + icon color + tint + subtle scale-up */
 .login-logo.pw-1 .lr-fill { stroke: #ef4444;             stroke-dashoffset: 75; }
 .login-logo.pw-2 .lr-fill { stroke: #f59e0b;             stroke-dashoffset: 50; }
 .login-logo.pw-3 .lr-fill { stroke: var(--color-accent); stroke-dashoffset: 25; }
@@ -1436,7 +1451,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-logo.pw-2 .login-logo-lock { transform: scale(1.07); }
 .login-logo.pw-3 { color: var(--color-accent); background: var(--color-accent-bg); }
 .login-logo.pw-3 .login-logo-lock { transform: scale(1.10); }
-/* سطح «قوی»: درخشش زنده متحرک */
+/* "Strong" level: lively animated glow */
 .login-logo.pw-4 {
   color: #0ea472; background: rgba(14,164,114,.14);
   animation: logoStrong 1.7s ease-in-out infinite;
@@ -1452,14 +1467,14 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   font-size: 18px; font-weight: 700; color: var(--color-text-primary);
   letter-spacing: -.3px; white-space: normal;
 }
-.login-card-head h1::before { content: none; } /* بدون نقطه کنار عنوان هدر */
+.login-card-head h1::before { content: none; } /* no dot next to the header title */
 .login-card-head p {
   font-size: 13px; color: var(--color-text-secondary); margin-top: 6px;
 }
 .login-card-body {
   display: flex; flex-direction: column; gap: 20px; margin-bottom: 4px;
 }
-/* لینک «بازگشت به داشبورد» — فقط متنی، وسط‌چین */
+/* "Back to dashboard" link — text-only, centered */
 .login-back-link {
   display: block; width: fit-content; margin: 20px auto 2px;
   font-size: 13px; font-weight: 600;
@@ -1468,7 +1483,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .login-back-link:hover { color: var(--color-accent); }
 
-/* آیکون نوع فیلد (قفل / کاربر) — سمت چپ (انتهای RTL) */
+/* Field-type icon (lock / user) — on the left (trailing edge in RTL) */
 .login-form .field-type-icon {
   flex: 0 0 auto; order: 1;
   display: flex; align-items: center; justify-content: center;
@@ -1482,14 +1497,14 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-form .field[data-state="error"]   .field-type-icon { color: var(--field-error); }
 .login-form .field-box:focus-within      .field-type-icon { color: var(--color-accent); }
 
-/* ── ثبت‌نام چندمرحله‌ای ── */
+/* -- Multi-step signup -- */
 .reg-step { display: flex; flex-direction: column; gap: 20px; animation: loginFormIn .3s cubic-bezier(.22, 1, .36, 1); }
 .reg-step[hidden] { display: none; }
 
 .reg-nav { display: flex; gap: 10px; align-items: stretch; }
 .reg-nav .login-submit-btn { flex: 1; min-width: 0; }
 .reg-back-btn {
-  order: 2;                       /* دکمه برگشت سمت چپ (مثل کل پروژه) */
+  order: 2;                       /* back button on the left (like the rest of the project) */
   display: inline-flex; align-items: center; justify-content: center;
   height: 40px; width: 40px; padding: 0; border-radius: var(--radius-sm);
   background: none; border: none;
@@ -1500,14 +1515,14 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .reg-back-btn svg { width: 20px; height: 20px; }
 .reg-back-btn[hidden] { display: none; }
 
-/* نشانگر مرحله (الگو از تصویر مرجع) */
+/* Step indicator (pattern from the reference image) */
 .reg-footer { display: flex; flex-direction: column; align-items: center; gap: 9px; }
 .reg-progress { display: flex; gap: 7px; }
 .reg-seg { width: 34px; height: 4px; border-radius: var(--radius-pill); background: var(--color-border); transition: background .3s ease; }
 .reg-seg.active { background: var(--color-accent); }
 .reg-step-label { font-size: 12px; font-weight: 600; color: var(--color-text-muted); letter-spacing: .3px; }
 
-/* مرحله تایید کد */
+/* Code verification step */
 .reg-code-hint { margin: 0; font-size: 13px; line-height: 1.8; text-align: center; color: var(--color-text-secondary); }
 .reg-code-hint b { color: var(--color-text-primary); font-weight: 700; }
 .reg-code-input {
@@ -1529,7 +1544,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .reg-resend:hover { opacity: .8; }
 .reg-resend:disabled { color: var(--color-text-muted); cursor: not-allowed; }
 .reg-resend.sending { color: var(--color-text-secondary); cursor: progress; }
-/* اسپینر کوچک هنگام ارسال مجدد (تا کاربر بفهمد در حال ارسال است) */
+/* Small spinner during resend (so the user knows it's sending) */
 .reg-resend-spin {
   display: none; width: 13px; height: 13px; vertical-align: -2px;
   margin-inline-end: 6px;
@@ -1539,10 +1554,10 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .reg-resend.sending .reg-resend-spin { display: inline-block; }
 @keyframes regResendSpin { to { transform: rotate(360deg); } }
 
-/* ── سربرگ صفحه بازیابی رمز (به‌جای تب‌ها) ── */
+/* -- Password recovery page header (in place of tabs) -- */
 .forgot-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
 .forgot-back-top {
-  order: 2;                       /* دکمه برگشت سمت چپ (مثل کل پروژه) */
+  order: 2;                       /* back button on the left (like the rest of the project) */
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; flex: 0 0 auto; margin-inline-end: -6px;
   background: none; border: none; padding: 0; border-radius: var(--radius-xs);
@@ -1560,7 +1575,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .reg-dev-note[hidden] { display: none; }
 
 
-/* ── تب‌های ورود / ثبت‌نام ── */
+/* -- Login / signup tabs -- */
 .login-tabs {
   position: relative;
   display: grid; grid-template-columns: 1fr 1fr;
@@ -1587,14 +1602,14 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   background: var(--color-accent);
   border-radius: var(--radius-xs);
   box-shadow: 0 4px 12px var(--color-accent-bg-hover);
-  /* فقط transform انیمیت می‌شود (GPU، بدون لگ) */
+  /* only transform is animated (GPU, no lag) */
   transition: transform .34s cubic-bezier(.34, 1.4, .5, 1);
 }
 .login-tabs[data-mode="register"] .login-tab-indicator { transform: translateX(-100%); }
 
-/* ── فرم‌ها: کراس‌فید نرم هنگام تعویض تب ── */
+/* -- Forms: smooth crossfade when switching tabs -- */
 .login-form[hidden] { display: none; }
-/* تب‌ها display:grid دارند؛ بدون این قانون، خصوصیت hidden نادیده گرفته می‌شد و در حالت بازیابی رمز همچنان کلیک‌پذیر بودند */
+/* Tabs have display:grid; without this rule, the hidden attribute would be ignored and they'd stay clickable in password-recovery mode */
 .login-tabs[hidden] { display: none; }
 .login-form.anim-in { animation: loginFormIn .32s cubic-bezier(.22, 1, .36, 1); }
 @keyframes loginFormIn {
@@ -1602,7 +1617,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   to   { opacity: 1; transform: none; }
 }
 
-/* ── آیکن داخل فیلد (ابتدای فیلد در RTL = راست) ── */
+/* -- Icon inside the field (start of field in RTL = right) -- */
 .login-input-wrap { position: relative; }
 .login-field-icon {
   position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
@@ -1614,7 +1629,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-pass-wrap input.has-icon { padding-left: 42px; padding-right: 42px; }
 
 
-/* ── اسپینر دکمه ارسال ── */
+/* -- Submit-button spinner -- */
 .login-submit-btn .btn-spinner {
   display: none; width: 16px; height: 16px;
   border: 2px solid rgba(255, 255, 255, .45);
@@ -1626,10 +1641,10 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .login-submit-btn.loading .login-btn-label { display: none; }
 @keyframes loginSpin { to { transform: rotate(360deg); } }
 
-/* لیفت لطیف دکمه هنگام hover */
+/* Subtle button lift on hover */
 .login-submit-btn { transition: background var(--transition), transform var(--transition), box-shadow var(--transition); }
 
-/* ── موفقیت ورود/ثبت‌نام: خود دکمه سبز می‌شود و تیک می‌خورد ── */
+/* -- Login/signup success: the button itself turns green and checks -- */
 .login-submit-btn .login-btn-check { display: none; width: 20px; height: 20px; }
 .login-submit-btn.success {
   background: #0ea472;
@@ -1669,8 +1684,8 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   flex-shrink: 0;
 }
 
-/* ── فلش اشاره به دکمه‌ی مربوطه (دراپ‌داون‌های زنگ و کاربر) ──
-   روی wrapper گذاشته می‌شود چون خود دراپ‌داون overflow:hidden دارد. */
+/* -- Pointer arrow to the corresponding button (bell and user dropdowns) --
+   Placed on the wrapper because the dropdown itself has overflow:hidden. */
 #notifBellWrap::after,
 .user-menu-wrap::after {
   content: ''; position: absolute; z-index: 151;
@@ -1682,17 +1697,17 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   border-radius: 3px 0 0 0;
   transform: rotate(45deg) scale(0);
   opacity: 0; pointer-events: none;
-  /* بسته‌شدن: سریع و بدون بانس تا فلش با دراپ‌داون هم‌زمان محو شود (رفع لگ لوزی باقی‌مانده) */
+  /* closing: fast, no bounce, so the arrow fades out in sync with the dropdown (fixes a lingering diamond-shape lag) */
   transition: opacity .1s ease, transform .1s ease;
 }
 #notifBellWrap:has(.notif-dropdown.open)::after,
 .user-menu-wrap:has(.user-menu-dropdown.open)::after {
   opacity: 1; transform: rotate(45deg) scale(1);
-  /* باز‌شدن: ورود نرم با بانس ملایم */
+  /* opening: smooth entrance with a gentle bounce */
   transition: opacity .18s ease, transform .22s cubic-bezier(.34,1.4,.64,1);
 }
 
-/* دکمه‌ای که منو رو باز می‌کنه */
+/* Button that opens the menu */
 .user-menu-btn {
   display: inline-flex;
   align-items: center;
@@ -1706,7 +1721,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   flex-shrink: 0;
   transition: background var(--transition), transform var(--transition-bounce);
 }
-/* در تریگر فقط آواتار دیده می‌شود (سبک تلگرام)؛ نام در منوی بازشونده است */
+/* Only the avatar shows on the trigger (Telegram-style); the name lives in the dropdown */
 .user-menu-name, .user-menu-chevron { display: none; }
 .user-menu-btn:hover { transform: scale(1.06); }
 .user-menu-btn:hover .user-menu-avatar { border-color: var(--color-accent); background: var(--color-accent-bg-hover); }
@@ -1715,7 +1730,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   outline-offset: 2px;
 }
 
-/* avatar دایره‌ای با آیکون پیش‌فرض کاربر */
+/* Round avatar with default user icon */
 .user-menu-avatar {
   width: 40px;
   height: 40px;
@@ -1738,7 +1753,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   white-space: nowrap;
 }
 
-/* chevron — می‌چرخه وقتی منو بازه */
+/* chevron — rotates when the menu is open */
 .user-menu-chevron {
   width: 14px;
   height: 14px;
@@ -1761,7 +1776,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   box-shadow: 0 8px 28px rgba(15,23,42,.12), 0 2px 8px rgba(15,23,42,.06);
   z-index: 150;
   overflow: hidden;
-  /* انیمیشن باز شدن */
+  /* opening animation */
   opacity: 0;
   transform: translateY(-6px) scale(.97);
   pointer-events: none;
@@ -1777,7 +1792,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   box-shadow: 0 8px 28px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.2);
 }
 
-/* هدر dropdown — نام و یوزرنیم */
+/* Dropdown header — name and username */
 .user-menu-header {
   padding: 12px 14px 10px;
   display: flex;
@@ -1794,7 +1809,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   text-overflow: ellipsis;
 }
 .user-menu-header-uname {
-  /* فونت لاتین واضح برای ایمیل (مثل بخش پروفایل، نه monospace) */
+  /* clear Latin font for the email (like the profile section, not monospace) */
   font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
   font-size: 12px;
   font-weight: 500;
@@ -1814,7 +1829,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   margin: 0;
 }
 
-/* آیتم‌های منو */
+/* Menu items */
 .user-menu-item {
   font-family: 'DashboardFont', sans-serif;
   font-size: 13px;
@@ -1846,7 +1861,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   outline-offset: -2px;
 }
 
-/* آیتم خروج — قرمز */
+/* Logout item — red */
 .user-menu-item--danger:hover {
   background: rgba(239,68,68,.08);
   color: #ef4444;
@@ -1865,7 +1880,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   flex-shrink: 0;
 }
  
-/* ── دکمه زنگ ── */
+/* -- Bell button -- */
 .notif-bell-btn {
   position: relative;
   width: 40px;
@@ -1897,8 +1912,8 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   height: 17px;
   pointer-events: none;
 }
- 
-/* انیمیشن زنگ — وقتی اعلان جدید هست */
+
+/* Bell animation — when there's a new notification */
 .notif-bell-btn.has-unread svg {
   animation: bellRing 2.4s cubic-bezier(0.36,0.07,0.19,0.97) infinite;
   transform-origin: top center;
@@ -1912,7 +1927,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   40%       { transform: rotate(0deg);   }
 }
  
-/* ── badge تعداد خوانده‌نشده ── */
+/* -- Unread-count badge -- */
 .notif-bell-badge {
   position: absolute;
   top: -3px;
@@ -1924,7 +1939,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   color: #fff;
   font-size: 9.5px;
   font-weight: 700;
-  display: none;           /* JS مدیریت می‌کند */
+  display: none;           /* JS manages this */
   align-items: center;
   justify-content: center;
   padding: 0 3px;
@@ -1946,7 +1961,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   box-shadow: 0 10px 36px rgba(15,23,42,.14), 0 2px 10px rgba(15,23,42,.06);
   z-index: 150;
   overflow: hidden;
-  /* انیمیشن باز شدن */
+  /* opening animation */
   opacity: 0;
   transform: translateY(-8px) scale(.97);
   pointer-events: none;
@@ -1960,8 +1975,8 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 [data-theme="dark"] .notif-dropdown {
   box-shadow: 0 10px 36px rgba(0,0,0,.40), 0 2px 10px rgba(0,0,0,.22);
 }
- 
-/* هدر dropdown */
+
+/* Dropdown header */
 .notif-drop-head {
   display: flex;
   align-items: center;
@@ -1993,7 +2008,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   padding: 1px 7px;
 }
  
-/* دکمه علامت همه خوانده */
+/* "Mark all read" button */
 .notif-mark-all-btn {
   font-family: 'DashboardFont', sans-serif;
   font-size: 11.5px;
@@ -2011,7 +2026,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   background: var(--color-accent-bg);
 }
  
-/* بدنه scrollable */
+/* Scrollable body */
 .notif-drop-body {
   max-height: 360px;
   overflow-y: auto;
@@ -2044,7 +2059,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   margin: 0;
 }
  
-/* آیتم اعلان */
+/* Notification item */
 .notif-drop-item {
   display: flex;
   align-items: flex-start;
@@ -2058,7 +2073,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .notif-drop-item:last-child { border-bottom: none; }
 .notif-drop-item:hover { background: var(--color-bg-primary); }
  
-/* آیتم خوانده‌نشده */
+/* Unread item */
 .notif-drop-item--unread {
   background: var(--color-accent-bg);
 }
@@ -2083,7 +2098,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   display: block;
 }
  
-/* محتوای متنی */
+/* Text content */
 .notif-drop-content {
   flex: 1;
   min-width: 0;
@@ -2115,7 +2130,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   margin-top: 2px;
 }
  
-/* نقطه خوانده‌نشده */
+/* Unread dot */
 .notif-drop-dot {
   width: 7px;
   height: 7px;
@@ -2126,7 +2141,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   margin-right: auto;
 }
  
-/* فوتر dropdown */
+/* Dropdown footer */
 .notif-drop-footer {
   padding: 10px 16px;
   border-top: 1px solid var(--color-border);
@@ -2175,7 +2190,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   flex-shrink: 0;
 }
  
-/* ── دکمه زنگ (دایره‌ای با بوردر — هماهنگ با دکمه تم) ── */
+/* -- Bell button (round with border — consistent with the theme button) -- */
 .notif-bell-btn {
   position: relative;
   width: 40px; height: 40px;
@@ -2198,7 +2213,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .notif-bell-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .notif-bell-btn svg { width: 20px; height: 20px; pointer-events: none; }
  
-/* انیمیشن زنگ */
+/* Bell animation */
 .notif-bell-btn.has-unread svg {
   animation: bellRing 2.4s cubic-bezier(0.36,0.07,0.19,0.97) infinite;
   transform-origin: top center;
@@ -2212,7 +2227,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   40%     { transform: rotate(0deg);   }
 }
  
-/* badge تعداد */
+/* Count badge */
 .notif-bell-badge {
   position: absolute; top: -3px; left: -3px;
   min-width: 17px; height: 17px; border-radius: var(--radius-sm);
@@ -2249,7 +2264,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   box-shadow: 0 10px 36px rgba(0,0,0,.40), 0 2px 10px rgba(0,0,0,.22);
 }
  
-/* هدر */
+/* Header */
 .notif-drop-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 13px 16px 11px; border-bottom: 1px solid var(--color-border);
@@ -2270,7 +2285,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .notif-mark-all-btn:hover { background: var(--color-accent-bg); }
  
-/* بدنه */
+/* Body */
 .notif-drop-body {
   max-height: 360px; overflow-y: auto; overscroll-behavior: contain;
 }
@@ -2286,7 +2301,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .notif-drop-empty svg { width: 36px; height: 36px; opacity: .45; }
 .notif-drop-empty p { font-size: 13px; color: var(--color-text-secondary); margin: 0; }
  
-/* آیتم */
+/* Item */
 .notif-drop-item {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 12px 16px; border-bottom: 1px solid var(--color-border);
@@ -2306,13 +2321,13 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .notif-drop-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
  
-/* محتوا */
+/* Content */
 .notif-drop-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .notif-drop-title {
   font-size: 13px; font-weight: 600; color: var(--color-text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;
 }
-/* نام کلاس اصلاح شد: notif-drop-body-text تا با notif-drop-body تداخل نداشته باشد */
+/* Class name adjusted: notif-drop-body-text so it doesn't clash with notif-drop-body */
 .notif-drop-body-text {
   font-size: 12px; color: var(--color-text-secondary);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -2320,13 +2335,13 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .notif-drop-time { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
  
-/* نقطه خوانده‌نشده */
+/* Unread dot */
 .notif-drop-dot {
   width: 7px; height: 7px; border-radius: 50%;
   background: var(--color-accent); flex-shrink: 0; align-self: center;
 }
  
-/* فوتر */
+/* Footer */
 .notif-drop-footer {
   padding: 10px 16px; border-top: 1px solid var(--color-border);
   display: flex; justify-content: center;
@@ -2355,22 +2370,22 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   padding: 16px;
   opacity: 0; pointer-events: none;
   transition: opacity .2s ease;
-  /* blur فقط هنگام باز بودن اعمال می‌شود (در حالت بسته هیچ لایه کامپوزیت/هزینه‌ای ندارد) */
+  /* blur is applied only while open (no composite layer/cost while closed) */
 }
 .notif-detail-overlay.open {
   opacity: 1; pointer-events: auto;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 
-/* هنگام باز بودن مودال، انیمیشن‌های متحرک پس‌زمینه (deco کارت‌ها) متوقف
-   می‌شوند؛ این‌طور backdrop-filter به‌جای محاسبه blur در هر فریم، یک‌بار
-   محاسبه و کش می‌کند → باز/بسته‌شدن روان می‌شود. */
+/* While the modal is open, the background's moving animations (card deco) are
+   paused; this way backdrop-filter computes and caches the blur once instead
+   of recalculating it every frame, keeping open/close smooth. */
 body.notif-modal-open .card-deco-wrap *,
 body.notif-modal-open .card-corner-deco * {
   animation-play-state: paused !important;
 }
 
-/* همان بهینه‌سازی برای مودال‌های ویرایش/حذف ابزار (پنل مدیریت درون داشبورد) */
+/* Same optimization for the tool edit/delete modals (admin panel inside the dashboard) */
 body.tool-modal-open .card-deco-wrap *,
 body.tool-modal-open .card-corner-deco * {
   animation-play-state: paused !important;
@@ -2387,14 +2402,14 @@ body.tool-modal-open .card-corner-deco * {
   transform: translateY(16px) scale(.97);
   transition: transform .24s cubic-bezier(.34,1.2,.64,1);
   overflow: hidden;
-  /* روی لایه GPU جدا تا transform بدون repaint کامپوزیت شود */
+  /* on its own GPU layer so transform composites without a repaint */
   will-change: transform; backface-visibility: hidden;
 }
 .notif-detail-overlay.open .notif-detail-box {
   transform: translateY(0) scale(1);
 }
  
-/* هدر modal */
+/* Modal header */
 .notif-detail-head {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 18px 20px 14px; border-bottom: 1px solid var(--color-border);
@@ -2416,14 +2431,14 @@ body.tool-modal-open .card-corner-deco * {
 .notif-detail-close:hover { background: rgba(239,68,68,.1); color: #ef4444; }
 .notif-detail-close svg { width: 15px; height: 15px; }
  
-/* بدنه scrollable */
+/* Scrollable body */
 .notif-detail-body {
   flex: 1; overflow-y: auto; overscroll-behavior: contain;
 }
 .notif-detail-body::-webkit-scrollbar { width: 5px; }
 .notif-detail-body::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
  
-/* تصویر */
+/* Image */
 .notif-detail-img-wrap {
   width: 100%; max-height: 280px; overflow: hidden;
   border-bottom: 1px solid var(--color-border);
@@ -2434,7 +2449,7 @@ body.tool-modal-open .card-corner-deco * {
   display: block; background: var(--color-bg-primary);
 }
  
-/* متن */
+/* Text */
 .notif-detail-content { padding: 20px 22px; }
 .notif-detail-body-text {
   font-size: 14px; color: var(--color-text-secondary);
@@ -2442,7 +2457,7 @@ body.tool-modal-open .card-corner-deco * {
   margin-bottom: 16px;
   user-select: text; -webkit-user-select: text;
 }
-/* ── محتوای غنی (rich text) داخل اعلان index ── */
+/* -- Rich text content inside the index notification -- */
 .notif-detail-body-text p { margin: 0 0 10px; }
 .notif-detail-body-text p:last-child { margin-bottom: 0; }
 .notif-detail-body-text b, .notif-detail-body-text strong { font-weight: 700; color: var(--color-text-primary); }
@@ -2454,7 +2469,7 @@ body.tool-modal-open .card-corner-deco * {
 .notif-detail-body-text [style*="text-align"] { display: block; }
 .notif-detail-body-text [dir] { display: block; }
  
-/* متادیتا */
+/* Metadata */
 .notif-detail-meta {
   display: flex; flex-direction: column; gap: 6px;
   padding-top: 14px; border-top: 1px solid var(--color-border);
@@ -2467,7 +2482,7 @@ body.tool-modal-open .card-corner-deco * {
 .notif-detail-meta-row svg { width: 13px; height: 13px; flex-shrink: 0; }
 .notif-detail-expiry { color: #ef4444; }
  
-/* فوتر */
+/* Footer */
 .notif-detail-foot {
   padding: 12px 20px; border-top: 1px solid var(--color-border);
   display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
@@ -2504,7 +2519,7 @@ body.tool-modal-open .card-corner-deco * {
     position: fixed;
     left: 10px;
     right: 10px;
-    top: 64px; /* درست زیر هدر ۵۶px (قبلا 108px بود و فاصله می‌افتاد) */
+    top: 64px; /* right under the 56px header (used to be 108px, which left a gap) */
     width: auto;
     min-width: unset;
     max-height: 70vh;
@@ -2515,7 +2530,7 @@ body.tool-modal-open .card-corner-deco * {
   .user-menu-dropdown.open {
     transform: translateY(0) scale(1);
   }
-  /* روی موبایل دراپ‌داون تمام‌عرض fixed است؛ فلش معنا ندارد */
+  /* on mobile the dropdown is full-width fixed; the arrow doesn't make sense */
   #notifBellWrap::after, .user-menu-wrap::after { display: none; }
 }
 @media (max-width: 480px) {
@@ -2524,11 +2539,11 @@ body.tool-modal-open .card-corner-deco * {
 }
 
 /* =============================================================================
-   اعلان‌ها — dropdown بهینه: ردیف compact، بدون تصویر، صفحه‌بندی
-   این بلوک مقادیر تکراری قبلی را override می‌کند
+   Notifications — optimized dropdown: compact row, no image, pagination
+   This block overrides the earlier duplicate values
    ============================================================================= */
 
-/* ردیف اعلان — grid سه‌ستونه */
+/* Notification row — three-column grid */
 .notif-drop-item {
   display: grid;
   grid-template-columns: 4px 1fr auto;
@@ -2546,13 +2561,13 @@ body.tool-modal-open .card-corner-deco * {
 .notif-drop-item--unread    { background: var(--color-accent-bg); }
 .notif-drop-item--unread:hover { background: var(--color-accent-bg-hover); }
 
-/* نوار رنگی چپ — نشانگر خوانده‌نشده */
+/* Left color bar — unread indicator */
 .notif-drop-bar { background: transparent; }
 .notif-drop-item--unread .notif-drop-bar {
   background: linear-gradient(180deg, var(--color-accent), var(--color-accent-light));
 }
 
-/* محتوای متنی */
+/* Text content */
 .notif-drop-content {
   padding: 11px 14px;
   min-width: 0;
@@ -2570,7 +2585,7 @@ body.tool-modal-open .card-corner-deco * {
   font-size: 11px; color: var(--color-text-muted); margin-top: 1px;
 }
 
-/* دکمه مشاهده */
+/* View button */
 .notif-drop-view-btn {
   font-family: 'DashboardFont', sans-serif;
   font-size: 11px; font-weight: 600;
@@ -2588,7 +2603,7 @@ body.tool-modal-open .card-corner-deco * {
 }
 .notif-drop-view-btn:hover { background: var(--color-accent-bg-hover); transform: scale(1.05); }
 
-/* فوتر dropdown — صفحه‌بندی + لینک همه */
+/* Dropdown footer — pagination + view-all link */
 .notif-drop-footer {
   padding: 9px 14px;
   border-top: 1px solid var(--color-border);
@@ -2601,7 +2616,7 @@ body.tool-modal-open .card-corner-deco * {
   font-size: 12px; padding: 5px 14px;
 }
 
-/* صفحه‌بندی */
+/* Pagination */
 .notif-drop-pagination {
   display: flex; align-items: center; gap: 5px;
 }
@@ -2628,23 +2643,23 @@ body.tool-modal-open .card-corner-deco * {
 }
 
 /* ══════════════════════════════════════════════════════
-   بارگذاری پیشرونده تصویر (blur-up: thumbnail → full)
+   Progressive image loading (blur-up: thumbnail -> full)
    ══════════════════════════════════════════════════════ */
 
-/* img بدون src را مخفی کن تا shimmer دیده شود */
+/* Hide img without src so the shimmer shows through */
 .notif-detail-img-wrap img[src=""],
 .nd-image-wrap img[src=""] {
   display: none;
 }
 
-/* transition برای blur-up effect */
+/* Transition for the blur-up effect */
 .notif-detail-img-wrap img,
 .nd-image-wrap img {
   transition: filter .4s ease, transform .4s ease;
   position: relative; z-index: 1;
 }
 
-/* حالت loading: shimmer با ::before که پشت img قرار می‌گیرد */
+/* Loading state: a shimmer via ::before positioned behind the img */
 .notif-detail-img-wrap.img-loading,
 .nd-image-wrap.img-loading {
   min-height: 180px;
@@ -2671,7 +2686,7 @@ body.tool-modal-open .card-corner-deco * {
   100% { background-position: -200% 0; }
 }
 /* =============================================================================
-   App Footer + Version (نسخه پروژه)
+   App Footer + Version (project version)
    ============================================================================= */
 .app-footer {
   position: relative;
@@ -2713,13 +2728,13 @@ body.tool-modal-open .card-corner-deco * {
   box-shadow: 0 0 0 3px var(--color-accent-bg);
 }
 /* ═══════════════════════════════════════════════════════════
-   Image Lightbox — نمایش تمام‌صفحه تصویر اعلان
+   Image Lightbox — full-screen display of a notification image
    ═══════════════════════════════════════════════════════════ */
-/* تصویر پنل جزئیات قابل کلیک است */
+/* The detail panel image is clickable */
 .nd-image-wrap, .notif-detail-img-wrap { position: relative; }
 .nd-image-wrap img.js-lightbox,
 .notif-detail-img-wrap img.js-lightbox { cursor: zoom-in; }
-/* نشانه ذره‌بین هنگام hover (راهنمای کلیک‌پذیری) */
+/* Magnifying-glass hint on hover (a clickability cue) */
 .nd-image-wrap::after,
 .notif-detail-img-wrap::after {
   content: '';
@@ -2734,7 +2749,7 @@ body.tool-modal-open .card-corner-deco * {
 }
 .nd-image-wrap:hover::after,
 .notif-detail-img-wrap:hover::after { opacity: 1; transform: scale(1); }
-/* هنگام بارگذاری تصویر، نشانه را پنهان کن */
+/* Hide the hint while the image is loading */
 .nd-image-wrap.img-loading::after,
 .notif-detail-img-wrap.img-loading::after { opacity: 0 !important; }
 
@@ -2782,14 +2797,14 @@ body.tool-modal-open .card-corner-deco * {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   کامپوننت یکپارچه فیلد ورودی + اعتبارسنجی (.field)
-   حالات: idle / focus / error / success / loading / disabled
-   ساختار:
+   Unified input field + validation component (.field)
+   States: idle / focus / error / success / loading / disabled
+   Structure:
      <div class="field" data-state="idle">
-       <label class="field-label" for="x">برچسب</label>
+       <label class="field-label" for="x">label</label>
        <div class="field-box">
          <input id="x" class="field-input" ...>
-         <span class="field-status"> … آیکون وضعیت … </span>
+         <span class="field-status"> … status icon … </span>
        </div>
        <p class="field-msg"><span class="field-msg-icon"></span><span class="field-msg-text"></span></p>
      </div>
@@ -2797,18 +2812,18 @@ body.tool-modal-open .card-corner-deco * {
 :root {
   --field-bg:        rgba(120,130,150,.06);
   --field-border:    var(--color-border);
-  --field-focus:     #3e7de7;          /* آبی تم پروژه (--color-accent) */
+  --field-focus:     #3e7de7;          /* project theme blue (--color-accent) */
   --field-focus-rgb: 62,125,231;
   --field-error:     #ef4444;
   --field-error-rgb: 239,68,68;
   --field-ok:        #22c55e;
   --field-ok-rgb:    34,197,94;
-  --field-autofill:  #f1f3f7;   /* ماسک رنگ autofill (هم‌خوان با کادر) */
+  --field-autofill:  #f1f3f7;   /* autofill color mask (matched to the box) */
 }
 [data-theme="dark"] {
   --field-bg:        rgba(255,255,255,.035);
   --field-autofill:  #1c222c;
-  --field-focus:     #58a6ff;          /* آبی تم تیره (--color-accent) */
+  --field-focus:     #58a6ff;          /* dark theme blue (--color-accent) */
   --field-focus-rgb: 88,166,255;
   --field-error:     #f87171;
   --field-error-rgb: 248,113,113;
@@ -2821,7 +2836,7 @@ body.tool-modal-open .card-corner-deco * {
 .field-label {
   font-family: 'HeadingFont', 'DashboardFont', sans-serif;
   font-size: 11.5px; font-weight: 600; letter-spacing: .2px;
-  color: var(--color-text-secondary);   /* #64748b در تم روشن */
+  color: var(--color-text-secondary);   /* #64748b in light theme */
   transition: color var(--transition);
 }
 
@@ -2844,10 +2859,10 @@ body.tool-modal-open .card-corner-deco * {
 .field-input::placeholder { color: var(--color-text-muted); }
 .field-input[dir="ltr"] { letter-spacing: .3px; }
 
-/* رفع پس‌زمینه طوسی مرورگر هنگام autofill (Chrome/Safari/Edge):
-   مرورگر background را با مکانیزم داخلی override می‌کند؛ تنها راه پوشاندنش
-   box-shadow داخلی تو‌پر + text-fill-color است. transition بسیار طولانی هم
-   از بازگشت لحظه‌ای رنگ زرد/طوسی جلوگیری می‌کند. */
+/* Fix the browser's gray autofill background (Chrome/Safari/Edge):
+   the browser overrides background via an internal mechanism; the only way to
+   mask it is an inset filled box-shadow + text-fill-color. The very long
+   transition also prevents a momentary flash of the yellow/gray color. */
 .field-input:-webkit-autofill,
 .field-input:-webkit-autofill:hover,
 .field-input:-webkit-autofill:focus,
@@ -2860,7 +2875,7 @@ body.tool-modal-open .card-corner-deco * {
   transition: background-color 99999s ease-out 0s;
 }
 
-/* آیکون وضعیت (داخل کادر، سمت پایانی) */
+/* Status icon (inside the box, at the trailing end) */
 .field-status {
   display: none; flex: 0 0 auto; align-items: center; justify-content: center;
   width: 18px; height: 18px; margin-inline-end: 11px;
@@ -2868,7 +2883,7 @@ body.tool-modal-open .card-corner-deco * {
 }
 .field-status svg { width: 100%; height: 100%; display: block; }
 
-/* پیام زیر فیلد */
+/* Message below the field */
 .field-msg {
   display: none; align-items: center; gap: 5px;
   font-size: 11.5px; font-weight: 600; line-height: 1.45;
@@ -2878,7 +2893,7 @@ body.tool-modal-open .card-corner-deco * {
 .field-msg-icon svg { width: 100%; height: 100%; }
 .field-msg-text { unicode-bidi: plaintext; }
 
-/* ── حالت focus ── */
+/* ── focus state ── */
 .field[data-state="focus"] .field-box,
 .field-box:focus-within {
   border-color: var(--field-focus);
@@ -2887,7 +2902,7 @@ body.tool-modal-open .card-corner-deco * {
 }
 .field[data-state="focus"] .field-label { color: var(--field-focus); }
 
-/* ── حالت error ── */
+/* ── error state ── */
 .field[data-state="error"] .field-box {
   border-color: var(--field-error);
   box-shadow: 0 0 0 2px rgba(var(--field-error-rgb), .09),
@@ -2897,7 +2912,7 @@ body.tool-modal-open .card-corner-deco * {
 .field[data-state="error"] .field-msg    { display: flex; color: var(--field-error); }
 .field[data-state="error"] .field-label  { color: var(--field-error); }
 
-/* ── حالت success ── */
+/* ── success state ── */
 .field[data-state="success"] .field-box {
   border-color: var(--field-ok);
   box-shadow: 0 0 0 2px rgba(var(--field-ok-rgb), .09),
@@ -2905,16 +2920,16 @@ body.tool-modal-open .card-corner-deco * {
 }
 .field[data-state="success"] .field-status { display: flex; color: var(--field-ok); }
 .field[data-state="success"] .field-label  { color: var(--field-ok); }
-/* success: فقط بوردر سبز + تیک؛ پیام زیر نمایش داده نمی‌شود */
+/* success: just a green border + checkmark; no message shown below */
 .field[data-state="success"] .field-msg    { display: none; }
 
-/* ── حالت loading (در حال بررسی) ── */
+/* ── loading state (checking) ── */
 .field[data-state="loading"] .field-box { border-color: var(--color-text-muted); }
 .field[data-state="loading"] .field-status { display: flex; }
 .field[data-state="loading"] .field-status svg { animation: field-spin .7s linear infinite; }
 @keyframes field-spin { to { transform: rotate(360deg); } }
 
-/* ── حالت disabled (قفل) ── */
+/* ── disabled state (locked) ── */
 .field[data-state="disabled"] { opacity: .55; }
 .field[data-state="disabled"] .field-box { background: transparent; }
 .field-input:disabled { cursor: not-allowed; }
@@ -2924,7 +2939,7 @@ body.tool-modal-open .card-corner-deco * {
   .field[data-state="loading"] .field-status svg { animation: none; }
 }
 
-/* دکمه‌های داخل کادر .field (نمایش/مخفی رمز + تولید رمز) به‌صورت flex-item */
+/* Buttons inside the .field box (show/hide password + generate password) as flex items */
 .field-box .login-pass-toggle,
 .field-box .login-pass-gen,
 .field-box .profile-pass-toggle {
@@ -2936,7 +2951,7 @@ body.tool-modal-open .card-corner-deco * {
 }
 .field-box .login-pass-gen { margin-inline-start: 2px; }
 .field-box .profile-pass-toggle { margin-inline-end: 8px; }
-/* دکمه نمایش/مخفی رمز در صفحه ورود سمت راست کادر قرار می‌گیرد (order در فلکس RTL) */
+/* The show/hide password button on the login page sits at the right of the box (order in RTL flex) */
 .field-box .login-pass-toggle { order: -1; margin-inline: 8px 4px; }
 .field-box .login-pass-toggle:hover,
 .field-box .login-pass-gen:hover,
@@ -2946,18 +2961,18 @@ body.tool-modal-open .card-corner-deco * {
 .field-box .login-pass-gen svg,
 .field-box .profile-pass-toggle svg { width: 16px; height: 16px; pointer-events: none; }
 
-/* متن راهنمای کمکی زیر فیلد (غیر از پیام اعتبارسنجی) */
+/* Helper hint text below the field (distinct from the validation message) */
 .field .field-hint {
   font-size: 11.5px; color: var(--color-text-muted); margin-top: 1px; padding-inline: 2px;
 }
 
 /* =============================================================================
-   مدیریت اینلاین ابزارها (فقط ادمین) — کنترل‌های روی کارت + تایل افزودن + مودال
+   Inline tool management (admin only) — controls on the card + add tile + modal
    ============================================================================= */
 .card-admin-bar {
   position: absolute; top: 8px; left: 8px; z-index: 4;
   display: flex; gap: 4px;
-  opacity: .55;                  /* همیشه قابل‌مشاهده؛ روی hover/فوکوس کاملا پررنگ */
+  opacity: .55;                  /* always visible; fully opaque on hover/focus */
   transition: opacity var(--transition);
 }
 .card--admin:hover .card-admin-bar,
@@ -2986,7 +3001,7 @@ body.tool-modal-open .card-corner-deco * {
 .card-private-tag svg { width: 11px; height: 11px; flex: none; }
 .card--private { opacity: .8; }
 
-/* تایل «افزودن ابزار» — دکمه‌ای هم‌اندازه کارت با قاب نقطه‌چین */
+/* "Add tool" tile — a card-sized button with a dashed border */
 .card-add-tile {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px; min-height: 200px;
@@ -2999,7 +3014,7 @@ body.tool-modal-open .card-corner-deco * {
 .card-add-tile svg { width: 30px; height: 30px; }
 .card-add-tile:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-bg); }
 
-/* مودال افزودن/ویرایش + تایید حذف */
+/* Add/edit modal + delete confirmation */
 .tm-overlay {
   position: fixed; inset: 0; z-index: 300;
   display: flex; align-items: center; justify-content: center; padding: 16px;
@@ -3056,10 +3071,10 @@ body.tool-modal-open .card-corner-deco * {
   border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg);
 }
 
-/* کمبوباکس عمومی (دسته‌بندی/طرح پس‌زمینه): باکس متنی جستجوپذیر + دراپ‌داون.
-   پنل هم‌ساختار با سایر dropdownهای پروژه (user-menu-dropdown/notif-dropdown):
-   fade + scale، سایه یکسان. دسته‌بندی هم انتخاب از قبلی‌ها را می‌پذیرد هم
-   تایپ آزاد برای مقدار تازه؛ طرح پس‌زمینه فقط جستجو+انتخاب از فهرست ثابت است. */
+/* Generic combobox (category/background deco): a searchable text box + dropdown.
+   The panel matches the structure of other project dropdowns (user-menu-dropdown/notif-dropdown):
+   fade + scale, same shadow. Category accepts both selecting from existing values and
+   free typing for a new value; deco is search+select-only from a fixed list. */
 .tm-combo { position: relative; }
 .tm-combo-box {
   display: flex; align-items: center; gap: 4px;
@@ -3140,7 +3155,7 @@ body.tool-modal-open .card-corner-deco * {
 }
 .tm-confirm-warn svg { width: 15px; height: 15px; vertical-align: -3px; margin-left: 5px; }
 .tm-confirm-foot { justify-content: center; gap: 10px; padding: 14px 24px 20px; }
-/* دکمه‌های مودال (مستقل از .btn ادمین که اینجا لود نمی‌شود) — هم‌تراز با دکمه‌های مودال پروژه */
+/* Modal buttons (independent of the admin .btn, which isn't loaded here) — matched to the project's modal buttons */
 .tm-foot .btn {
   font-family: 'DashboardFont', sans-serif; font-size: 13px; font-weight: 600;
   height: 38px; padding: 0 18px; border-radius: var(--radius-sm); border: 1.5px solid transparent;
@@ -3162,18 +3177,18 @@ body.tool-modal-open .card-corner-deco * {
 @keyframes tmspin { to { transform: rotate(360deg); } }
 @media (max-width: 480px) { .tm-row { grid-template-columns: 1fr; } }
 
-/* ── انتخابگر آیکون/طرح + رنگ + پیش‌نمایش (مودال غنی ابزار) ── */
+/* ── Icon/deco + color + preview picker (the rich tool modal) ── */
 .tm-label-opt { font-weight: 400; color: var(--color-text-muted); font-size: 11px; }
 .tm-field > label .req { color: #ef4444; margin-inline-start: 2px; }
 
-/* پیش‌نمایش آیکون انتخاب‌شده، داخل باکسِ کمبوباکس آیکون */
+/* Preview of the selected icon, inside the icon combobox box */
 .tm-combo-icon-preview {
   flex-shrink: 0; width: 30px; height: 30px; margin-inline-start: 6px;
   display: flex; align-items: center; justify-content: center;
   color: var(--color-text-secondary);
 }
 .tm-combo-icon-preview svg { width: 17px; height: 17px; }
-/* گزینه‌های منو با آیکون (برخلاف گزینه‌های متنی دسته‌بندی/طرح) */
+/* Menu options with an icon (unlike the text-only category/deco options) */
 .tm-combo-menu--icons { max-height: 260px; }
 .tm-combo-option--icon { display: flex; align-items: center; gap: 8px; }
 .tm-combo-option-ic { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
@@ -3226,7 +3241,7 @@ body.tool-modal-open .card-corner-deco * {
 .tm-preview-deco { position: absolute; inset: auto 0 0 0; height: 46px; pointer-events: none; color: var(--card-color, var(--color-accent)); opacity: .5; }
 .tm-preview-deco svg { width: 100%; height: 100%; }
 
-/* ═══ حالت مرتب‌سازی کارت‌ها (drag-drop ادمین روی داشبورد) ═══ */
+/* ═══ Card reorder mode (admin drag-drop on the dashboard) ═══ */
 .reorder-toggle {
   margin-inline-start: auto; display: inline-flex; align-items: center; gap: 6px;
   font-family: 'DashboardFont', sans-serif; font-size: 12.5px; font-weight: 600;
@@ -3264,21 +3279,21 @@ body.tool-modal-open .card-corner-deco * {
 #reorderSave.loading .btn-spinner { display: inline-block; }
 @media (max-width: 560px) { .reorder-bar { flex-direction: column; align-items: stretch; } .reorder-bar-actions { justify-content: flex-end; } }
 
-/* حالت مرتب‌سازی: همان چیدمان گرید فعلی حفظ می‌شود؛ فقط کارت‌ها قابل کشیدن می‌شوند */
+/* Reorder mode: the current grid layout stays the same; cards just become draggable */
 .grid.reordering .card { cursor: grab; }
 .grid.reordering .card:active { cursor: grabbing; }
-.grid.reordering .card.card--dragging { display: none; }   /* مبدأ مخفی؛ جای آن را placeholder مقصد نشان می‌دهد */
+.grid.reordering .card.card--dragging { display: none; }   /* source hidden; the drop-target placeholder shows its spot */
 .grid.reordering .card-admin-bar,
 .grid.reordering .card-private-tag,
 .grid.reordering .card-add-tile { display: none; }
-/* توقف انیمیشن deco هنگام مرتب‌سازی → کاهش repaint و لگ حین درگ */
+/* Pause deco animations during reorder → less repaint and lag while dragging */
 .grid.reordering .card-deco-wrap *,
 .grid.reordering .card-corner-deco * { animation-play-state: paused !important; }
-/* حین درگ، همه انیمیشن‌های متحرک صفحه (deco، aurora، کلون شناور، …) متوقف می‌شوند */
+/* While dragging, every animated page effect (deco, aurora, the floating clone, …) is paused */
 body.is-dragging *,
 body.is-dragging *::before,
 body.is-dragging *::after { animation-play-state: paused !important; }
-/* جایگاه مقصد (placeholder) — به کاربر نشان می‌دهد کارت کجا می‌نشیند */
+/* Drop-target placeholder — shows the user where the card will land */
 .card-drop-slot {
   border: 2px dashed var(--color-accent);
   border-radius: var(--radius-lg);
@@ -3290,7 +3305,7 @@ body.is-dragging *::after { animation-play-state: paused !important; }
   50%      { border-color: var(--color-accent-border); opacity: .75; }
 }
 
-/* ── راهنمای شناور (tooltip سفارشی) — هماهنگ با radius/استایل پروژه ── */
+/* ── Floating hint (custom tooltip) — matched to the project's radius/style ── */
 .tip-pop {
   position: fixed; z-index: 4000; pointer-events: none;
   max-width: 240px; padding: 6px 11px;

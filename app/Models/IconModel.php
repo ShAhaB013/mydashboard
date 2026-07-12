@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// IconModel — عملیات CRUD روی آیکون‌ها
+// IconModel — CRUD operations on icons
 // ═══════════════════════════════════════════════════════════
 
 class IconModel
@@ -14,24 +14,24 @@ class IconModel
         $this->protected = $protectedKeys;
     }
 
-    /** دریافت همه آیکون‌ها */
+    /** Gets all icons */
     public function all(): array
     {
         return $this->db->all();
     }
 
-    /** ذخیره یا ویرایش آیکون */
+    /** Saves or edits an icon */
     public function save(string $key, string $svgPath): bool
     {
         $icons       = $this->all();
         $icons[$key] = $svgPath;
         $ok = $this->db->save($icons);
-        // assets داخل بدنه bootstrap مهمان حمل می‌شود — کش آن باید تازه شود
+        // Assets are carried inside the guest bootstrap body — its cache must be invalidated
         MicroCache::forget('boot-guest');
         return $ok;
     }
 
-    /** حذف آیکون */
+    /** Deletes an icon */
     public function delete(string $key): bool
     {
         $icons = $this->all();
@@ -41,13 +41,13 @@ class IconModel
         return $ok;
     }
 
-    /** بررسی اینکه آیکون محافظت‌شده است */
+    /** Checks whether an icon is protected */
     public function isProtected(string $key): bool
     {
         return in_array($key, $this->protected, true);
     }
 
-    /** بررسی وجود آیکون */
+    /** Checks whether an icon exists */
     public function exists(string $key): bool
     {
         return isset($this->all()[$key]);

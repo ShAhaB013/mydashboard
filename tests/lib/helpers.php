@@ -2,11 +2,11 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// helpers — توابع کمکی مشترک بین فایل‌های تست
+// helpers — shared helper functions used across test files
 // ═══════════════════════════════════════════════════════════
 
 if (!function_exists('admin_http')) {
-    /** یک HttpClient لاگین‌شده به‌عنوان ادمین تستی (zztest_admin) با CSRF token آماده */
+    /** an HttpClient logged in as the test admin (zztest_admin) with a CSRF token ready */
     function admin_http(string $baseUrl, array $accounts): HttpClient
     {
         $http = new HttpClient($baseUrl);
@@ -16,7 +16,7 @@ if (!function_exists('admin_http')) {
 }
 
 if (!function_exists('user_http')) {
-    /** یک HttpClient لاگین‌شده به‌عنوان کاربر عادی تستی (zztest_user) با CSRF token آماده */
+    /** an HttpClient logged in as the test regular user (zztest_user) with a CSRF token ready */
     function user_http(string $baseUrl, array $accounts): HttpClient
     {
         $http = new HttpClient($baseUrl);

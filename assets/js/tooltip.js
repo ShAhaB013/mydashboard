@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   tooltip.js — راهنمای شناور سفارشی (جایگزین tooltip بومی مرورگر)
+   tooltip.js — custom floating tooltip (replaces the browser's native tooltip)
    ───────────────────────────────────────────────────────────
-   هر عنصری که صفت title یا data-tip داشته باشد، با نگه‌داشتن ماوس/فوکوس
-   یک حباب راهنمای هماهنگ با UI پروژه (radius، رنگ، سایه) نشان می‌دهد.
-   title بومی روی hover به data-tip منتقل می‌شود تا tooltip خام سیستم
-   عامل (با radius/استایل ناهماهنگ) هرگز ظاهر نشود. خودراه‌انداز است.
+   Any element with a title or data-tip attribute shows a tooltip bubble
+   styled to match the project UI (radius, color, shadow) on hover/focus.
+   The native title is moved to data-tip on hover so the OS's raw tooltip
+   (with mismatched radius/style) never appears. Self-initializing.
    ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -23,7 +23,7 @@
     return tip;
   }
 
-  /* title بومی را به data-tip تبدیل می‌کند تا tooltip سیستم نمایش داده نشود */
+  /* Moves the native title to data-tip so the system tooltip never shows */
   function text(el) {
     if (el.hasAttribute('title')) {
       var t = el.getAttribute('title');
@@ -36,7 +36,7 @@
   function place(el) {
     var r = el.getBoundingClientRect();
     var t = ensure();
-    t.style.left = '0px'; t.style.top = '0px';   // اندازه‌گیری بدون محدودیت
+    t.style.left = '0px'; t.style.top = '0px';   // measure unconstrained
     var w = t.offsetWidth, h = t.offsetHeight;
     var below = false;
     var x = r.left + r.width / 2 - w / 2;
@@ -46,7 +46,7 @@
     t.style.left = Math.round(x) + 'px';
     t.style.top  = Math.round(y) + 'px';
     t.classList.toggle('tip-pop--below', below);
-    /* موقعیت افقی فلش نسبت به مرکز عنصر */
+    /* Arrow's horizontal position relative to the element's center */
     t.style.setProperty('--tip-ax', Math.round(r.left + r.width / 2 - x) + 'px');
   }
 
@@ -90,11 +90,11 @@
     if (el === curEl) leave();
   }, true);
 
-  /* دسترس‌پذیری: نمایش فقط هنگام فوکوس با صفحه‌کلید (focus-visible)، نه با کلیک ماوس */
+  /* Accessibility: only show on keyboard focus (focus-visible), not on mouse click */
   document.addEventListener('focusin', function (e) {
     var el = e.target.closest && e.target.closest('[title],[data-tip]');
     if (!el || !text(el)) return;
-    /* فوکوس ناشی از کلیک ماوس نباید tooltip را فوری باز کند؛ فقط فوکوس کیبوردی */
+    /* Focus caused by a mouse click must not open the tooltip immediately; keyboard focus only */
     try { if (!el.matches(':focus-visible')) return; } catch (_) { return; }
     curEl = el; clearTimeout(hideT); clearTimeout(showT);
     showT = setTimeout(function () { show(el); }, SHOW_DELAY);

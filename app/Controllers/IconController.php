@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// IconController — هندل کردن API آیکون‌ها
+// IconController — handles the icons API
 // ═══════════════════════════════════════════════════════════
 
 class IconController
@@ -18,7 +18,7 @@ class IconController
         $this->request   = $request;
     }
 
-    /** ذخیره (افزودن یا ویرایش) آیکون */
+    /** Save (add or edit) an icon */
     public function save(): void
     {
         $key     = $this->request->input('key');
@@ -39,7 +39,7 @@ class IconController
             : Response::error('خطا در ذخیره آیکون');
     }
 
-    /** حذف آیکون */
+    /** Delete an icon */
     public function delete(): void
     {
         $key = $this->request->input('key');
@@ -49,7 +49,7 @@ class IconController
             return;
         }
 
-        // بررسی استفاده در ابزارها — فیلد DB: icon_key
+        // Check usage in tools — DB field: icon_key
         $usedIn = $this->findIconUsage($key);
         if (!empty($usedIn)) {
             Response::error('این آیکون در یک ابزار استفاده شده');
@@ -63,12 +63,12 @@ class IconController
 
     // ── Private Helpers ──────────────────────────────────────
 
-    /** پیدا کردن ابزارهایی که از این آیکون استفاده می‌کنند */
+    /** Find tools that use this icon */
     private function findIconUsage(string $key): array
     {
         return array_filter(
             $this->toolModel->all(),
-            // ستون DB: icon_key (نه iconKey)
+            // DB column: icon_key (not iconKey)
             fn($tool) => ($tool['icon_key'] ?? '') === $key
         );
     }

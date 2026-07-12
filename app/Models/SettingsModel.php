@@ -2,15 +2,15 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// SettingsModel — تنظیمات برنامه به‌صورت key/value در جدول app_settings
-// (SMTP سرور ایمیل + زمان‌بندی کد OTP)
+// SettingsModel — app settings as key/value pairs in the app_settings table
+// (SMTP email server + OTP code timing)
 // ═══════════════════════════════════════════════════════════
 
 class SettingsModel
 {
-    /** کلیدهای مجاز + مقدار پیش‌فرض (تنها همین کلیدها ذخیره می‌شوند) */
+    /** Allowed keys + default value (only these keys are stored) */
     public const DEFAULTS = [
-        'session_ttl_hours' => '24',  // ساعت — مدت فعال‌ماندن نشست کاربران (سرخور)
+        'session_ttl_hours' => '24',  // hours — how long a user session stays active
         'smtp_enabled'    => '0',
         'smtp_host'       => '',
         'smtp_port'       => '587',
@@ -19,14 +19,14 @@ class SettingsModel
         'smtp_pass'       => '',
         'smtp_from_email' => '',
         'smtp_from_name'  => 'داشبورد ابزارها',
-        'resend_cooldown' => '30',    // ثانیه — فاصله مجاز برای ارسال مجدد کد
-        'code_ttl'        => '600',   // ثانیه — مدت اعتبار کد OTP
+        'resend_cooldown' => '30',    // seconds — allowed interval between resending the code
+        'code_ttl'        => '600',   // seconds — how long the OTP code stays valid
     ];
 
-    /** کش درون‌درخواستی تا چند بار به DB نزنیم */
+    /** In-request cache so we don't hit the DB repeatedly */
     private static ?array $cache = null;
 
-    /** همه تنظیمات به‌صورت map (با اعمال پیش‌فرض‌ها برای کلیدهای غایب) */
+    /** All settings as a map (with defaults applied for missing keys) */
     public static function all(): array
     {
         if (self::$cache !== null) {
@@ -41,22 +41,22 @@ class SettingsModel
                 }
             }
         } catch (\Throwable $e) {
-            // جدول هنوز ساخته نشده → پیش‌فرض‌ها
+            // Table doesn't exist yet -> use defaults
         }
-        // smtp_pass ممکن است رمزنگاری‌شده (Crypto) ذخیره شده باشد؛ مقادیرِ
-        // قدیمیِ متن‌ساده بدون تغییر برمی‌گردند (سازگاری با نصب‌های موجود).
+        // smtp_pass may be stored encrypted (Crypto); old plaintext values are
+        // returned unchanged (compatible with existing installs).
         $out['smtp_pass'] = Crypto::decrypt($out['smtp_pass']);
         return self::$cache = $out;
     }
 
-    /** خواندن یک کلید */
+    /** Reads a single key */
     public static function get(string $key, ?string $default = null): ?string
     {
         $all = self::all();
         return $all[$key] ?? $default ?? (self::DEFAULTS[$key] ?? null);
     }
 
-    /** خواندن یک کلید به‌صورت عدد صحیح با حداقل/حداکثر */
+    /** Reads a key as an integer, clamped to min/max */
     public static function getInt(string $key, int $min, int $max, int $fallback): int
     {
         $v = (int) self::get($key, (string) $fallback);
@@ -65,7 +65,7 @@ class SettingsModel
         return $v;
     }
 
-    /** ذخیره گروهی — فقط کلیدهای مجاز اعمال می‌شوند */
+    /** Bulk save — only allowed keys are applied */
     public static function setMany(array $kv): void
     {
         foreach ($kv as $k => $v) {
@@ -82,6 +82,6 @@ class SettingsModel
                 [':k' => $k, ':v' => $v]
             );
         }
-        self::$cache = null; // باطل‌سازی کش
+        self::$cache = null; // invalidate the cache
     }
 }

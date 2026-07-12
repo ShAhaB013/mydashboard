@@ -7,21 +7,21 @@ $ACC  = $cfg['test']['accounts'];
 
 Assert::group('62_notifications_keyset_pagination');
 
-// ۴۰ اعلان با created_at های نزدیک به هم (چند ثانیه فاصله) تا tie-breaker با id هم امتحان بشه
+// 40 notifications with created_at values close together (a few seconds apart) to also exercise the id tie-breaker
 $ids = [];
 $base = time() - 1000;
 for ($i = 0; $i < 40; $i++) {
     $ids[] = Fixtures::createNotification([
         'title' => Fixtures::uniq('ks' . $i),
         'is_public' => 1, 'target_all_users' => 1,
-        'created_at' => date('Y-m-d H:i:s', $base + intdiv($i, 3)), // هر ۳ تا هم‌created_at
+        'created_at' => date('Y-m-d H:i:s', $base + intdiv($i, 3)), // every 3 rows share the same created_at
     ]);
 }
 
 Assert::test('admin list_notifications: پیمایش کامل keyset جلو دقیقا با OFFSET یکی است (بدون تکرار/جاافتادگی)', function () use ($BASE, $ACC) {
     $http = admin_http($BASE, $ACC);
-    // مرجع را مستقیم از DB می‌گیریم (نه از API) چون NotificationController::list()
-    // per_page را به ۵۰ کلمپ می‌کند و نمی‌تواند مرجع کامل یک‌جا بدهد.
+    // we get the reference list directly from the DB (not the API) because NotificationController::list()
+    // clamps per_page to 50 and can't return the full reference set in one call.
     $refIds = array_map('intval', DB::run('SELECT id FROM notifications ORDER BY created_at DESC, id DESC')->fetchAll(PDO::FETCH_COLUMN));
 
     $walked = [];

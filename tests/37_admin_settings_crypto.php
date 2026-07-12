@@ -7,7 +7,7 @@ $ACC  = $cfg['test']['accounts'];
 
 Assert::group('37_admin_settings_crypto');
 
-// ── Crypto white-box: تشخیص حالت واقعی نصب فعلی (کلید تنظیم شده یا passthrough) ──
+// ── Crypto white-box: detect the current install's actual mode (key configured or passthrough) ──
 $hasKey = trim((string) ($cfg['app']['crypto']['key'] ?? '')) !== '';
 
 Assert::test('Crypto: نصب فعلی passthrough است یا کلید واقعی دارد (تشخیص خودکار)', function () use ($hasKey) {
@@ -30,7 +30,7 @@ Assert::test('Crypto: با کلید معتبر → round-trip encrypt/decrypt ص
 Assert::test('Crypto: decrypt بدون کلید (حالت passthrough) → رشته خالی fail-safe', function () {
     Crypto::init(base64_encode(random_bytes(32)));
     $enc = Crypto::encrypt('secret-value');
-    Crypto::init(''); // شبیه‌سازی نبود کلید
+    Crypto::init(''); // simulate a missing key
     Assert::eq('', Crypto::decrypt($enc), 'بدون کلید، decrypt یک مقدار v1: باید رشته خالی (fail-safe) برگرداند');
 });
 
@@ -45,10 +45,10 @@ Assert::test('Crypto: دستکاری ۱ بایت از payload رمزشده → G
     Assert::eq('', Crypto::decrypt($tampered), 'داده دستکاری‌شده باید توسط GCM tag رد شود');
 });
 
-// ── بازگرداندن Crypto به کلید واقعی نصب برای بقیه‌ی تست‌ها ──
+// ── restore Crypto to the install's real key for the rest of the tests ──
 Crypto::init((string) ($cfg['app']['crypto']['key'] ?? ''));
 
-// ── save_settings از طریق API (بدون فعال‌سازی SMTP واقعی) ──
+// ── save_settings via the API (without actually enabling SMTP) ──
 $originalSettings = DB::run("SELECT skey, svalue FROM app_settings")->fetchAll(PDO::FETCH_KEY_PAIR);
 
 Assert::test('save_settings با پورت نامعتبر → رد می‌شود', function () use ($BASE, $ACC) {
@@ -72,7 +72,7 @@ Assert::test('save_settings smtp_pass خالی → رمز قبلی حفظ می�
         'smtp_port'    => $originalSettings['smtp_port'] ?? '587',
         'smtp_secure'  => $originalSettings['smtp_secure'] ?? 'tls',
         'smtp_user'    => $originalSettings['smtp_user'] ?? '',
-        'smtp_pass'    => '', // عمدا خالی
+        'smtp_pass'    => '', // intentionally empty
         'smtp_from_email' => $originalSettings['smtp_from_email'] ?? '',
         'smtp_from_name'  => $originalSettings['smtp_from_name'] ?? '',
         'resend_cooldown' => $originalSettings['resend_cooldown'] ?? '30',
@@ -94,7 +94,7 @@ Assert::test('test_email بدون SMTP پیکربندی‌شده → رد می�
     Assert::jsonFail($res, 'بدون SMTP پیکربندی‌شده، test_email باید رد شود (نه تلاش برای ارسال واقعی)');
 });
 
-// ── بازگرداندن تنظیمات اصلی (احتیاط، حتی اگر تست‌های بالا موفق بودند) ──
+// ── restore the original settings (just in case, even if the tests above passed) ──
 foreach ($originalSettings as $k => $v) {
     DB::run('UPDATE app_settings SET svalue=:v WHERE skey=:k', [':v' => $v, ':k' => $k]);
 }

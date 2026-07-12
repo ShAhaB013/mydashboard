@@ -1,9 +1,9 @@
 'use strict';
 // ═══════════════════════════════════════════════════════════
-// PasswordPolicy — منبع یگانه‌ی قوانین رمز عبور سمت کلاینت
-//   (هم‌راستا با app/Core/PasswordPolicy.php) + تولید رمز تصادفی قوی
-//   استفاده‌شده در: login.js (فراموشی رمز)، profile.js (تغییر رمز)،
-//   admin.js (افزودن/ویرایش کاربر)
+// PasswordPolicy — single source of truth for client-side password rules
+//   (kept in sync with app/Core/PasswordPolicy.php) + strong random password generation
+//   Used in: login.js (forgot password), profile.js (change password),
+//   admin.js (add/edit user)
 // ═══════════════════════════════════════════════════════════
 window.PasswordPolicy = (function () {
   const RULES = [
@@ -25,7 +25,7 @@ window.PasswordPolicy = (function () {
     return !!val && RULES.every(r => r.test(val));
   }
 
-  // به‌روزرسانی زنده‌ی چک‌لیست (panelId = id عنصر .pass-rules)
+  // Live checklist update (panelId = id of the .pass-rules element)
   function updateChecklist(panelId, val) {
     const panel = document.getElementById(panelId);
     if (!panel) return;
@@ -40,28 +40,29 @@ window.PasswordPolicy = (function () {
     });
   }
 
-  // تولید رمز تصادفی، قوی و یکتا (Web Crypto)؛ فیلد رمز/تکرار را پر و
-  // دکمه‌ی چشمِ کنارش (بر اساس data-act="togglePass"[data-target]) را
-  // به حالت «نمایش متن» می‌برد. panelId اختیاری برای به‌روزرسانی چک‌لیست.
+  // Generates a strong, random, unique password (Web Crypto); fills the
+  // password/confirm fields and switches the adjacent eye button (matched via
+  // data-act="togglePass"[data-target]) to "show text" mode. panelId is
+  // optional, for updating the checklist.
   function generate(passId, confirmId, panelId) {
-    const U = 'ABCDEFGHJKLMNPQRSTUVWXYZ';   // بدون I,O مبهم
-    const L = 'abcdefghijkmnopqrstuvwxyz';   // بدون l مبهم
-    const D = '23456789';                    // بدون 0,1 مبهم
+    const U = 'ABCDEFGHJKLMNPQRSTUVWXYZ';   // excludes ambiguous I, O
+    const L = 'abcdefghijkmnopqrstuvwxyz';   // excludes ambiguous l
+    const D = '23456789';                    // excludes ambiguous 0, 1
     const S = '!@#$%^&*-_=+?';
     const ALL = U + L + D + S;
     const rnd = (n) => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
 
-    const len = 14 + rnd(5); // طول ۱۴ تا ۱۸
-    const out = [U[rnd(U.length)], L[rnd(L.length)], D[rnd(D.length)], S[rnd(S.length)]]; // حداقل یکی از هر دسته
+    const len = 14 + rnd(5); // length 14 to 18
+    const out = [U[rnd(U.length)], L[rnd(L.length)], D[rnd(D.length)], S[rnd(S.length)]]; // at least one from each class
     while (out.length < len) out.push(ALL[rnd(ALL.length)]);
-    for (let i = out.length - 1; i > 0; i--) { const j = rnd(i + 1); [out[i], out[j]] = [out[j], out[i]]; } // درهم‌ریزی
+    for (let i = out.length - 1; i > 0; i--) { const j = rnd(i + 1); [out[i], out[j]] = [out[j], out[i]]; } // shuffle
     const pwd = out.join('');
 
     const p = document.getElementById(passId);
     if (!p) return pwd;
     const c = confirmId ? document.getElementById(confirmId) : null;
     p.value = pwd; if (c) c.value = pwd;
-    p.type = 'text'; // نمایش رمز تولیدشده تا کاربر ببیند/کپی کند
+    p.type = 'text'; // show the generated password so the user can see/copy it
     const toggleBtn = document.querySelector('[data-act="togglePass"][data-target="' + passId + '"]');
     if (toggleBtn) toggleBtn.innerHTML = EYE_OFF_SVG;
     if (panelId) updateChecklist(panelId, pwd);

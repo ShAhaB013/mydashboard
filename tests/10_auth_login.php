@@ -76,5 +76,5 @@ Assert::test('logout → نشست باطل می‌شود', function () use ($BAS
     Assert::eq(false, $res['json']['logged_in'] ?? null, 'بعد از logout باید logged_in:false باشد');
 });
 
-// پاک‌سازی احتمالی login_rate_limit مربوط به 127.0.0.1/scope=user بعد از تست‌های رمز اشتباه
+// clean up any login_rate_limit rows for 127.0.0.1/scope=user left by the wrong-password tests
 Fixtures::deleteRateLimitByIp('127.0.0.1', 'user');

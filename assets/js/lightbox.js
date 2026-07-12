@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════
-   lightbox.js — نمایش تمام‌صفحه تصویر (Image Lightbox)
+   lightbox.js — full-screen image viewer (Image Lightbox)
    ───────────────────────────────────────────────────────────
-   مستقل و بدون وابستگی. در index.php و notifications.php لود می‌شود.
-   نحوه استفاده:
-     • هر <img> با کلاس "js-lightbox" و دارای data-full با کلیک باز می‌شود.
-     • یا به‌صورت دستی:  Lightbox.open(fullUrl, altText)
-   امکانات: انیمیشن نرم، بستن با ✕ / کلیک پس‌زمینه / Escape،
-            زوم با کلیک یا اسکرول، و درگ برای جابه‌جایی هنگام زوم.
+   Standalone, no dependencies. Loaded in index.php and notifications.php.
+   Usage:
+     • Any <img> with class "js-lightbox" and a data-full attribute opens on click.
+     • Or manually: Lightbox.open(fullUrl, altText)
+   Features: smooth animation, close via ✕ / background click / Escape,
+             zoom via click or scroll, and drag to pan while zoomed.
    ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -16,7 +16,7 @@
   var dragging = false, moved = false, startX = 0, startY = 0, downX = 0, downY = 0;
   var MIN = 1, MAX = 4, STEP = 0.35;
 
-  // ساخت DOM به‌صورت تنبل (فقط یک‌بار، هنگام اولین استفاده)
+  // Build the DOM lazily (only once, on first use)
   function build() {
     if (overlay) return;
     overlay = document.createElement('div');
@@ -39,7 +39,7 @@
     closeBtn.addEventListener('click', function (e) { e.stopPropagation(); close(); });
     overlay.addEventListener('click', function (e) { if (e.target === overlay) { e.stopPropagation(); close(); } });
 
-    // کلیک روی تصویر: اگر درگ نشده بود → toggle زوم
+    // Click on the image: if it wasn't dragged → toggle zoom
     imgEl.addEventListener('click', function (e) {
       e.stopPropagation();
       if (moved) { moved = false; return; }
@@ -71,7 +71,7 @@
   }
 
   function onDown(e) {
-    if (scale <= MIN) return;       // فقط هنگام زوم، درگ فعال است
+    if (scale <= MIN) return;       // drag is only active while zoomed in
     dragging = true; moved = false;
     downX = e.clientX; downY = e.clientY;
     startX = e.clientX - panX; startY = e.clientY - panY;
@@ -101,11 +101,11 @@
     scale = 1; panX = 0; panY = 0;
     imgEl.alt = alt || '';
     imgEl.src = src;
-    imgEl.style.transform = 'scale(.92)';   // نقطه شروع انیمیشن ورود
+    imgEl.style.transform = 'scale(.92)';   // starting point for the entry animation
     imgEl.style.cursor = 'zoom-in';
     overlay.classList.add('open');
     requestAnimationFrame(function () {
-      requestAnimationFrame(applyTransform);          // → scale(1) با transition
+      requestAnimationFrame(applyTransform);          // → scale(1) with transition
       if (closeBtn) closeBtn.focus({ preventScroll: true });
     });
   }
@@ -114,7 +114,7 @@
     if (!overlay || !overlay.classList.contains('open')) return;
     overlay.classList.remove('open');
     resetTransform();
-    // پاک‌سازی src پس از پایان انیمیشن (آزادسازی حافظه)
+    // Clear src after the animation ends (frees memory)
     setTimeout(function () {
       if (overlay && !overlay.classList.contains('open')) imgEl.src = '';
     }, 240);
@@ -124,16 +124,16 @@
     lastFocus = null;
   }
 
-  // ── باز کردن با کلیک روی تصاویر نشانه‌گذاری‌شده (event delegation) ──
+  // ── Open on click for marked images (event delegation) ──
   document.addEventListener('click', function (e) {
     var t = e.target;
     if (t && t.matches && t.matches('img.js-lightbox') && t.dataset.full) {
-      e.stopPropagation();   // جلوگیری از واکنش هندلرهای دیگر صفحه
+      e.stopPropagation();   // prevent other page handlers from reacting
       open(t.dataset.full, t.alt);
     }
   });
 
-  // ── Escape در فاز capture: قبل از هندلرهای مودال زیرین اجرا شود ──
+  // ── Escape in the capture phase: runs before underlying modal handlers ──
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) {
       e.stopPropagation();
@@ -141,6 +141,5 @@
     }
   }, true);
 
-  // API عمومی
   window.Lightbox = { open: open, close: close };
 })();

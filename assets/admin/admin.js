@@ -4,7 +4,7 @@
 // State
 // ═══════════════════════════════════════════════════════════
 const State = {
-  editId:      0,    // 0 = افزودن، >0 = ویرایش ابزار با این id
+  editId:      0,    // 0 = add mode, >0 = editing the tool with this id
   deleteId:    0,
   selIcon:     'star',
   selDeco:     'generic',
@@ -14,7 +14,7 @@ const State = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// Skeleton — قالب‌های لودینگ (هم‌ساختار با پنل کاربر در style.css)
+// Skeleton — loading placeholders (same structure as the user panel in style.css)
 // ═══════════════════════════════════════════════════════════
 const SKELETON_TABLE_ROW =
   '<div class="sk-table-row" aria-hidden="true">'
@@ -25,7 +25,7 @@ const SKELETON_TABLE_ROW =
 const SKELETON_GRID_TILE = '<div class="sk sk-grid-tile" aria-hidden="true"></div>';
 const SKELETON_BADGE_CHIP = '<div class="sk sk-badge-chip" aria-hidden="true"></div>';
 
-// escape برای درج امن متن کاربر در HTML رشته‌ای
+// escape for safely inserting user text into string-based HTML
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => (
     { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
@@ -54,10 +54,10 @@ const Api = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// Toast — آیکون رنگی + عنوان + توضیح + دکمه بستن (هم‌ساختار با داشبورد/ورود)
+// Toast — colored icon + title + description + close button (same structure as dashboard/login)
 // Toast.show(message, type, title?) — type: success | error | warning | info
-// همیشه فقط یک toast هم‌زمان نمایش داده می‌شود؛ toast تازه جای قبلی را
-// می‌گیرد نه اینکه رویش انباشته شود (این صفحه یک نگهدارنده‌ی ثابت #toast دارد).
+// Only one toast is ever shown at a time; a new toast replaces the previous
+// one instead of stacking on top of it (this page has a single fixed #toast holder).
 // ═══════════════════════════════════════════════════════════
 const Toast = {
   _timer: null,
@@ -89,9 +89,10 @@ const Toast = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// FieldErr — خطای inline برای فرم‌های کلیدی (قاب قرمز + پیام زیر فیلد)
-// مارک‌آپ تغییر نمی‌کند؛ پیام داخل .field تزریق می‌شود. اگر فیلد در .field
-// نبود، به Toast برمی‌گردد. همیشه false برمی‌گرداند تا در شرط‌ها return شود.
+// FieldErr — inline error for key forms (red border + message below the field)
+// The markup itself is not changed; the message is injected inside .field. If the
+// field isn't wrapped in .field, it falls back to Toast. Always returns false so
+// callers can `return FieldErr.set(...)` directly from validation checks.
 // ═══════════════════════════════════════════════════════════
 const FieldErr = {
   ICON: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="7.5" x2="12" y2="13"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/></svg>',
@@ -127,7 +128,7 @@ const Modal = {
   open(id)  { document.getElementById(id).classList.add('open');    document.body.style.overflow = 'hidden'; },
   close(id) {
     document.getElementById(id).classList.remove('open');
-    // اگر مودال دیگری هنوز باز است (مثلا تایید روی فرم)، قفل اسکرول را نگه دار
+    // if another modal is still open (e.g. a confirm on top of a form), keep the scroll lock
     if (!document.querySelector('.modal-overlay.open')) document.body.style.overflow = '';
   },
 };
@@ -193,7 +194,7 @@ const Preview = {
     return `#${[r[1],r[2],r[3]].map(v => l(v).toString(16).padStart(2,'0')).join('')}`;
   },
   update() {
-    if (!document.getElementById('f-title')) return;   // فرم ابزار حذف شده (به داشبورد منتقل شد)
+    if (!document.getElementById('f-title')) return;   // tool form removed (moved to the dashboard)
     const title = document.getElementById('f-title').value || 'عنوان ابزار';
     const desc  = document.getElementById('f-desc').value  || 'توضیح کوتاه درباره این ابزار';
     const badge = document.getElementById('f-badge').value || 'ابزار';
@@ -236,7 +237,7 @@ const UserManager = {
   },
   _isAdd: false,
 
-  // ── لیست (سمت سرور، AJAX — هم‌ساختار با مدیریت اعلان‌ها) ─────
+  // ── list (server-side, AJAX — same structure as notification management) ─────
   _users:       [],
   _page:        1,
   _perPage:     10,
@@ -277,7 +278,7 @@ const UserManager = {
     this._pageCount = pg.page_count ?? 1;
     this._page      = pg.page       ?? this._page;
 
-    // اگر صفحه فعلی خالی شد (مثلا بعد از حذف آخرین آیتم صفحه)، یک صفحه عقب برو
+    // if the current page ended up empty (e.g. after deleting the page's last item), go back a page
     if (!this._users.length && this._page > 1) {
       return this.load(this._page - 1);
     }
@@ -390,7 +391,7 @@ const UserManager = {
     return row;
   },
 
-  // ── Pagination (سمت سرور) ─────────────────────────────
+  // ── Pagination (server-side) ─────────────────────────────
   _renderPagination() {
     const pag  = document.getElementById('userPagination');
     const info = document.getElementById('userPageInfo');
@@ -491,7 +492,7 @@ const UserManager = {
     this.goToInputValue();
   },
 
-  // ── جستجو (با debounce) ───────────────────────────────
+  // ── search (debounced) ───────────────────────────────
   onSearchInput(value) {
     const wrap = document.querySelector('.user-search');
     if (wrap) wrap.classList.toggle('has-value', value.trim() !== '');
@@ -514,7 +515,7 @@ const UserManager = {
     this.load(1);
   },
 
-  // ── جستجوی پیشرفته (نقش/وضعیت) ─────────────────────────
+  // ── advanced search (role/status) ─────────────────────────
   toggleAdvanced() {
     const panel = document.getElementById('userAdvPanel');
     const btn   = document.getElementById('userAdvToggle');
@@ -546,7 +547,7 @@ const UserManager = {
     if (btn) btn.classList.toggle('has-filters', has);
   },
 
-  // ── تعداد آیتم در هر صفحه (قابل تنظیم + ماندگار) ─────────
+  // ── items per page (configurable + persisted) ─────────────
   setPerPage(val) {
     const allowed = [10, 20, 50];
     let n = parseInt(val, 10);
@@ -585,7 +586,7 @@ const UserManager = {
     this._dirty = false;
     Modal.close('userModal');
   },
-  /* پنهان‌کردن چک‌لیست هنگام بازشدن مودال + اتصال یک‌باره‌ی focus/input */
+  /* hide the checklist when the modal opens + wire up focus/input once */
   _resetPassRules() {
     const panel = document.getElementById('editPassRules');
     if (panel) panel.hidden = true;
@@ -903,7 +904,7 @@ const AccessManager = {
 const IconPicker = {
   build() {
     const grid = document.getElementById('iconGrid');
-    if (!grid) return;   // گرید فقط در مودال ابزار بود که حذف شده — مدیریت ابزار به داشبورد منتقل شد
+    if (!grid) return;   // the grid only existed in the (now-removed) tool modal — tool management moved to the dashboard
     grid.innerHTML = '';
     for (const [key, path] of Object.entries(ICONS_DATA)) {
       const btn = document.createElement('button');
@@ -931,7 +932,7 @@ const IconPicker = {
 const DecoPicker = {
   build() {
     const grid = document.getElementById('decoGrid');
-    if (!grid) return;   // مدیریت ابزار به داشبورد منتقل شد — این گرید دیگر در پنل نیست
+    if (!grid) return;   // tool management moved to the dashboard — this grid is no longer in the panel
     grid.innerHTML = '';
     for (const key of Object.keys(DECOS_DATA)) {
       const btn = document.createElement('button');
@@ -1146,7 +1147,7 @@ const Theme = {
     m.setAttribute('content', this.META_COLOR[theme] || this.META_COLOR.light);
   },
 
-  // اعمال تم بدون لگ: transition همه عناصر برای یک فریم خاموش می‌شود
+  // applies the theme without lag: transitions on all elements are disabled for one frame
   apply(theme, persist = true) {
     const root = document.documentElement;
     root.classList.add('theme-switching');
@@ -1167,13 +1168,13 @@ const Theme = {
 
   init() {
     this._meta(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
-    // همگام بین تب‌ها
+    // sync between tabs
     window.addEventListener('storage', e => {
       if (e.key === 'theme' && (e.newValue === 'dark' || e.newValue === 'light')) {
         this.apply(e.newValue, false);
       }
     });
-    // تغییر تم سیستم وقتی کاربر انتخاب دستی نکرده
+    // follow the system theme when the user hasn't chosen manually
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
       if (!localStorage.getItem('theme')) this.apply(e.matches ? 'dark' : 'light', false);
     });
@@ -1181,9 +1182,9 @@ const Theme = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// توابع عمومی — صدا زده شده از HTML
+// Public functions — called from HTML
 // ═══════════════════════════════════════════════════════════
-// شبکه بخش‌های ادمین: کلیک روی کاشی، پنل مربوطه را باز می‌کند (آکاردئونی — فقط یکی هم‌زمان).
+// admin section grid: clicking a tile opens its panel (accordion-style — only one at a time).
 function togglePanel(id, tile) {
   const panel = document.getElementById(id);
   if (!panel) return;
@@ -1213,7 +1214,7 @@ function openDeleteUserModal(id, n) { UserManager.openDelete(id, n); }
 function openAccessModal(id, name)  { AccessManager.open(id, name); }
 function saveAccess()               { AccessManager.save(); }
 
-/* ── نمایش/مخفی کردن رمز عبور ── */
+/* ── show/hide password ── */
 function togglePass(inputId, btn) {
   const input = document.getElementById(inputId);
   if (!input) return;
@@ -1224,14 +1225,14 @@ function togglePass(inputId, btn) {
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 }
 
-/* ── قوانین رمز عبور + تولید رمز تصادفی: از ماژول مشترک password-policy.js ── */
+/* ── password rules + random password generation: from the shared password-policy.js module ── */
 const PW_POLICY_MSG = 'رمز عبور باید بین ۱۰ تا ۶۴ کاراکتر و شامل حروف کوچک و بزرگ انگلیسی، عدد و نماد باشد.';
 function pwMeetsPolicy(val) { return PasswordPolicy.meets(val); }
 function updatePassRules(val) { PasswordPolicy.updateChecklist('editPassRules', val); }
 function genUserPassword(el) { PasswordPolicy.generate(el.dataset.target, null, 'editPassRules'); }
 
 // ═══════════════════════════════════════════════════════════
-// SecurityManager — انسداد ورود (Rate limit): مشاهده لاگ و رفع انسداد
+// SecurityManager — login blocks (rate limit): view log and clear blocks
 // ═══════════════════════════════════════════════════════════
 const SecurityManager = {
   open() { Modal.open('blocksModal'); this.refresh(); },
@@ -1295,14 +1296,14 @@ const SecurityManager = {
 function openBlocksModal() { SecurityManager.open(); }
 
 // ═══════════════════════════════════════════════════════════
-// SessionsManager — مدیریت نشست‌های فعال یک کاربر
-// در صفحه کاربران از طریق مودال هر کاربر (sessionsUserModal) استفاده می‌شود.
+// SessionsManager — manages a user's active sessions
+// Used on the users page via each user's modal (sessionsUserModal).
 // ═══════════════════════════════════════════════════════════
 const SessionsManager = {
   _curUser: 0,
   _curUserName: '',
 
-  // ── مودال یک کاربر ──
+  // ── single-user modal ──
   openUser(uid, name) {
     this._curUser = uid;
     this._curUserName = name || '';
@@ -1324,8 +1325,8 @@ const SessionsManager = {
     box.innerHTML = list.length
       ? list.map(s => this._row(s, false)).join('')
       : '<div class="blocks-empty">این کاربر نشست فعالی ندارد.</div>';
-    // اگر تنها نشست باقی‌مانده، نشست فعلی خود ادمین باشد، «خروج از همه دستگاه‌ها»
-    // چیزی برای پایان‌دادن ندارد (سرور آن را استثنا می‌کند تا ادمین از پنل بیرون نیفتد).
+    // If the only remaining session is the admin's own current one, "log out of all devices"
+    // has nothing to terminate (the server excludes it so the admin doesn't get kicked out of the panel).
     const onlyOwnCurrent = list.length === 1 && list[0].is_current;
     if (killBtn) killBtn.disabled = !list.length || onlyOwnCurrent;
   },
@@ -1368,7 +1369,7 @@ const SessionsManager = {
       </div>`;
   },
 
-  // ── تنظیم مدت فعال‌بودن نشست (ساعت) — صفحه کاربران ──
+  // ── set session lifetime (hours) — users page ──
   async saveTtl() {
     const el = document.getElementById('sessTtlInput');
     const v  = parseInt(String(el ? el.value : '').replace(/[^\d]/g, ''), 10);
@@ -1378,7 +1379,7 @@ const SessionsManager = {
     else        { Toast.show(res.msg || 'خطا در ذخیره', 'error'); }
   },
 
-  // ── عملیات ──
+  // ── actions ──
   terminate(id, isCurrent) {
     Confirm.show({
       title:    'پایان نشست',
@@ -1421,7 +1422,7 @@ const SessionsManager = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// SettingsManager — ذخیره تنظیمات ایمیل/SMTP + ارسال آزمایشی
+// SettingsManager — saves email/SMTP settings + sends a test email
 // ═══════════════════════════════════════════════════════════
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/;
 
@@ -1438,7 +1439,7 @@ const SettingsManager = {
       smtp_port:       this._v('setSmtpPort'),
       smtp_secure:     document.getElementById('setSmtpSecure').value,
       smtp_user:       this._v('setSmtpUser'),
-      smtp_pass:       document.getElementById('setSmtpPass').value, // بدون trim تا رمز دست‌نخورده بماند
+      smtp_pass:       document.getElementById('setSmtpPass').value, // no trim, to keep the password intact
       smtp_from_email: fromEmail,
       smtp_from_name:  this._v('setSmtpFromName'),
       resend_cooldown: this._v('setResendCooldown'),
@@ -1450,7 +1451,7 @@ const SettingsManager = {
     if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
     if (res.ok) {
       Toast.show('تنظیمات ذخیره شد', 'success', 'ذخیره موفق');
-      document.getElementById('setSmtpPass').value = ''; // پاک‌سازی فیلد رمز پس از ذخیره
+      document.getElementById('setSmtpPass').value = ''; // clear the password field after saving
     } else {
       Toast.show(res.msg || 'خطا در ذخیره تنظیمات', 'error');
     }
@@ -1470,10 +1471,10 @@ const SettingsManager = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// CustomSelect — ارتقای <select> بومی به dropdown هماهنگ با تم
-// نکته: <select> اصلی منبع حقیقت مقدار می‌ماند (هیدن می‌شود) تا
-// کد موجود که .value را می‌خواند دست‌نخورده کار کند؛ انتخاب‌ها مقدار
-// را روی همان select می‌نویسند و رویداد change را شلیک می‌کنند.
+// CustomSelect — upgrades a native <select> into a theme-matching dropdown
+// Note: the original <select> stays the source of truth for the value (it's hidden) so
+// existing code that reads .value keeps working unchanged; selections write the value
+// back onto that same select and fire a change event.
 // ═══════════════════════════════════════════════════════════
 const CustomSelect = {
   enhanceAll(root = document) {
@@ -1526,7 +1527,7 @@ const CustomSelect = {
     this._sync(sel);
   },
 
-  /** همگام‌سازی نمایش سفارشی با مقدار فعلی <select> (پس از تغییر برنامه‌ای) */
+  /** syncs the custom display with the <select>'s current value (after a programmatic change) */
   refresh(sel) {
     if (sel && sel._csWrap) this._sync(sel);
   },
@@ -1542,16 +1543,16 @@ const CustomSelect = {
 
   _close(wrap) { wrap.classList.remove('open'); },
 };
-// بستن با کلیک بیرون
+// close on outside click
 document.addEventListener('click', () =>
   document.querySelectorAll('.cselect.open').forEach(w => w.classList.remove('open')));
 
 // ═══════════════════════════════════════════════════════════
-// SessionWatch — پایش انقضای TTL نشست در پس‌زمینه
-// پنل ادمین (برخلاف داشبورد اصلی) هیچ poll دوره‌ای نداشت؛ یعنی مدیرِ فعالی
-// که تب را باز نگه داشته بود، حتی بعد از پایان TTL هم تا اولین اکشنِ ناموفق
-// (401/403) در پنل باقی می‌ماند. اینجا با poll سبک هر ۲۵ ثانیه، همان لحظه‌ی
-// انقضا شناسایی و کاربر به صفحه‌ی ورود هدایت می‌شود.
+// SessionWatch — watches for session TTL expiry in the background
+// Unlike the main dashboard, the admin panel had no periodic poll; meaning an active admin
+// who kept a tab open would stay in the panel even after the TTL ended, until the first
+// failed action (401/403). Here, a lightweight poll every 25s detects the exact moment
+// of expiry and redirects the user to the login page.
 // ═══════════════════════════════════════════════════════════
 const SessionWatch = {
   _timer: null,
@@ -1567,31 +1568,31 @@ const SessionWatch = {
     try {
       const res  = await fetch('/api.php?action=me', { cache: 'no-cache' });
       const data = await res.json();
-      // رفرش همان صفحه (نه هدایت به /login) — گیت سرور در admin.php خودش
-      // کاربرِ غیرمجاز/مهمان را به مقصد درست (داشبورد عمومی) هدایت می‌کند.
+      // Refresh this same page (instead of redirecting to /login) — the server gate in
+      // admin.php itself redirects the unauthorized/guest user to the right destination (public dashboard).
       if (data.ok && data.logged_in === false) {
         location.reload();
       }
-    } catch { /* silent — خطای شبکه موقت، در poll بعدی دوباره بررسی می‌شود */ }
+    } catch { /* silent — a temporary network error, re-checked on the next poll */ }
   },
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   SessionWatch.start();
 
-  // مدیریت آیکون/انیمیشن (مدیریت ابزارها به داشبورد اصلی منتقل شده است)
+  // icon/deco management (tool management has moved to the main dashboard)
   if (document.getElementById('iconAssetGrid'))  IconEditor.buildGrid();
   if (document.getElementById('decoAssetGrid'))  DecoEditor.buildGrid();
   Theme.init();
-  CustomSelect.enhanceAll();   // ارتقای همه <select>های بومی به dropdown هماهنگ با تم
+  CustomSelect.enhanceAll();   // upgrade all native <select>s into theme-matching dropdowns
 
-  // لیست کاربران با AJAX (صفحه مدیریت کاربران)
+  // user list via AJAX (user management page)
   if (document.getElementById('userList')) {
     UserManager._initPerPage();
     UserManager.load();
   }
 
-  // ایمیل آزمایشی (صفحه تنظیمات): تا وقتی فرمت ایمیل معتبر نیست، دکمه ارسال غیرفعال است
+  // test email (settings page): the send button stays disabled until the email format is valid
   const testEmailInput = document.getElementById('setTestEmail');
   const testEmailBtn   = document.querySelector('[data-act="testSettings"]');
   if (testEmailInput && testEmailBtn) {
@@ -1604,7 +1605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncTestEmailBtn();
   }
 
-  // بستن مودال با کلیک روی overlay
+  // close the modal on overlay click
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
       if (e.target !== o) return;
@@ -1614,7 +1615,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // بستن مودال با Escape — فقط روی مودال بالایی (آخرین مودال باز)
+  // close the modal with Escape — only the topmost modal (last one opened)
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     const open = document.querySelectorAll('.modal-overlay.open');
@@ -1627,7 +1628,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// افکت ripple (موج کلیک) روی دکمه‌های هدر و دکمه‌های عملیات — مشترک با theme.js
+// ripple (click wave) effect on header buttons and action buttons — shared with theme.js
 // ═══════════════════════════════════════════════════════════
 (function () {
   const SEL = '.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn,'
@@ -1647,7 +1648,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.appendChild(r);
     r.addEventListener('animationend', () => r.remove());
   });
-  // ناوبری لینک‌های هدر را ~160ms نگه می‌داریم تا ریپل دیده شود (prerender فوری است)
+  // delay header link navigation by ~160ms so the ripple is visible (prerender is instant)
   document.addEventListener('click', function (e) {
     const a = e.target.closest(SEL);
     if (!a || a.tagName !== 'A') return;
@@ -1659,15 +1660,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 })();
 
-// هدر چسبان هنگام اسکرول (مشترک با theme.js): .is-stuck با اسکرول به پایین
+// sticky header on scroll (shared with theme.js): .is-stuck toggles on scrolling down
 (function () {
   const header = document.querySelector('.app-header');
   if (!header) return;
   let ticking = false;
   function update() {
     const y = window.scrollY;
-    // آستانه‌ی دوگانه (hysteresis) تا با نوسان چند پیکسلی اسکرول (مثلا اثر
-    // خودِ تغییر padding-top روی is-stuck) کلاس پشت‌هم toggle نشود و هدر نلرزد.
+    // dual threshold (hysteresis) so a few pixels of scroll jitter (e.g. the padding-top
+    // change from is-stuck itself) doesn't repeatedly toggle the class and make the header shake.
     if (y > 24) header.classList.add('is-stuck');
     else if (y < 8) header.classList.remove('is-stuck');
     ticking = false;
@@ -1679,27 +1680,27 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // ═══════════════════════════════════════════════════════════
-// اکشن‌ها (جایگزین on* برای CSP) — دیسپچرِ actions.js این‌ها را
-// از روی data-act/data-change روی عناصر (ثابت یا داینامیک) صدا می‌زند.
-// منطقِ Managerها دست‌نخورده است؛ این فقط لایه‌ی سیم‌کشی است.
+// actions (replaces on* for CSP) — the actions.js dispatcher calls these based on
+// data-act/data-change attributes on elements (static or dynamic).
+// Manager logic is untouched; this is just the wiring layer.
 // ═══════════════════════════════════════════════════════════
 if (window.Actions) {
   Actions.register({
-    // پنل‌های داشبورد
+    // dashboard panels
     togglePanel:        (el) => togglePanel(el.dataset.panel, el),
-    // آیکون‌ها
+    // icons
     saveIconEdit:       () => saveIconEdit(),
     deleteIcon:         () => deleteIcon(),
     addNewIcon:         () => addNewIcon(),
-    // انیمیشن‌ها (دکو)
+    // animations (deco)
     saveDecoEdit:       () => saveDecoEdit(),
     refreshDecoPreview: () => refreshDecoPreview(),
     deleteDeco:         () => deleteDeco(),
     addNewDeco:         () => addNewDeco(),
-    // مودال تاییدیه
+    // confirm modal
     closeConfirm:       () => closeConfirm(),
     runConfirm:         () => runConfirm(),
-    // کاربران
+    // users
     userAdd:            () => UserManager.openAdd(),
     userClose:          () => UserManager.close(),
     userSave:           () => UserManager.save(),
@@ -1718,20 +1719,20 @@ if (window.Actions) {
     togglePass:         (el) => togglePass(el.dataset.target, el),
     genUserPassword:    (el) => genUserPassword(el),
     closeModal:         (el) => closeModal(el.dataset.modal),
-    // دسترسی
+    // access
     accessOpen:         (el) => openAccessModal(+el.dataset.id, el.dataset.name),
     accessClose:        () => AccessManager.close(),
     saveAccess:         () => saveAccess(),
-    // نشست‌ها
+    // sessions
     saveTtl:            () => SessionsManager.saveTtl(),
     sessOpenUser:       (el) => SessionsManager.openUser(+el.dataset.id, el.dataset.name),
     sessTerminateUser:  () => SessionsManager.terminateUser(),
     sessTerminate:      (el) => SessionsManager.terminate(el.dataset.id, el.dataset.current === 'true'),
-    // امنیت (انسداد ورود)
+    // security (login blocks)
     openBlocks:         () => openBlocksModal(),
     securityRefresh:    () => SecurityManager.refresh(),
     securityUnblock:    (el) => SecurityManager.unblock(el.dataset.ip, el.dataset.scope),
-    // تنظیمات ایمیل/SMTP
+    // email/SMTP settings
     saveSettings:       () => SettingsManager.save(),
     testSettings:       () => SettingsManager.test(),
   });

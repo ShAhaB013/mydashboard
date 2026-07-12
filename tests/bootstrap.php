@@ -1,9 +1,9 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// tests/bootstrap.php — راه‌اندازی محیط تست
-//   • همان autoload map پروژه (بدون اجرای session/CSP سراسری bootstrap.php اصلی)
-//   • اتصال DB مستقیم (برای assertion های white-box)
-//   • Crypto::init با کلید config.php واقعی (برای تست‌های رمزنگاری)
+// tests/bootstrap.php — set up the test environment
+//   • the same autoload map as the project (without running the main bootstrap.php's global session/CSP)
+//   • direct DB connection (for white-box assertions)
+//   • Crypto::init with the real config.php key (for crypto tests)
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);
 
@@ -13,7 +13,7 @@ ini_set('display_errors', '1');
 define('TESTS_ROOT', __DIR__);
 define('APP_ROOT', dirname(__DIR__));
 
-// ── autoload — همان نقشه‌ی bootstrap.php اصلی پروژه ──────────
+// ── autoload — same map as the project's main bootstrap.php ──────────
 spl_autoload_register(function (string $class): void {
     static $map = null;
     if ($map === null) {
@@ -64,7 +64,7 @@ spl_autoload_register(function (string $class): void {
     if (isset($map[$class])) require_once $map[$class];
 });
 
-// ── config واقعی پروژه (یک سطح بالاتر از webroot) + config تست ──
+// ── the project's real config (one level above webroot) + test config ──
 $APP_CONFIG  = require APP_ROOT . '/../config.php';
 $TEST_CONFIG = require TESTS_ROOT . '/config.php';
 

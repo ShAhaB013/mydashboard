@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// View: users_view.php — صفحه مستقل مدیریت کاربران (با جستجو)
+// View: users_view.php — standalone user management page (with search)
 // ═══════════════════════════════════════════════════════════
 ?>
 <!DOCTYPE html>
@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="/assets/admin/admin.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.css') ?>">
   <link rel="stylesheet" href="/assets/css/pagination.css?v=<?= asset_v(__DIR__ . '/../../assets/css/pagination.css') ?>">
   <style>
-    /* ── نوار جستجو/فیلتر/تعداد در هر صفحه (هماهنگ با بخش مدیریت اعلان‌ها) ── */
+    /* ── Search/filter/per-page bar (matches the notification management section) ── */
     .user-list-controls { display:flex; gap:10px; align-items:stretch; margin-bottom:16px; }
     .user-search { position:relative; flex:1; margin-bottom:0; }
     .user-search-icon {
@@ -64,7 +64,7 @@
     .user-perpage .cselect { width:auto; }
     .user-perpage .cselect-trigger { min-height:42px; font-weight:600; border-radius:var(--radius-xs); background:var(--bg-card); }
 
-    /* ── دکمه و پنل جستجوی پیشرفته ── */
+    /* ── Advanced search button and panel ── */
     .user-adv-toggle {
       display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
       font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
@@ -112,7 +112,7 @@
     .user-empty { text-align:center; padding:60px 24px; color:var(--text-2); border:1.5px dashed var(--border); border-radius:var(--radius-lg); }
     .user-empty svg { width:40px; height:40px; opacity:.35; display:block; margin:0 auto 12px; }
 
-    /* ── صفحه‌بندی سمت سرور (AJAX) — هم‌ساختار با بخش اعلان‌ها ── */
+    /* ── Server-side pagination (AJAX) — same structure as the notifications section ── */
     .user-page-info { text-align:center; font-size:12px; color:var(--text-3); margin-bottom:8px; }
     .user-pagination {
       display:flex; align-items:center; justify-content:center;
@@ -120,7 +120,7 @@
     }
     .user-pagination.hidden { display:none; }
   </style>
-  <!-- پیش‌بارگذاری صفحات داخلی برای ناوبری سریع (هنگام hover/قصد کلیک) -->
+  <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
     "prerender": [{
@@ -137,7 +137,6 @@
 </head>
 <body>
 
-<!-- ── هدر یکپارچه (سبک تلگرام) ── -->
 <header class="app-header">
   <div class="app-header__inner">
     <div class="app-header__lead"><h1 class="app-header__title">مدیریت کاربران</h1></div>
@@ -164,12 +163,10 @@
 
 <div class="admin-wrap">
 
-  <!-- ── سرتیتر ── -->
   <div class="tools-header">
     <h2>کاربران <span class="count-badge" id="userCountBadge">0</span></h2>
   </div>
 
-  <!-- ── تنظیم مدت اعتبار نشست ── -->
   <div class="sess-ttl-row">
     <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود:</label>
     <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
@@ -181,7 +178,7 @@
     <span class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</span>
   </div>
 
-  <!-- ── جستجو + تعداد در هر صفحه + فیلتر پیشرفته (سمت سرور، AJAX) ── -->
+  <!-- ── Search + per-page count + advanced filter (server-side, AJAX) ── -->
   <div class="user-list-controls">
     <div class="user-search">
       <svg class="user-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -214,7 +211,6 @@
     </button>
   </div>
 
-  <!-- پنل جستجوی پیشرفته -->
   <div class="user-adv-panel" id="userAdvPanel">
     <div class="user-adv-field">
       <label for="user-f-role">نقش</label>
@@ -238,7 +234,7 @@
     </div>
   </div>
 
-  <!-- ── لیست کاربران (بارگذاری AJAX) ── -->
+  <!-- ── User list (AJAX-loaded) ── -->
   <div class="user-list" id="userList">
     <div class="user-skeleton"></div>
     <div class="user-skeleton"></div>
@@ -251,7 +247,7 @@
 
 </div><!-- /admin-wrap -->
 
-<!-- ── مودال کاربر (افزودن/ویرایش یکپارچه) ── -->
+<!-- ── User modal (unified add/edit) ── -->
 <div class="modal-overlay" id="userModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:480px;">
     <div class="modal-head">
@@ -299,7 +295,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
-          <!-- چک‌لیست زنده‌ی قوانین رمز عبور (هنگام focus/تایپ به‌روز می‌شود) -->
+          <!-- Live password rules checklist (updates on focus/typing) -->
           <div class="pass-rules" id="editPassRules" aria-live="polite" hidden>
             <div class="pass-rules-title">قوانین رمز عبور</div>
             <ul class="pass-rules-list">
@@ -323,7 +319,7 @@
   </div>
 </div>
 
-<!-- ── مودال انسداد ورود (Rate limit) ── -->
+<!-- ── Login lockout modal (rate limit) ── -->
 <div class="modal-overlay" id="blocksModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:640px;">
     <div class="modal-head">
@@ -353,7 +349,7 @@
   </div>
 </div>
 
-<!-- ── مودال نشست‌های فعال کاربر ── -->
+<!-- ── User's active sessions modal ── -->
 <div class="modal-overlay" id="sessionsUserModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:640px;">
     <div class="modal-head">
@@ -380,7 +376,7 @@
   </div>
 </div>
 
-<!-- ── مودال دسترسی دو سطحی ── -->
+<!-- ── Two-tier access modal ── -->
 <div class="modal-overlay" id="accessModal" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:580px;">
     <div class="modal-head">
@@ -435,7 +431,7 @@
   </div>
 </div>
 
-<!-- ── مودال تایید حذف ── -->
+<!-- ── Delete confirmation modal ── -->
 <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="modal confirm-modal">
     <div class="modal-head">
@@ -465,18 +461,18 @@
   </div>
 </div>
 
-<!-- ── Toast (محتوا با JS ساخته می‌شود) ── -->
+<!-- Toast (content built by JS) -->
 <div class="toast" id="toast" aria-live="assertive"></div>
 
-<!-- داده‌های PHP به JS -->
+<!-- PHP data passed to JS -->
 <script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
-  window.CSRF_TOKEN = CSRF_TOKEN; // لازم برای ارسال هدر X-CSRF-Token در admin.js
-  // مودال دسترسی به «همه ابزارها» نیاز دارد → نسخه سبک (id/title/badge/is_public)
+  window.CSRF_TOKEN = CSRF_TOKEN; // needed to send the X-CSRF-Token header in admin.js
+  // The access modal needs "all tools" → lite version (id/title/badge/is_public)
   const TOOLS_RAW  = <?= $toolsLite ?>;
   const tools      = TOOLS_RAW;
   window.tools     = tools;
-  // متغیرهای داشبورد ابزارها در این صفحه استفاده نمی‌شوند ولی برای سازگاری تعریف می‌شوند
+  // Tools-dashboard variables aren't used on this page but are defined for compatibility
   const ICONS_DATA = {};
   const DECOS_DATA = {};
 </script>

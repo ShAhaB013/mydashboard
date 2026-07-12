@@ -1,15 +1,15 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// Validator — اعتبارسنجی ورودی‌ها
+// Validator — validates inputs
 // ═══════════════════════════════════════════════════════════
 
 class Validator
 {
     /**
-     * مسیر ابزار باید:
-     * - خالی نباشد
-     * - حاوی javascript: / data: / .. نباشد
-     * - فقط از کاراکترهای مجاز تشکیل شده باشد
+     * A tool path must:
+     * - not be empty
+     * - not contain javascript: / data: / ..
+     * - consist only of allowed characters
      */
     public static function isValidPath(string $path): bool
     {
@@ -25,7 +25,7 @@ class Validator
             return false;
         }
 
-        // پشتیبانی از لینک‌های خارجی (http / https)
+        // Support external links (http / https)
         if (preg_match('/^https?:\/\/.+/i', $path)) {
             return (bool) filter_var($path, FILTER_VALIDATE_URL);
         }
@@ -34,10 +34,10 @@ class Validator
     }
 
     /**
-     * کلید آیکون/انیمیشن باید:
-     * - با حرف انگلیسی شروع شود
-     * - فقط از حروف، اعداد، خط تیره و underscore تشکیل شده باشد
-     * - حداکثر ۴۰ کاراکتر باشد
+     * An icon/animation key must:
+     * - start with an English letter
+     * - consist only of letters, digits, hyphens, and underscores
+     * - be at most 40 characters
      */
     public static function isValidKey(string $key): bool
     {
@@ -45,10 +45,11 @@ class Validator
     }
 
     /**
-     * اعتبارسنجی نام/نام خانوادگی: ۲ تا ۶۰ کاراکتر، فقط حروف (فارسی/انگلیسی)
-     * به‌همراه فاصله، خط تیره و آپاستروف؛ بدون رقم یا نماد.
-     * منبع یگانه — مشترک بین ثبت‌نام عمومی (api.php) و افزودن/ویرایش ادمین (UserController).
-     * @return string پیام خطا، یا '' در صورت معتبر بودن.
+     * Validates first/last name: 2 to 60 characters, letters only
+     * (Persian/English) plus spaces, hyphens, and apostrophes; no digits or symbols.
+     * Single source of truth — shared between public registration (api.php)
+     * and admin add/edit (UserController).
+     * @return string error message, or '' if valid.
      */
     public static function name(string $name, string $label): string
     {
@@ -56,7 +57,7 @@ class Validator
         if ($len < 2 || $len > 60) {
             return "$label باید بین ۲ تا ۶۰ کاراکتر باشد";
         }
-        // حروف یونیکد (شامل فارسی) + فاصله/خط‌تیره/آپاستروف
+        // Unicode letters (including Persian) + space/hyphen/apostrophe
         if (!preg_match("/^[\p{L}\p{M}][\p{L}\p{M}\s'’\-]*$/u", $name)) {
             return "$label فقط می‌تواند شامل حروف باشد";
         }
@@ -64,9 +65,9 @@ class Validator
     }
 
     /**
-     * اعتبارسنجی نام‌کاربری: ۳ تا ۶۰ کاراکتر، شروع با حرف انگلیسی،
-     * فقط حروف/اعداد/underscore.
-     * @return string پیام خطا، یا '' در صورت معتبر بودن.
+     * Validates username: 3 to 60 characters, starts with an English letter,
+     * only letters/digits/underscore.
+     * @return string error message, or '' if valid.
      */
     public static function username(string $username): string
     {
@@ -77,8 +78,8 @@ class Validator
     }
 
     /**
-     * اعتبارسنجی شماره موبایل ایران: ۱۱ رقم، شروع با ۰۹.
-     * @return string پیام خطا، یا '' در صورت معتبر بودن.
+     * Validates an Iranian mobile number: 11 digits, starts with 09.
+     * @return string error message, or '' if valid.
      */
     public static function phone(string $phone): string
     {
@@ -89,8 +90,8 @@ class Validator
     }
 
     /**
-     * اعتبارسنجی ایمیل: فرمت معتبر + حداکثر ۱۹۰ کاراکتر.
-     * @return string پیام خطا، یا '' در صورت معتبر بودن.
+     * Validates email: valid format + at most 190 characters.
+     * @return string error message, or '' if valid.
      */
     public static function email(string $email): string
     {

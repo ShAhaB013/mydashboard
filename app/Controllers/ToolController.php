@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// ToolController — هندل کردن API ابزارها
+// ToolController — handles the tools API
 // ═══════════════════════════════════════════════════════════
 
 class ToolController
@@ -16,7 +16,7 @@ class ToolController
         $this->request = $request;
     }
 
-    /** لیست صفحه‌بندی‌شده ابزارها برای پنل ادمین (سمت سرور) */
+    /** Paginated list of tools for the admin panel (server-side) */
     public function listPaginated(): void
     {
         $page    = max(1, $this->request->inputInt('page', 1));
@@ -40,7 +40,7 @@ class ToolController
         ]);
     }
 
-    /** افزودن ابزار جدید */
+    /** Add a new tool */
     public function add(): void
     {
         $data = $this->extractToolData();
@@ -52,7 +52,7 @@ class ToolController
             : Response::error('خطا در ذخیره ابزار');
     }
 
-    /** ویرایش ابزار (مبتنی بر id) */
+    /** Edit a tool (by id) */
     public function edit(): void
     {
         $id   = $this->request->inputInt('id');
@@ -70,7 +70,7 @@ class ToolController
             : Response::error('خطا در ویرایش ابزار');
     }
 
-    /** حذف ابزار (مبتنی بر id) */
+    /** Delete a tool (by id) */
     public function delete(): void
     {
         $id = $this->request->inputInt('id');
@@ -86,7 +86,7 @@ class ToolController
     }
 
 
-    /** مرتب‌سازی مجدد سراسری (آرایه کامل id ها) */
+    /** Global reorder (full array of ids) */
     public function reorder(): void
     {
         $ids = $this->request->inputArray('ids');
@@ -101,7 +101,7 @@ class ToolController
             : Response::error('ذخیره ترتیب ناموفق بود (لیست کامل نیست)');
     }
 
-    /** تغییر وضعیت عمومی/خصوصی ابزار */
+    /** Toggle the tool's public/private status */
     public function togglePublic(): void
     {
         $id = $this->request->inputInt('id');

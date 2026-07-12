@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   admin.css — استایل پنل مدیریت
+   admin.css — Admin panel styles
    ═══════════════════════════════════════════════════════════ */
 
 /* ── CSS Variables ── */
@@ -11,10 +11,10 @@
   --danger:#ef4444; --danger-bg:rgba(239,68,68,.08); --danger-rgb:239,68,68;
   --success:#0ea472; --warning:#d97706;
   --accent-rgb:62,125,231; --accent-bg-hover:rgba(62,125,231,.15);
-  /* تایمینگ/منحنی‌ها — هماهنگ با پنل یوزر (style.css): پایه 0.22s + منحنی فنری برای transformها */
+  /* Timing/easing — synced with the user panel (style.css): 0.22s base + spring easing for transforms */
   --radius-xs:10px; --radius:10px; --radius-lg:10px; --radius-pill:999px;
   --t:0.22s cubic-bezier(.4,0,.2,1); --t-bounce:0.32s cubic-bezier(.34,1.56,.64,1);
-  /* هدر شیشه‌ای یکپارچه (هماهنگ با style.css) */
+  /* Unified glass header (synced with style.css) */
   --header-bg:rgba(255,255,255,0.92); --header-shadow:rgba(15,23,42,0.06);
 }
 [data-theme="dark"] {
@@ -34,13 +34,13 @@
   src:url('../../fonts/vazir-font/Vazir-Variable.woff2') format('woff2');
   font-weight:100 900; font-display:swap;
 }
-/* فونت عناوین (بخش‌های تیتر) — IRANSans Bold */
+/* Heading font (section titles) — IRANSans Bold */
 @font-face {
   font-family:'HeadingFont';
   src:url('../../fonts/IRANSans/IRANSansWeb_Bold.woff') format('woff');
   font-weight:700; font-display:swap;
 }
-/* کلاس کمکی فقط برای screen-reader (پنهان از دید) */
+/* Helper class for screen readers only (visually hidden) */
 .sr-only {
   position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
@@ -93,7 +93,7 @@ input[type="tel"] {
 input:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(var(--accent-rgb),.10), 0 0 9px rgba(var(--accent-rgb),.12); }
 input::placeholder { color:var(--text-3); }
 
-/* ── حالت خطای فیلد (فرم‌های کلیدی ادمین) ── */
+/* ── Field error state (key admin forms) ── */
 .field.has-error > input,
 .field.has-error > select,
 .field.has-error .pass-wrap input {
@@ -107,11 +107,12 @@ input::placeholder { color:var(--text-3); }
 }
 .field.has-error .field-error-msg { display:flex; }
 .field-error-msg svg { width:14px; height:14px; flex:0 0 auto; }
-/* پیام‌های خطا گاهی متن انگلیسی/فنی (پاسخ خام SMTP و…) در دل جمله فارسی دارند؛
-   plaintext باعث می‌شود جهت هر پاراگراف مستقل از dir والد و بر اساس محتوای
-   خودش تعیین شود، تا هنگام wrap شدن خط، ترتیب فارسی/انگلیسی به‌هم نریزد. */
+/* Error messages sometimes embed English/technical text (raw SMTP responses, etc.)
+   inside a Persian sentence; plaintext makes each paragraph's direction resolve
+   independently of the parent dir, based on its own content, so Persian/English
+   order doesn't break when the line wraps. */
 .field-error-msg span { unicode-bidi: plaintext; }
-/* رفع به‌هم‌ریختن تم هنگام Autofill مرورگر */
+/* Fix theme breaking during browser autofill */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -132,7 +133,7 @@ select {
 }
 select:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(var(--accent-rgb),.10), 0 0 9px rgba(var(--accent-rgb),.12); }
 
-/* ── CustomSelect: dropdown هماهنگ با تم (جایگزین ظاهر بومی <select>) ── */
+/* ── CustomSelect: theme-matched dropdown (replaces native <select> appearance) ── */
 .cselect { position:relative; width:100%; }
 .cselect-trigger {
   display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -155,7 +156,7 @@ select:focus { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(var(-
   transition:opacity .16s ease, transform .16s ease, visibility .16s;
 }
 .cselect.open .cselect-menu { opacity:1; visibility:visible; transform:translateY(0); }
-/* آیتم‌های لیست — یکنواخت با dropdown سمت کاربر (radius/پدینگ/هاور/انتخاب‌شده) */
+/* List items — consistent with the user-side dropdown (radius/padding/hover/selected) */
 .cselect-option {
   font-size:14px; color:var(--text-2); padding:9px 12px; border-radius:var(--radius-xs);
   cursor:pointer; transition:background .14s ease, color .14s ease;
@@ -183,7 +184,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 }
 .btn:active { transform:scale(.97); }
 .btn-primary   { background:var(--accent); color:#fff; }
-/* hover با lift + گلوی نرم — هماهنگ با .login-submit-btn پنل یوزر */
+/* Hover with lift + soft glow — synced with .login-submit-btn in the user panel */
 .btn-primary:hover { background:var(--accent-dark); transform:translateY(-1px); box-shadow:0 6px 18px var(--accent-bg-hover); }
 .btn-secondary { background:var(--bg-card); color:var(--text-2); border:1.5px solid var(--border); }
 .btn-secondary:hover { background:var(--bg-hover); color:var(--text); border-color:var(--text-3); transform:translateY(-1px); }
@@ -197,7 +198,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .btn-sm { height:34px; font-size:13px; padding:0 13px; }
 .btn svg { width:15px; height:15px; flex-shrink:0; }
 .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
-/* اسپینر دکمه‌های «ارسال آزمایشی» و «ذخیره تنظیمات» حین درخواست (به‌جای toast «در حال پردازش») */
+/* Spinner for the "send test" and "save settings" buttons during the request (instead of a "processing" toast) */
 #testEmailBtn .btn-spinner,
 #saveSettingsBtn .btn-spinner {
   display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,.4);
@@ -208,13 +209,13 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 #testEmailBtn.loading svg,
 #saveSettingsBtn.loading svg { display:none; }
 @keyframes btn-spin { to { transform:rotate(360deg); } }
-/* فوکوس یکپارچه روی همه دکمه‌ها — هماهنگ با سمت عمومی (دسترس‌پذیری) */
+/* Unified focus style on all buttons — synced with the public side (accessibility) */
 .btn:focus-visible,
 .btn-icon:focus-visible,
 .modal-close:focus-visible,
 .theme-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
-/* ── رمز عبور: نمایش/مخفی + نوار قدرت (هماهنگ با صفحه پروفایل) ── */
+/* ── Password: show/hide + strength bar (synced with the profile page) ── */
 .pass-wrap { position:relative; }
 .pass-wrap input { padding-left:40px; }
 .pass-wrap.has-gen input { padding-left:68px; }
@@ -227,7 +228,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .pass-toggle:hover { color:var(--accent); }
 .pass-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .pass-toggle svg { width:16px; height:16px; pointer-events:none; }
-/* دکمه تولید رمز تصادفی (کنار دکمه چشم، سمت چپ فیلد) */
+/* Random password generator button (next to the eye toggle, field's left side) */
 .pass-gen {
   position:absolute; overflow:hidden; left:36px; top:50%; transform:translateY(-50%);
   background:none; border:none; cursor:pointer; color:var(--text-3);
@@ -238,7 +239,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .pass-gen:active { transform:translateY(-50%) scale(.9) rotate(-12deg); }
 .pass-gen:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .pass-gen svg { width:16px; height:16px; pointer-events:none; }
-/* ── چک‌لیست زنده‌ی قوانین رمز عبور ── */
+/* ── Live password rules checklist ── */
 .pass-rules { margin-top:8px; padding:11px 13px; background:var(--bg-input);
   border:1px solid var(--border); border-radius:var(--radius); animation:passRulesIn .18s ease; }
 @keyframes passRulesIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
@@ -253,7 +254,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .pass-rule.is-ok { color:var(--text-2); }
 .pass-rule.is-ok .pass-rule-ic { color:#0ea472; background:rgba(14,164,114,.14); }
 
-/* ── انسداد ورود (Rate limit) ── */
+/* ── Login lockout (rate limit) ── */
 .blocks-hint { font-size:12.5px; line-height:1.7; color:var(--text-2); background:var(--bg-hover);
   border:1px solid var(--border); border-radius:var(--radius); padding:11px 13px; margin-bottom:14px; }
 .blocks-list { display:flex; flex-direction:column; gap:9px; }
@@ -268,7 +269,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .blk-badge { font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:3px 10px; white-space:nowrap; }
 .blk-blocked { background:rgba(248,81,73,.15); color:var(--danger); border:1px solid rgba(248,81,73,.3); }
 .blk-watch   { background:rgba(217,119,6,.12); color:#d97706; border:1px solid rgba(217,119,6,.3); }
-/* نشست دستگاه فعلی — هماهنگ با رنگ آبی صفحه پروفایل (نه قرمز، چون قابل پایان‌دادن نیست) */
+/* Current device session — matches the blue used on the profile page (not red, since it can't be ended) */
 .blk-current { background:var(--accent-bg); color:var(--accent); border:1px solid rgba(var(--accent-rgb),.3); }
 @media (max-width:560px) {
   .blk-row { flex-direction:column; align-items:stretch; }
@@ -278,19 +279,19 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 /* ── Layout ── */
 .admin-wrap { max-width:1040px; margin:0 auto; padding:32px 24px 80px; }
 /* ═══════════════════════════════════════════════════════════
-   هدر یکپارچه (سبک تلگرام) — مشترک با style.css (پنل عمومی)
-   نوار چسبان شیشه‌ای تمام‌عرض: [بازگشت] عنوان … [دکمه‌های آیکونی]
-   هر تغییری اینجا باید در style.css هم آینه شود.
+   Unified header (Telegram-style) — shared with style.css (public panel)
+   Full-width sticky glass bar: [back] title … [icon buttons]
+   Any change here must be mirrored in style.css too.
    ═══════════════════════════════════════════════════════════ */
-/* نوار شناور جمع‌وجور (pill) — مثل style.css؛ پدینگ افقی __inner برابر پدینگ
-   محتوای صفحه (.admin-wrap: 24px) تا دکمه‌ها با ستون محتوا هم‌تراز شوند. */
+/* Compact floating pill bar — like style.css; __inner's horizontal padding matches
+   the page content padding (.admin-wrap: 24px) so the buttons align with the content column. */
 .app-header {
   position:sticky; top:0; z-index:100;
   padding-top:12px; background:transparent;
   transition:padding-top .28s cubic-bezier(.4,0,.2,1), background .4s ease;
 }
 .app-header__inner {
-  position:relative; /* آینه‌ی style.css (مرجع overlayها) */
+  position:relative; /* mirrors style.css (overlay anchor) */
   max-width:var(--page-w, 1040px); margin:0 auto; height:50px; padding:0 var(--page-pad, 24px);
   display:flex; align-items:center; gap:4px;
   background:var(--header-bg);
@@ -301,7 +302,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   transition:background .4s ease, border-color .4s ease,
              box-shadow .28s ease, border-radius .28s ease;
 }
-/* حالت چسبیده هنگام اسکرول (مثل style.css): گپ بالا حذف، گوشه‌های بالا صاف، سایه‌ی کم‌رنگ */
+/* Stuck state while scrolling (like style.css): top gap removed, top corners squared, subtle shadow */
 .app-header.is-stuck { padding-top:0; }
 .app-header.is-stuck .app-header__inner {
   border-top-left-radius:0; border-top-right-radius:0;
@@ -314,16 +315,16 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   display:flex; align-items:center; gap:9px; min-width:0; margin:0 6px;
 }
-/* نقطهٔ تزئینی روی __inner (نه __title که overflow:hidden دارد و لبهٔ نقطه را می‌بُرد) */
+/* Decorative dot on __inner (not __title, which has overflow:hidden and would clip the dot's edge) */
 .app-header__inner::before {
   content:''; width:8px; height:8px; border-radius:50%;
   background:var(--accent); flex-shrink:0; align-self:center;
 }
 .app-header__actions { display:flex; align-items:center; gap:2px; margin-inline-start:auto; flex-shrink:0; }
-/* خوشه‌ی عنوان (عنوان + چیپ شمارنده) — در گوشه‌ی شروع (راست در RTL) می‌ماند */
+/* Title cluster (title + count chip) — stays at the leading edge (right in RTL) */
 .app-header__lead { display:flex; align-items:center; gap:9px; min-width:0; }
 
-/* دکمه آیکونی دایره‌ای (سبک تلگرام) */
+/* Circular icon button (Telegram style) */
 .hdr-btn {
   position:relative; width:40px; height:40px; flex-shrink:0; padding:0;
   display:inline-flex; align-items:center; justify-content:center;
@@ -337,7 +338,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .hdr-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .hdr-btn svg { width:21px; height:21px; flex-shrink:0; }
 
-/* ── افکت ripple (موج کلیک، سبک تلگرام) — همه آیتم‌های تعاملی به‌جز کارت‌ها — مشترک با style.css ── */
+/* ── Ripple effect (click wave, Telegram style) — all interactive items except cards — shared with style.css ── */
 .hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn, .access-tool-label,
 .pagination-btn, .pagination-goto-spin,
 .deco-opt, .nm-adv-toggle, .notif-row, .section-box-head, .modal-close,
@@ -354,8 +355,8 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 
 /* ── Section Box ── */
 .section-box { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); margin-bottom:28px; }
-/* رادیوس سر بخش هماهنگ با کادر تا ریپل (overflow:hidden) از گوشه‌ها بیرون نزند:
-   جمع‌شده = هر چهار گوشه گرد، باز = فقط دو گوشه‌ی بالا. */
+/* Section head radius matches the box so the ripple (overflow:hidden) doesn't
+   spill past the corners: collapsed = all four corners rounded, open = only the top two. */
 .section-box-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; cursor:pointer; border-radius:var(--radius-lg); }
 .section-box.open .section-box-head { border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
 .section-box-head h2 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:600; color:var(--text-2); display:flex; align-items:center; gap:8px; }
@@ -364,7 +365,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .section-box-body { padding:0 20px 20px; display:none; }
 .section-box.open .section-box-body { display:block; }
 
-/* ── شبکه کاشی‌های مدیریت (کارت‌های کلیک‌پذیر) ── */
+/* ── Admin tiles grid (clickable cards) ── */
 .admin-tiles {
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));
@@ -404,7 +405,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .admin-tile:hover .admin-tile-arrow:not(.admin-tile-chevron) { transform:translateX(-3px); }
 .admin-tile.active .admin-tile-chevron { transform:rotate(180deg); color:var(--accent); }
 
-/* ── پنل بخش (زیر شبکه باز می‌شود؛ فقط یکی هم‌زمان) ── */
+/* ── Section panel (opens below the grid; only one at a time) ── */
 .section-panel {
   display:none;
   background:var(--bg-card); border:1px solid var(--border);
@@ -418,10 +419,10 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 /* ── Tools List ── */
 .tools-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
 .tools-header h2 { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:15px; font-weight:600; color:var(--text-2); display:flex; align-items:center; gap:8px; }
-/* گروه دکمه‌های سمت چپ نوار فرعی — یکسان در همه صفحات ادمین (به‌جای style اینلاین) */
+/* Left-side button group of the sub-bar — consistent across all admin pages (instead of inline style) */
 .tools-header-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
 
-/* نوار ذخیره/لغو مرتب‌سازی ابزارها (sticky تا همیشه در دید بماند) */
+/* Save/cancel bar for tool reordering (sticky so it stays visible) */
 .reorder-bar {
   position:sticky; top:8px; z-index:20;
   display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -440,7 +441,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   .reorder-bar { flex-direction:column; align-items:stretch; }
   .reorder-bar-actions { justify-content:flex-end; }
 
-  /* ── هدر یکپارچه موبایل: ارتفاع جمع‌وجورتر و هم‌تراز با محتوای صفحه (14px) ── */
+  /* ── Unified header on mobile: more compact height and aligned with page content (14px) ── */
   .app-header { padding-top:8px; }
   .app-header__inner { height:46px; padding:0 14px; }
   .app-header__title { font-size:15px; margin:0 4px; }
@@ -462,7 +463,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .tool-row-handle { color:var(--text-3); cursor:grab; flex-shrink:0; display:none; }
 .tool-row-handle svg { width:16px; height:16px; display:block; }
 
-/* جستجوی ابزارها */
+/* Tool search */
 .tool-search { position:relative; margin-bottom:14px; }
 .tool-search-icon { position:absolute; top:50%; right:14px; transform:translateY(-50%); width:18px; height:18px; color:var(--text-3); pointer-events:none; }
 .tool-search input { width:100%; box-sizing:border-box; padding:11px 44px 11px 40px; }
@@ -476,14 +477,14 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .tool-search-clear:hover { background:var(--danger-bg); color:var(--danger); }
 .tool-search.has-value .tool-search-clear { display:flex; }
 
-/* حالت مرتب‌سازی: هندل نمایش داده می‌شود، ردیف‌ها فشرده و قابل‌درگ */
+/* Reorder mode: handle is shown, rows are compact and draggable */
 .tool-list.reordering .tool-row-handle { display:flex; align-items:center; }
 .tool-list.reordering .tool-row { cursor:grab; padding:10px 14px; }
 .tool-list.reordering .tool-row:active { cursor:grabbing; }
 .tool-row.reorder-row .tool-row-info h3 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .tool-row.reorder-row .tool-row-icon { width:32px; height:32px; }
 
-/* صفحه‌بندی */
+/* Pagination */
 .tool-pagination {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   flex-wrap:wrap; margin:4px 0 22px;
@@ -491,7 +492,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .tool-pagination[hidden] { display:none; }
 .pg-info { font-size:12px; color:var(--text-3); }
 .pg-controls { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-/* دکمه‌های صفحه‌بندی: کامپوننت مشترک .pagination-btn/.pagination-ellipsis در assets/css/pagination.css */
+/* Pagination buttons: shared component .pagination-btn/.pagination-ellipsis in assets/css/pagination.css */
 .tool-row-icon {
   width:38px; height:38px; border-radius:var(--radius-xs); flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
@@ -501,7 +502,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .tool-row-info { flex:1; min-width:0; }
 .tool-row-info h3 { font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .tool-row-info p  { font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-/* meta باید بتواند جمع شود تا مسیر طولانی ردیف را از کارت بیرون نزند */
+/* meta must be able to shrink so a long row path doesn't push out of the card */
 .tool-row-meta  { display:flex; align-items:center; gap:8px; min-width:0; flex-shrink:1; }
 .tool-row-meta .public-pill, .tool-row-meta .badge-pill { flex-shrink:0; }
 .tool-row-path { display:inline-flex; align-items:center; gap:4px; min-width:0; max-width:340px;
@@ -577,7 +578,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .form-section { display:flex; flex-direction:column; gap:6px; }
 .form-section-label { font-size:11px; font-weight:700; color:var(--text-3); letter-spacing:.5px; text-transform:uppercase; }
 
-/* scrollbar سفارشی */
+/* Custom scrollbar */
 .modal-form-col::-webkit-scrollbar,
 .modal-preview-col::-webkit-scrollbar { width:5px; }
 .modal-form-col::-webkit-scrollbar-track,
@@ -664,7 +665,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .item-name { display:inline-block; font-family:monospace; font-size:12.5px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-xs); padding:0 6px; color:var(--text); }
 .confirm-modal .modal-foot { justify-content:center; gap:10px; padding:14px 24px 20px; border-top:1px solid var(--border); }
 
-/* ── Toast: آیکون رنگی + عنوان + توضیح + دکمه بستن (هم‌ساختار با داشبورد/ورود) ── */
+/* ── Toast: colored icon + title + description + close button (same structure as dashboard/login) ── */
 .toast {
   position:fixed; bottom:28px; right:28px; overflow:hidden;
   transform:translateX(30px);
@@ -677,13 +678,13 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   z-index:500; opacity:0;
   transition:opacity .2s,transform .2s;
   white-space:normal; word-break:break-word; line-height:1.6;
-  /* پیش از نمایش، کلیک را به عناصر زیرین می‌سپارد؛ فقط حین .show (که دکمه‌ی
-     بستن دارد) کلیک‌پذیر می‌شود. */
+  /* Before showing, click events pass through to elements underneath; it only
+     becomes clickable during .show (when the close button is present). */
   pointer-events:none;
 }
 .toast.show { opacity:1; transform:translateX(0); pointer-events:auto; }
 @media (max-width:480px) { .toast { right:16px; } }
-/* نوار پیشرفتِ زمانِ باقی‌مانده تا محو‌شدن خودکار toast */
+/* Progress bar for the time remaining until the toast auto-dismisses */
 .toast-progress {
   position:absolute; bottom:0; inset-inline:0; height:3px;
   opacity:.3; transform-origin:right;
@@ -696,10 +697,11 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .toast-icon svg { width:16px; height:16px; }
 .toast-body  { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; padding-top:1px; }
 .toast-title { font-size:13px; font-weight:700; color:var(--text); }
-/* عمدا بدون unicode-bidi:plaintext: پیام‌ها معمولا با یک کلمه لاتین (نام
-   ابزار/کاربر) شروع می‌شوند و plaintext در آن صورت کل پاراگراف را با جهت
-   LTR تشخیص می‌دهد و چپ‌چین غلط می‌شود. جهت راست از dir=rtl والد ارث می‌رسد
-   و bidi استاندارد کلمه لاتین را داخل جمله‌ی فارسی درست جا می‌دهد. */
+/* Deliberately without unicode-bidi:plaintext: messages usually start with a Latin
+   word (tool/user name), and plaintext would then detect the whole paragraph as
+   LTR and wrongly left-align it. The rightward direction is inherited from the
+   parent's dir=rtl, and standard bidi correctly places the Latin word within the
+   Persian sentence. */
 .toast-text  { font-size:12.5px; font-weight:500; color:var(--text-2); }
 .toast-close {
   flex:0 0 auto; width:22px; height:22px; margin-inline-start:2px;
@@ -764,7 +766,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 @keyframes dotPop    { from{opacity:0;transform:scale(0)} to{opacity:1;transform:scale(1)} }
 @keyframes dash      { to{stroke-dashoffset:-40} }
 
-/* ── انیمیشن‌های جدید ── */
+/* ── New animations ── */
 .wave{fill:none;stroke:var(--card-color);stroke-linecap:round;stroke-dasharray:12 8;animation:waveFlow 2s linear infinite}
 .wave-1{stroke-width:2;opacity:.7;animation-delay:0s}.wave-2{stroke-width:1.3;opacity:.4;animation-delay:-.7s}.wave-3{stroke-width:.8;opacity:.2;animation-delay:-1.4s}
 @keyframes waveFlow{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
@@ -846,7 +848,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 }
 
 /* ═══════════════════════════════════════════════════════════
-   بخش کاربران
+   Users section
    ═══════════════════════════════════════════════════════════ */
 
 .user-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
@@ -871,7 +873,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .user-row-info h3 { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; }
 .user-row-info p  { font-size:12px; color:var(--text-3); font-family:monospace; }
 
-/* نشان مدیر — تیک آبی هماهنگ با صفحه پروفایل/هدر */
+/* Admin badge — blue check, synced with the profile page/header */
 .user-admin-badge { display:inline-flex; flex-shrink:0; width:15px; height:15px; color:var(--accent); }
 .user-admin-badge svg { width:100%; height:100%; }
 
@@ -890,24 +892,24 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   border:1px solid rgba(248,81,73,.2);
 }
 
-/* دکمه toggle کاربر — وقتی غیرفعال است */
+/* User toggle button — when inactive */
 .toggle-user-btn.is-inactive { color:var(--danger); border-color:rgba(248,81,73,.3); }
 
-/* pill عمومی در tool-row */
+/* Public pill in tool-row */
 .public-pill {
   font-size:11px; font-weight:700; border-radius:var(--radius-xs); padding:2px 9px;
   background:rgba(14,164,114,.10); color:#0ea472;
   border:1px solid rgba(14,164,114,.25);
 }
 
-/* دکمه toggle عمومی — وقتی فعال است */
+/* Public toggle button — when active */
 .toggle-public-btn.is-public {
   color:#0ea472;
   border-color:rgba(14,164,114,.3);
   background:rgba(14,164,114,.08);
 }
 
-/* گرید فرم کاربر جدید */
+/* New user form grid */
 .user-add-grid {
   display:grid;
   grid-template-columns:1fr 1fr 1fr;
@@ -916,7 +918,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 }
 
 /* ═══════════════════════════════════════════════════════════
-   مودال دسترسی
+   Access modal
    ═══════════════════════════════════════════════════════════ */
 
 .access-section { display:flex; flex-direction:column; gap:10px; }
@@ -928,7 +930,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   display:flex; align-items:center; gap:6px;
 }
 
-/* گرید badge ها */
+/* Badges grid */
 .access-badges-grid {
   display:flex; flex-wrap:wrap; gap:8px;
 }
@@ -946,7 +948,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 }
 .access-badge-label input[type="checkbox"] { display:none; }
 
-/* لیست ابزارها در مودال دسترسی */
+/* Tools list in the access modal */
 .access-tools-list {
   display:flex; flex-direction:column; gap:4px;
   max-height:260px; overflow-y:auto;
@@ -975,7 +977,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Skeleton (اسکلت لودینگ پنل ادمین)
+   Skeleton (admin panel loading skeleton)
    ═══════════════════════════════════════════════════════════ */
 .sk-table-row {
   background:var(--bg-card); border:1px solid var(--border);
@@ -1039,7 +1041,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   .user-row-meta { display:none; }
 }
 
-/* badge تعداد اعلان‌های ادمین (اختیاری) */
+/* Admin notification count badge (optional) */
 .notif-nav-count {
   min-width:18px; height:18px; border-radius:var(--radius-pill);
   background:var(--danger); color:#fff;
@@ -1049,16 +1051,16 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 }
 
 /* =============================================================================
-   سوییچ تم با محو نرم رنگ‌ها (Smooth, lag-free theme fade)
-   هماهنگ با theme.js و style.css — فقط ویژگی‌های رنگی ارزان ترنزیشن می‌شوند.
+   Theme switch with smooth color fade (Smooth, lag-free theme fade)
+   Synced with theme.js and style.css — only cheap color properties are transitioned.
    ============================================================================= */
-/* مسیر اصلی: View Transitions (کراس‌فید GPU). فالبک: .theme-fade */
+/* Primary path: View Transitions (GPU cross-fade). Fallback: .theme-fade */
 html.theme-instant * { transition: none !important; }
 ::view-transition-old(root),
 ::view-transition-new(root) { animation-duration: .32s; animation-timing-function: ease; }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* فالبک: فقط سه ویژگی سطح — بدون fill/stroke/transform/opacity */
+  /* Fallback: only three surface-level properties — no fill/stroke/transform/opacity */
   html.theme-fade,
   html.theme-fade *,
   html.theme-fade *::before,
@@ -1074,7 +1076,7 @@ html.theme-instant * { transition: none !important; }
 }
 
 
-/* ── راهنمای شناور (tooltip سفارشی) — هماهنگ با radius/استایل پروژه ── */
+/* ── Floating hint (custom tooltip) — synced with the project's radius/style ── */
 .tip-pop {
   position: fixed; z-index: 4000; pointer-events: none;
   max-width: 240px; padding: 6px 11px;
@@ -1102,7 +1104,7 @@ html.theme-instant * { transition: none !important; }
   .tip-pop { transition: opacity .12s ease; transform: none; }
 }
 
-/* ── مدیریت نشست‌های فعال ── */
+/* ── Active sessions management ── */
 .sess-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
 .sess-hint { font-size:12.5px; color:var(--text-3); line-height:1.7; margin:0; flex:1 1 240px; }
 .sess-toolbar-actions { display:flex; gap:8px; flex-wrap:wrap; }

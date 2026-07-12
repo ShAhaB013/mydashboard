@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// run_all.php — اجرای کامل مجموعه تست API به ترتیب فازبندی
-// پیش‌نیاز: php -S 127.0.0.1:8080 -t . dev-router.php در ترمینال دیگر روشن باشد
-// و tests\seed\001_test_accounts.php حداقل یک‌بار اجرا شده باشد.
+// run_all.php — run the full API test suite in phase order
+// prerequisite: php -S 127.0.0.1:8080 -t . dev-router.php running in another terminal
+// and tests\seed\001_test_accounts.php having run at least once.
 // ═══════════════════════════════════════════════════════════
 
 $cfg = require __DIR__ . '/bootstrap.php';

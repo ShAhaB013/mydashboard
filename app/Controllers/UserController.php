@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
-// UserController — هندل کردن API کاربران (شامل سطح دسترسی role)
-// گاردهای ضدقفل‌شدن: نمی‌توان آخرین ادمین فعال را حذف/غیرفعال/تنزل داد.
+// UserController — handles the users API (including the role permission level)
+// Anti-lockout guards: the last active admin cannot be deleted/deactivated/demoted.
 // ═══════════════════════════════════════════════════════════
 
 class UserController
@@ -17,7 +17,7 @@ class UserController
         $this->request = $request;
     }
 
-    /** فهرست کاربران با صفحه‌بندی سمت سرور + جستجو/فیلتر (برای پنل مدیریت کاربران) */
+    /** List of users with server-side pagination + search/filter (for the user management panel) */
     public function list(): void
     {
         $page    = $this->request->inputInt('page', 1);
@@ -69,7 +69,7 @@ class UserController
         ]);
     }
 
-    /** افزودن کاربر جدید (نام‌کاربری و شماره موبایل توسط ادمین تعیین می‌شوند) */
+    /** Add a new user (username and mobile number are set by the admin) */
     public function create(): void
     {
         $fullName = trim((string) $this->request->input('full_name'));
@@ -93,7 +93,7 @@ class UserController
             Response::error($err);
             return;
         }
-        // شماره موبایل اختیاری است؛ فقط در صورت واردشدن اعتبارسنجی می‌شود
+        // Mobile number is optional; only validated if entered
         if ($phone !== '' && ($err = Validator::phone($phone)) !== '') {
             Response::error($err);
             return;
@@ -129,7 +129,7 @@ class UserController
         Response::ok(['id' => $id]);
     }
 
-    /** ویرایش کاربر */
+    /** Edit a user */
     public function update(): void
     {
         $id       = $this->request->inputInt('id');
@@ -154,7 +154,7 @@ class UserController
         }
         [$firstName, $lastName] = UserModel::splitName($fullName);
 
-        // شماره موبایل اختیاری است؛ فقط در صورت واردشدن اعتبارسنجی می‌شود
+        // Mobile number is optional; only validated if entered
         if ($phone !== '' && ($err = Validator::phone($phone)) !== '') {
             Response::error($err);
             return;
@@ -183,7 +183,7 @@ class UserController
             return;
         }
 
-        // گارد: تنزل آخرین ادمین فعال به کاربر عادی ممنوع است
+        // Guard: demoting the last active admin to a regular user is not allowed
         if (($existing['role'] ?? 'user') === 'admin'
             && $role !== 'admin'
             && $this->model->isLastActiveAdmin($id)) {
@@ -193,7 +193,7 @@ class UserController
 
         $this->model->update($id, $firstName, $lastName, $phone, $email, $role);
 
-        // تغییر رمز اختیاری است
+        // Password change is optional
         if ($password !== '') {
             if (!PasswordPolicy::isAcceptable($password)) {
                 Response::error(PasswordPolicy::errorMessage());
@@ -205,7 +205,7 @@ class UserController
         Response::ok();
     }
 
-    /** فعال/غیرفعال کردن کاربر */
+    /** Activate/deactivate a user */
     public function toggleActive(): void
     {
         $id = $this->request->inputInt('id');
@@ -220,7 +220,7 @@ class UserController
             return;
         }
 
-        // گارد: غیرفعال‌کردن آخرین ادمین فعال ممنوع است
+        // Guard: deactivating the last active admin is not allowed
         if ($this->model->isLastActiveAdmin($id)) {
             Response::error('این تنها ادمین فعال است و نمی‌توان غیرفعالش کرد.');
             return;
@@ -230,7 +230,7 @@ class UserController
         Response::ok();
     }
 
-    /** حذف کاربر */
+    /** Delete a user */
     public function delete(): void
     {
         $id = $this->request->inputInt('id');
@@ -245,7 +245,7 @@ class UserController
             return;
         }
 
-        // گارد: حذف آخرین ادمین فعال ممنوع است
+        // Guard: deleting the last active admin is not allowed
         if ($this->model->isLastActiveAdmin($id)) {
             Response::error('این تنها ادمین فعال است و نمی‌توان حذفش کرد.');
             return;
@@ -255,16 +255,16 @@ class UserController
         Response::ok();
     }
 
-    // ── انسداد ورود (Rate limit) ─────────────────────────────
+    // ── login lockout (rate limit) ─────────────────────────────
 
-    /** فهرست IPهای محدود/بلاک‌شده در اثر تلاش‌های ناموفق ورود + لاگ */
+    /** List of IPs restricted/blocked due to failed login attempts + log */
     public function listBlocks(): void
     {
         $rows = (new RateLimitModel())->all();
         Response::ok(['blocks' => $rows]);
     }
 
-    /** رفع انسداد دستی یک IP در یک scope مشخص */
+    /** Manually unblock an IP within a given scope */
     public function unblockIp(): void
     {
         $ip    = trim((string) $this->request->input('ip'));

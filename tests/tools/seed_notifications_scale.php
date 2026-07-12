@@ -1,10 +1,10 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// seed_notifications_scale.php — دیتاست مصنوعی بزرگ برای تایید EXPLAIN/پرفورمنس
-// این اسکریپت خارج از run_all.php است (سنگین، فقط دستی اجرا می‌شود).
+// seed_notifications_scale.php — a large synthetic dataset for verifying EXPLAIN/performance
+// This script is outside run_all.php (heavy, run manually only).
 //
-// اجرا:   php tests\tools\seed_notifications_scale.php [تعداد=100000]
-// پاک‌سازی: php tests\tools\seed_notifications_scale.php --cleanup
+// run:     php tests\tools\seed_notifications_scale.php [count=100000]
+// cleanup: php tests\tools\seed_notifications_scale.php --cleanup
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);
 
@@ -61,8 +61,8 @@ while ($inserted < $total) {
         $idx = $inserted + $i;
         $ts = $now - random_int(0, $twoYears);
         $createdAt = date('Y-m-d H:i:s', $ts);
-        $isPublic = random_int(1, 100) <= 60 ? 1 : 0;      // ~60% عمومی
-        $targetAll = ($isPublic === 0 && random_int(1, 100) <= 50) ? 1 : 0; // از بقیه نیمی target_all
+        $isPublic = random_int(1, 100) <= 60 ? 1 : 0;      // ~60% public
+        $targetAll = ($isPublic === 0 && random_int(1, 100) <= 50) ? 1 : 0; // half of the rest are target_all
         $title = PREFIX . $idx;
 
         $rows[] = "(:t{$i}, :b{$i}, :ip{$i}, :ta{$i}, :ca{$i}, :ua{$i})";
@@ -79,10 +79,10 @@ while ($inserted < $total) {
     $lastId = (int) DB::get()->lastInsertId();
     $firstId = $lastId - $n + 1;
     for ($id = $firstId; $id <= $lastId; $id++) {
-        // ~10% از کل ردیف‌ها (صرف‌نظر از is_public/target_all) به badge سنتتیک هم مجهز می‌شوند
-        // تا شاخه‌ی badge-matched UNION هم داده‌ی معنادار داشته باشد.
+        // ~10% of all rows (regardless of is_public/target_all) also get the synthetic badge
+        // so the badge-matched UNION branch has meaningful data too.
         if (random_int(1, 10) === 1) $badgeCandidateIds[] = $id;
-        // ~40% به‌عنوان خوانده‌شده برای کاربر سنتتیک علامت می‌خورند (نسبت خوانده/ناخوانده واقعی‌گرایانه)
+        // ~40% are marked read for the synthetic user (a realistic read/unread ratio)
         if (random_int(1, 10) <= 4) $readCandidateIds[] = $id;
     }
 
