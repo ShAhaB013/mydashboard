@@ -328,91 +328,10 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   <!-- ══════════════════════════════════════════════════════
        Notification detail modal
        Visible to all users (guest and logged-in)
-       Content is filled by NotifDetail.open(n) in script.js
+       Shared with notifications.php — see app/Views/partials/notif_detail_modal.php
+       Content is filled by NotifDetail.open(n) in assets/js/notif-detail.js
        ══════════════════════════════════════════════════════ -->
-  <div
-    class="notif-detail-overlay"
-    id="notifDetailModal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="ndTitle">
-
-    <div class="notif-detail-box">
-
-      <div class="notif-detail-head">
-        <h2 class="notif-detail-head-title" id="ndTitle"></h2>
-        <button
-          class="notif-detail-close"
-          id="notifDetailClose"
-          aria-label="بستن">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-
-      <div class="notif-detail-body">
-
-        <!-- Image — shown/hidden by JS -->
-        <div class="notif-detail-img-wrap" id="ndImageWrap" style="display:none;">
-          <img id="ndImage" class="js-lightbox" src="" alt="" loading="lazy">
-        </div>
-
-        <div class="notif-detail-content">
-
-          <div
-            class="notif-detail-body-text"
-            id="ndBody"
-            style="display:none;"></div>
-
-          <div class="notif-detail-meta">
-
-            <div class="notif-detail-meta-row">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <span id="ndDate"></span>
-            </div>
-
-            <div class="notif-detail-meta-row notif-detail-expiry"
-                 id="ndExpiry"
-                 style="display:none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <span></span>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      <div class="notif-detail-foot">
-        <button
-          class="notif-detail-close-btn"
-          data-act="notifDetailClose">
-          بستن
-        </button>
-        <!-- History link — shown only to logged-in users -->
-        <a
-          href="/notifications"
-          class="notif-detail-view-all"
-          id="ndViewAllLink"
-          style="display:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          مشاهده همه اعلان‌ها
-        </a>
-      </div>
-
-    </div>
-  </div>
+  <?php include __DIR__ . '/app/Views/partials/notif_detail_modal.php'; ?>
   <!-- /Notification detail modal -->
 
   <footer class="app-footer">
@@ -586,6 +505,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
   <script src="/assets/js/lightbox.js?v=<?= $v_lb ?>" defer></script>
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>" defer></script>
+  <script src="/assets/js/notif-detail.js?v=<?= asset_v(__DIR__ . '/assets/js/notif-detail.js') ?>" defer></script>
   <script src="/assets/js/script.js?v=<?= $v_js ?>" defer></script>
 </body>
 </html>

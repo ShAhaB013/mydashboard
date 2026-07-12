@@ -161,19 +161,19 @@ $vNotifJs  = asset_v(__DIR__ . '/assets/js/notifications.js');
 $notifJson = [];
 foreach ($items as $item) {
     $notifJson[(int) $item['id']] = [
-        'title'      => $item['title'],
-        'body'       => $item['body']           ?? '',
-        'image'      => $item['image_path']      ?? null,
-        'thumbnail'  => $item['thumbnail_path']  ?? null,
-        'created_at' => $item['created_at'],
-        'updated_at' => $item['updated_at'] ?? $item['created_at'],
-        'expires_at' => (int)  ($item['expires_at'] ?? 0),
-        'is_expired' => (bool) ($item['is_expired']  ?? false),
-        'is_public'  => (bool) ($item['is_public']   ?? false),
-        'badges'     => $badgesMap[$item['id']]  ?? [],
+        'title'          => $item['title'],
+        'body'           => $item['body']            ?? '',
+        'image_path'     => $item['image_path']      ?? null,
+        'thumbnail_path' => $item['thumbnail_path']  ?? null,
+        'created_at'     => $item['created_at'],
+        'updated_at'     => $item['updated_at'] ?? $item['created_at'],
+        'expires_at'     => (int)  ($item['expires_at'] ?? 0),
+        'is_expired'     => (bool) ($item['is_expired']  ?? false),
+        'is_public'      => (bool) ($item['is_public']   ?? false),
+        'badges'         => $badgesMap[$item['id']]  ?? [],
         // Guest: always false — JS reads state from localStorage
-        'is_read'    => $isLoggedIn ? (bool) ($item['is_read']   ?? false) : false,
-        'is_edited'  => $isLoggedIn ? (bool) ($item['is_edited'] ?? false) : false,
+        'is_read'        => $isLoggedIn ? (bool) ($item['is_read']   ?? false) : false,
+        'is_edited'      => $isLoggedIn ? (bool) ($item['is_edited'] ?? false) : false,
     ];
 }
 ?>
@@ -453,48 +453,9 @@ foreach ($items as $item) {
 
   <!-- ══════════════════════════════════════════════
        Notification detail modal — image loads only when opened
+       Shared with index.php — see app/Views/partials/notif_detail_modal.php
        ══════════════════════════════════════════════ -->
-  <div
-    class="nd-overlay"
-    id="ndOverlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="ndTitle"
-  >
-    <div class="nd-box" tabindex="-1" style="outline:none;">
-
-      <div class="nd-head">
-        <h2 class="nd-head-title" id="ndTitle"></h2>
-        <button class="nd-close-btn" id="ndCloseBtn" aria-label="بستن">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-
-      <div class="nd-body">
-
-        <!-- Image: loaded only on open() -->
-        <div class="nd-image-wrap" id="ndImageWrap">
-          <img id="ndImage" class="js-lightbox" src="" alt="" loading="lazy">
-        </div>
-
-        <div class="nd-content">
-          <div class="nd-text" id="ndText"></div>
-
-          <div class="nd-meta" id="ndMeta">
-          </div>
-        </div>
-
-      </div>
-
-      <div class="nd-foot">
-        <button class="nd-close-action" id="ndCloseAction">بستن</button>
-      </div>
-
-    </div>
-  </div>
+  <?php $notifModalShowViewAll = false; include __DIR__ . '/app/Views/partials/notif_detail_modal.php'; ?>
 
   <!-- Notification data and user state -->
   <script nonce="<?= csp_nonce() ?>">
@@ -504,6 +465,7 @@ foreach ($items as $item) {
   </script>
 
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>"></script>
+  <script src="/assets/js/notif-detail.js?v=<?= asset_v(__DIR__ . '/assets/js/notif-detail.js') ?>"></script>
   <script src="/assets/js/notifications.js?v=<?= $vNotifJs ?>"></script>
 
 </body>

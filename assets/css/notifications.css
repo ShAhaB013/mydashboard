@@ -303,18 +303,7 @@
     }
     .notif-row.unread .notif-row-num { color: var(--color-accent); }
 
-    /* pills */
-    .npill {
-      font-size: 10px; font-weight: 700;
-      border-radius: var(--radius-sm); padding: 1px 8px;
-      display: inline-flex; align-items: center; gap: 3px;
-    }
-    .npill-unread  { background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); }
-    .npill-edited  { background: rgba(6,182,212,.08); color: #0891b2; border: 1px solid rgba(6,182,212,.25); }
-    .npill-expired { background: rgba(239,68,68,.08); color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
-    .npill-public  { background: rgba(14,164,114,.08); color: #0ea472; border: 1px solid rgba(14,164,114,.2); }
-    .npill-badge   { background: rgba(139,92,246,.08); color: #8b5cf6; border: 1px solid rgba(139,92,246,.2); }
-    .npill-img     { background: rgba(245,158,11,.08); color: #d97706; border: 1px solid rgba(245,158,11,.2); }
+    /* Pills (.npill / .npill-* — shared, defined in style.css) */
 
     /* View button */
     .notif-row-action {
@@ -362,131 +351,7 @@
       border-radius: 3px; padding: 0 2px;
     }
 
-    /* ── Detail Modal ── */
-    .nd-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.65);
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 200;
-      display: flex; align-items: center; justify-content: center;
-      padding: 16px;
-      opacity: 0; pointer-events: none;
-      transition: opacity .22s ease;
-    }
-    .nd-overlay.open { opacity: 1; pointer-events: auto; }
-
-    .nd-box {
-      background: var(--color-bg-card);
-      border: 1.5px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      width: 100%; max-width: 560px;
-      max-height: 90vh;
-      display: flex; flex-direction: column;
-      box-shadow: 0 24px 64px rgba(0,0,0,.45);
-      transform: translateY(16px) scale(.97);
-      transition: transform .24s cubic-bezier(.34,1.2,.64,1);
-      overflow: hidden;
-    }
-    .nd-overlay.open .nd-box { transform: translateY(0) scale(1); }
-
-    .nd-head {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      padding: 18px 22px 14px; border-bottom: 1px solid var(--color-border);
-      gap: 12px; flex-shrink: 0;
-    }
-    .nd-head-title {
-      font-family: 'HeadingFont', 'DashboardFont', sans-serif;
-      font-size: 16px; font-weight: 700;
-      color: var(--color-text-primary); line-height: 1.5; flex: 1;
-    }
-    .nd-close-btn {
-      width: 32px; height: 32px; border-radius: var(--radius-xs);
-      background: none; border: none; cursor: pointer;
-      color: var(--color-text-muted); flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      transition: background var(--transition), color var(--transition);
-    }
-    .nd-close-btn:hover { background: rgba(239,68,68,.1); color: #ef4444; }
-    .nd-close-btn svg { width: 15px; height: 15px; }
-
-    .nd-body {
-      flex: 1; overflow-y: auto; overscroll-behavior: contain;
-    }
-    .nd-body::-webkit-scrollbar { width: 5px; }
-    .nd-body::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
-
-    .nd-image-wrap {
-      width: 100%; background: var(--color-bg-primary);
-      border-bottom: 1px solid var(--color-border);
-      display: none; /* JS shows when image exists */
-    }
-    .nd-image-wrap img {
-      width: 100%; max-height: 340px;
-      object-fit: contain; display: block;
-    }
-    /* Placeholder until the image loads */
-    .nd-image-wrap.loading::before {
-      content: '';
-      display: block; height: 180px;
-      background: linear-gradient(90deg,
-        var(--color-border) 25%,
-        var(--color-bg-primary) 50%,
-        var(--color-border) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s ease-in-out infinite;
-    }
-    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-    .nd-content { padding: 20px 22px; }
-
-    .nd-text {
-      font-size: 14px; color: var(--color-text-secondary);
-      line-height: 1.85; word-break: break-word;
-      margin-bottom: 18px;
-      user-select: text; -webkit-user-select: text;
-    }
-    /* ── Rich text content inside a notification ── */
-    .nd-text p { margin: 0 0 10px; }
-    .nd-text p:last-child { margin-bottom: 0; }
-    .nd-text b, .nd-text strong { font-weight: 700; color: var(--color-text-primary); }
-    .nd-text i, .nd-text em { font-style: italic; }
-    .nd-text u { text-decoration: underline; }
-    .nd-text br { line-height: 1.85; }
-    .nd-text ul, .nd-text ol { margin: 0 0 10px; padding-inline-start: 22px; }
-    .nd-text li { margin-bottom: 4px; }
-    .nd-text a { color: var(--color-accent); text-decoration: underline; }
-    .nd-text [style*="text-align"] { display: block; }
-
-    .nd-meta {
-      display: flex; flex-direction: column; gap: 8px;
-      padding-top: 16px; border-top: 1px solid var(--color-border);
-    }
-    .nd-meta-row {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 12px; color: var(--color-text-muted);
-      direction: ltr; text-align: left;
-    }
-    .nd-meta-row svg { width: 13px; height: 13px; flex-shrink: 0; }
-    .nd-meta-row.expired-row { color: #ef4444; }
-    .nd-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
-
-    .nd-foot {
-      padding: 12px 22px; border-top: 1px solid var(--color-border);
-      display: flex; justify-content: flex-end; flex-shrink: 0;
-    }
-    .nd-close-action {
-      font-family: 'DashboardFont', sans-serif;
-      font-size: 13px; font-weight: 600;
-      height: 38px; padding: 0 20px; border-radius: var(--radius-xs);
-      border: 1.5px solid var(--color-border);
-      background: var(--color-bg-card); color: var(--color-text-secondary);
-      cursor: pointer;
-      transition: background var(--transition), color var(--transition), border-color var(--transition);
-    }
-    .nd-close-action:hover {
-      border-color: var(--color-accent); color: var(--color-accent);
-      background: var(--color-accent-bg);
-    }
+    /* ── Detail Modal (.nd-overlay / .nd-box / ... — shared, defined in style.css) ── */
 
     /* ── Responsive ── */
     @media (max-width: 520px) {
@@ -494,8 +359,6 @@
       .notif-row-title { font-size: 13px; }
       .notif-row-action { padding: 0 12px; }
       .notif-view-btn { font-size: 11px; padding: 0 10px; }
-      .nd-content { padding: 16px; }
-      .nd-head { padding: 14px 16px 12px; }
     }
     @media (max-width: 400px) {
       .notif-row { grid-template-columns: 4px 30px 1fr; }

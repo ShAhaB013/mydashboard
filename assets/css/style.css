@@ -177,9 +177,7 @@ html::-webkit-scrollbar-thumb {
 html::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); background-clip: content-box; }
 body { user-select: none; -webkit-user-select: none; }
 input, textarea, [contenteditable],
-.nd-text, .nd-text *, .nd-head-title, .nd-meta-row, .nd-meta-row *,
-.notif-detail-body-text, .notif-detail-body-text *,
-.notif-detail-meta-row, .notif-detail-meta-row * {
+.nd-text, .nd-text *, .nd-head-title, .nd-meta-row, .nd-meta-row * {
   user-select: text; -webkit-user-select: text;
 }
 
@@ -316,8 +314,7 @@ header, main { position: relative; z-index: 1; }
 .notif-drop-item, .login-submit-btn, .profile-submit-btn, .login-tab,
 .pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-row, .notif-search-btn,
 .notif-adv-toggle, .notif-adv-apply,
-.notif-drop-view-all, .notif-detail-view-all, .notif-detail-close-btn,
-.notif-detail-close, .header-search-close, .clear-button,
+.notif-drop-view-all, .nd-view-all-link, .header-search-close, .clear-button,
 .nd-close-btn, .nd-close-action,
 .login-forgot-link, .login-back-link, .forgot-back-top, .reg-back-btn,
 .reg-resend, .login-pass-toggle, .login-pass-gen, .profile-pass-toggle,
@@ -2361,8 +2358,10 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .notif-drop-view-all svg { width: 13px; height: 13px; }
  
-/* ── Notification Detail Modal ── */
-.notif-detail-overlay {
+/* ── Notification Detail Modal ──
+   Shared by the header bell dropdown and the notifications page —
+   one markup (app/Views/partials/notif_detail_modal.php), one style. */
+.nd-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,.6);
   z-index: 210;
@@ -2372,9 +2371,9 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   transition: opacity .2s ease;
   /* blur is applied only while open (no composite layer/cost while closed) */
 }
-.notif-detail-overlay.open {
+.nd-overlay.open {
   opacity: 1; pointer-events: auto;
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 
 /* While the modal is open, the background's moving animations (card deco) are
@@ -2391,116 +2390,132 @@ body.tool-modal-open .card-corner-deco * {
   animation-play-state: paused !important;
 }
 
-.notif-detail-box {
+.nd-box {
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-lg);
-  width: 100%; max-width: 520px;
-  max-height: 88vh;
+  width: 100%; max-width: 560px;
+  max-height: 90vh;
   display: flex; flex-direction: column;
-  box-shadow: 0 24px 64px rgba(0,0,0,.4);
+  box-shadow: 0 24px 64px rgba(0,0,0,.45);
   transform: translateY(16px) scale(.97);
   transition: transform .24s cubic-bezier(.34,1.2,.64,1);
   overflow: hidden;
   /* on its own GPU layer so transform composites without a repaint */
   will-change: transform; backface-visibility: hidden;
 }
-.notif-detail-overlay.open .notif-detail-box {
+.nd-overlay.open .nd-box {
   transform: translateY(0) scale(1);
 }
- 
+
 /* Modal header */
-.notif-detail-head {
+.nd-head {
   display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 18px 20px 14px; border-bottom: 1px solid var(--color-border);
+  padding: 18px 22px 14px; border-bottom: 1px solid var(--color-border);
   gap: 12px; flex-shrink: 0;
 }
-.notif-detail-head-title {
+.nd-head-title {
   font-family: 'HeadingFont', 'DashboardFont', sans-serif;
-  font-size: 15px; font-weight: 700;
+  font-size: 16px; font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.5; flex: 1;
 }
-.notif-detail-close {
-  width: 30px; height: 30px; border-radius: var(--radius-xs);
+.nd-close-btn {
+  width: 32px; height: 32px; border-radius: var(--radius-xs);
   background: none; border: none; cursor: pointer;
   color: var(--color-text-muted); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   transition: background var(--transition), color var(--transition);
 }
-.notif-detail-close:hover { background: rgba(239,68,68,.1); color: #ef4444; }
-.notif-detail-close svg { width: 15px; height: 15px; }
- 
+.nd-close-btn:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.nd-close-btn svg { width: 15px; height: 15px; }
+
 /* Scrollable body */
-.notif-detail-body {
+.nd-body {
   flex: 1; overflow-y: auto; overscroll-behavior: contain;
 }
-.notif-detail-body::-webkit-scrollbar { width: 5px; }
-.notif-detail-body::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
- 
+.nd-body::-webkit-scrollbar { width: 5px; }
+.nd-body::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+
 /* Image */
-.notif-detail-img-wrap {
+.nd-image-wrap {
   width: 100%; max-height: 280px; overflow: hidden;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-primary);
+  display: none; /* JS shows when image exists */
 }
-.notif-detail-img-wrap img {
+.nd-image-wrap img {
   width: 100%; max-height: 280px; object-fit: contain;
   display: block; background: var(--color-bg-primary);
 }
- 
+
 /* Text */
-.notif-detail-content { padding: 20px 22px; }
-.notif-detail-body-text {
+.nd-content { padding: 20px 22px; }
+.nd-text {
   font-size: 14px; color: var(--color-text-secondary);
-  line-height: 1.8; word-break: break-word;
+  line-height: 1.85; word-break: break-word;
   margin-bottom: 16px;
   user-select: text; -webkit-user-select: text;
 }
-/* -- Rich text content inside the index notification -- */
-.notif-detail-body-text p { margin: 0 0 10px; }
-.notif-detail-body-text p:last-child { margin-bottom: 0; }
-.notif-detail-body-text b, .notif-detail-body-text strong { font-weight: 700; color: var(--color-text-primary); }
-.notif-detail-body-text i, .notif-detail-body-text em { font-style: italic; }
-.notif-detail-body-text u { text-decoration: underline; }
-.notif-detail-body-text ul, .notif-detail-body-text ol { margin: 0 0 10px; padding-inline-start: 22px; }
-.notif-detail-body-text li { margin-bottom: 4px; }
-.notif-detail-body-text a { color: var(--color-accent, #3e7de7); text-decoration: underline; }
-.notif-detail-body-text [style*="text-align"] { display: block; }
-.notif-detail-body-text [dir] { display: block; }
- 
+/* -- Rich text content inside a notification -- */
+.nd-text p { margin: 0 0 10px; }
+.nd-text p:last-child { margin-bottom: 0; }
+.nd-text b, .nd-text strong { font-weight: 700; color: var(--color-text-primary); }
+.nd-text i, .nd-text em { font-style: italic; }
+.nd-text u { text-decoration: underline; }
+.nd-text br { line-height: 1.85; }
+.nd-text ul, .nd-text ol { margin: 0 0 10px; padding-inline-start: 22px; }
+.nd-text li { margin-bottom: 4px; }
+.nd-text a { color: var(--color-accent, #3e7de7); text-decoration: underline; }
+.nd-text [style*="text-align"] { display: block; }
+.nd-text [dir] { display: block; }
+
 /* Metadata */
-.notif-detail-meta {
-  display: flex; flex-direction: column; gap: 6px;
-  padding-top: 14px; border-top: 1px solid var(--color-border);
+.nd-meta {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 16px; border-top: 1px solid var(--color-border);
 }
-.notif-detail-meta-row {
-  display: flex; align-items: center; gap: 7px;
+.nd-meta-row {
+  display: flex; align-items: center; gap: 8px;
   font-size: 12px; color: var(--color-text-muted);
   direction: ltr; text-align: left;
 }
-.notif-detail-meta-row svg { width: 13px; height: 13px; flex-shrink: 0; }
-.notif-detail-expiry { color: #ef4444; }
- 
+.nd-meta-row svg { width: 13px; height: 13px; flex-shrink: 0; }
+.nd-meta-row.expired-row { color: #ef4444; }
+.nd-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+
+/* Pills (public / badge / edited / expired / image flags — used both here and in the notifications-page row list) */
+.npill {
+  font-size: 10px; font-weight: 700;
+  border-radius: var(--radius-sm); padding: 1px 8px;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.npill-unread  { background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); }
+.npill-edited  { background: rgba(6,182,212,.08); color: #0891b2; border: 1px solid rgba(6,182,212,.25); }
+.npill-expired { background: rgba(239,68,68,.08); color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
+.npill-public  { background: rgba(14,164,114,.08); color: #0ea472; border: 1px solid rgba(14,164,114,.2); }
+.npill-badge   { background: rgba(139,92,246,.08); color: #8b5cf6; border: 1px solid rgba(139,92,246,.2); }
+.npill-img     { background: rgba(245,158,11,.08); color: #d97706; border: 1px solid rgba(245,158,11,.2); }
+
 /* Footer */
-.notif-detail-foot {
-  padding: 12px 20px; border-top: 1px solid var(--color-border);
+.nd-foot {
+  padding: 12px 22px; border-top: 1px solid var(--color-border);
   display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
 }
-.notif-detail-close-btn {
+.nd-close-action {
   font-family: 'DashboardFont', sans-serif;
   font-size: 13px; font-weight: 600;
-  height: 38px; padding: 0 18px; border-radius: var(--radius-xs);
+  height: 38px; padding: 0 20px; border-radius: var(--radius-xs);
   border: 1.5px solid var(--color-border);
   background: var(--color-bg-card); color: var(--color-text-secondary);
   cursor: pointer;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
-.notif-detail-close-btn:hover {
+.nd-close-action:hover {
   border-color: var(--color-accent); color: var(--color-accent);
   background: var(--color-accent-bg);
 }
-.notif-detail-view-all {
+.nd-view-all-link {
   font-family: 'DashboardFont', sans-serif;
   font-size: 13px; font-weight: 600;
   height: 38px; padding: 0 18px; border-radius: var(--radius-xs);
@@ -2509,9 +2524,9 @@ body.tool-modal-open .card-corner-deco * {
   display: inline-flex; align-items: center; gap: 6px;
   transition: background var(--transition);
 }
-.notif-detail-view-all:hover { background: var(--color-accent-dark); }
-.notif-detail-view-all svg { width: 13px; height: 13px; }
- 
+.nd-view-all-link:hover { background: var(--color-accent-dark); }
+.nd-view-all-link svg { width: 13px; height: 13px; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .notif-dropdown,
@@ -2534,8 +2549,9 @@ body.tool-modal-open .card-corner-deco * {
   #notifBellWrap::after, .user-menu-wrap::after { display: none; }
 }
 @media (max-width: 480px) {
-  .notif-detail-box { max-height: 94vh; }
-  .notif-detail-content { padding: 16px; }
+  .nd-box { max-height: 94vh; }
+  .nd-content { padding: 16px; }
+  .nd-head { padding: 14px 16px 12px; }
 }
 
 /* =============================================================================
@@ -2647,26 +2663,22 @@ body.tool-modal-open .card-corner-deco * {
    ══════════════════════════════════════════════════════ */
 
 /* Hide img without src so the shimmer shows through */
-.notif-detail-img-wrap img[src=""],
 .nd-image-wrap img[src=""] {
   display: none;
 }
 
 /* Transition for the blur-up effect */
-.notif-detail-img-wrap img,
 .nd-image-wrap img {
   transition: filter .4s ease, transform .4s ease;
   position: relative; z-index: 1;
 }
 
 /* Loading state: a shimmer via ::before positioned behind the img */
-.notif-detail-img-wrap.img-loading,
 .nd-image-wrap.img-loading {
   min-height: 180px;
   position: relative;
   overflow: hidden;
 }
-.notif-detail-img-wrap.img-loading::before,
 .nd-image-wrap.img-loading::before {
   content: '';
   position: absolute; inset: 0; z-index: 0;
@@ -2731,12 +2743,10 @@ body.tool-modal-open .card-corner-deco * {
    Image Lightbox — full-screen display of a notification image
    ═══════════════════════════════════════════════════════════ */
 /* The detail panel image is clickable */
-.nd-image-wrap, .notif-detail-img-wrap { position: relative; }
-.nd-image-wrap img.js-lightbox,
-.notif-detail-img-wrap img.js-lightbox { cursor: zoom-in; }
+.nd-image-wrap { position: relative; }
+.nd-image-wrap img.js-lightbox { cursor: zoom-in; }
 /* Magnifying-glass hint on hover (a clickability cue) */
-.nd-image-wrap::after,
-.notif-detail-img-wrap::after {
+.nd-image-wrap::after {
   content: '';
   position: absolute; bottom: 10px; inset-inline-start: 10px;
   width: 34px; height: 34px; border-radius: 50%;
@@ -2747,11 +2757,9 @@ body.tool-modal-open .card-corner-deco * {
   transition: opacity var(--transition), transform var(--transition);
   pointer-events: none; z-index: 2;
 }
-.nd-image-wrap:hover::after,
-.notif-detail-img-wrap:hover::after { opacity: 1; transform: scale(1); }
+.nd-image-wrap:hover::after { opacity: 1; transform: scale(1); }
 /* Hide the hint while the image is loading */
-.nd-image-wrap.img-loading::after,
-.notif-detail-img-wrap.img-loading::after { opacity: 0 !important; }
+.nd-image-wrap.img-loading::after { opacity: 0 !important; }
 
 .lightbox {
   position: fixed; inset: 0; z-index: 10000;

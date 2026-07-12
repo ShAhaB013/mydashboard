@@ -66,56 +66,8 @@ function isExternalUrl(path) {
   return /^https?:\/\//i.test(path);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   sanitizeNotifHtml — sanitizes notification body HTML (second layer of defense)
-   Only safe tags and attributes are allowed; the rest are stripped.
-   ═══════════════════════════════════════════════════════════ */
-function sanitizeNotifHtml(html) {
-  const ALLOWED_TAGS  = ['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A','FONT'];
-  const ALLOWED_ATTRS = ['style','dir','href','target','rel','color','align'];
-  const ALLOWED_CSS   = ['text-align','color','background-color','font-weight','font-style','text-decoration','direction'];
-  const tpl = document.createElement('template');
-  tpl.innerHTML = String(html ?? '');
-
-  const walk = node => {
-    [...node.childNodes].forEach(child => {
-      if (child.nodeType === 1) { // element
-        if (!ALLOWED_TAGS.includes(child.tagName)) {
-          child.replaceWith(document.createTextNode(child.textContent || ''));
-          return;
-        }
-        [...child.attributes].forEach(attr => {
-          const name = attr.name.toLowerCase();
-          if (!ALLOWED_ATTRS.includes(name)) { child.removeAttribute(attr.name); return; }
-          if (name === 'style') {
-            const safe = [];
-            (child.getAttribute('style') || '').split(';').forEach(decl => {
-              const idx = decl.indexOf(':');
-              if (idx < 0) return;
-              const k = decl.slice(0, idx).trim().toLowerCase();
-              const v = decl.slice(idx + 1).trim();
-              if (!k || !v) return;
-              if (/url\(|expression|javascript:/i.test(v)) return;
-              if (ALLOWED_CSS.includes(k)) safe.push(`${k}:${v}`);
-            });
-            if (safe.length) child.setAttribute('style', safe.join(';'));
-            else child.removeAttribute('style');
-          }
-          if (name === 'href') {
-            const v = (child.getAttribute('href') || '').trim();
-            if (!/^(https?:|mailto:|\/)/i.test(v)) child.removeAttribute('href');
-          }
-        });
-        if (child.tagName === 'A') { child.setAttribute('target','_blank'); child.setAttribute('rel','noopener noreferrer'); }
-        walk(child);
-      } else if (child.nodeType !== 3) {
-        child.remove();
-      }
-    });
-  };
-  walk(tpl.content);
-  return tpl.innerHTML;
-}
+/* sanitizeNotifHtml + NotifDetail (the notification detail modal) live in
+   assets/js/notif-detail.js, shared with the notifications page. */
 
 /* ═══════════════════════════════════════════════════════════
    State
@@ -214,108 +166,6 @@ const UserMenu = {
     const dropdown = document.getElementById('userMenuDropdown');
     if (btn)      btn.setAttribute('aria-expanded', 'false');
     if (dropdown) { dropdown.classList.remove('open'); dropdown.setAttribute('aria-hidden', 'true'); }
-  },
-};
-
-/* ═══════════════════════════════════════════════════════════
-   Notification Detail Modal
-   ═══════════════════════════════════════════════════════════ */
-const NotifDetail = {
-  open(n) {
-    const modal = document.getElementById('notifDetailModal');
-    if (!modal) return;
-
-    document.getElementById('ndTitle').textContent = n.title || '';
-
-    // Image — progressive loading (thumbnail → full)
-    const imgWrap = document.getElementById('ndImageWrap');
-    const img     = document.getElementById('ndImage');
-    if (n.image_path) {
-      imgWrap.style.display = 'block';
-      imgWrap.classList.add('img-loading');
-      img.alt           = n.title || '';
-      img.style.cssText = '';
-      img.dataset.full  = n.image_path;   // source for the fullscreen view (lightbox)
-
-      if (n.thumbnail_path) {
-        // thumbnail available: show it immediately (blurred) — shimmer shows through behind it
-        img.src             = n.thumbnail_path;
-        img.style.filter    = 'blur(10px)';
-        img.style.transform = 'scale(1.04)';
-      } else {
-        // no thumbnail: hide img — shimmer is visible instead
-        img.src             = '';
-        img.style.display   = 'none';
-      }
-
-      // Load the full image in the background
-      const loader   = new Image();
-      loader.onload  = async () => {
-        try { await loader.decode(); } catch {}
-        img.style.display   = '';
-        img.src             = n.image_path;
-        img.style.filter    = '';
-        img.style.transform = '';
-        imgWrap.classList.remove('img-loading');
-      };
-      loader.onerror = () => {
-        imgWrap.classList.remove('img-loading');
-        img.style.display = '';
-        if (!n.thumbnail_path) imgWrap.style.display = 'none';
-      };
-      loader.src = n.image_path;
-    } else {
-      imgWrap.style.display = 'none';
-      img.src               = '';
-      img.style.cssText     = '';
-      delete img.dataset.full;
-    }
-
-    // Text (rich HTML — sanitized server-side, sanitized again client-side)
-    const bodyEl = document.getElementById('ndBody');
-    if (n.body) {
-      bodyEl.innerHTML     = sanitizeNotifHtml(n.body);
-      bodyEl.style.display = 'block';
-    } else {
-      bodyEl.style.display = 'none';
-      bodyEl.innerHTML     = '';
-    }
-
-    const dateEl = document.getElementById('ndDate');
-    dateEl.textContent = n.created_at
-      ? new Date(n.created_at).toLocaleString('en-GB')
-      : '';
-
-    const expiryEl = document.getElementById('ndExpiry');
-    if (n.expires_at) {
-      const d = new Date(n.expires_at * 1000);
-      expiryEl.textContent = `انقضا: ${d.toLocaleString('en-GB')}`;
-      expiryEl.style.display = 'block';
-    } else {
-      expiryEl.style.display = 'none';
-    }
-
-    const allLink = document.getElementById('ndViewAllLink');
-    if (allLink) allLink.style.display = Auth.loggedIn ? 'inline-flex' : 'none';
-
-    const body = modal.querySelector('.notif-detail-body');
-    if (body) body.scrollTop = 0;
-    modal.classList.add('open');
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('notif-modal-open');
-  },
-
-  close() {
-    const modal = document.getElementById('notifDetailModal');
-    if (!modal) return;
-    modal.classList.remove('open');
-    document.body.style.overflow = '';
-    document.body.classList.remove('notif-modal-open');
-    // clean up progressive-loading state
-    const img     = document.getElementById('ndImage');
-    const imgWrap = document.getElementById('ndImageWrap');
-    if (img)     { img.src = ''; img.style.cssText = ''; delete img.dataset.full; }
-    if (imgWrap) imgWrap.classList.remove('img-loading');
   },
 };
 
@@ -1111,11 +961,8 @@ document.addEventListener('click', e => {
   const notifNext = e.target.closest('#notifNextBtn');
   if (notifNext) { e.stopPropagation(); NotifPanel.nextPage(); return; }
 
-  // ── close the detail modal ─────────────────────────────────
-  const detailClose = e.target.closest('#notifDetailClose');
-  if (detailClose) { NotifDetail.close(); return; }
-  const detailOverlay = document.getElementById('notifDetailModal');
-  if (detailOverlay && e.target === detailOverlay) { NotifDetail.close(); return; }
+  // (closing the detail modal — close button + overlay click — is wired
+  // directly in assets/js/notif-detail.js, shared with the notifications page)
 
   // ── click outside the notification panel — close it ──────────────────
   const notifWrap = e.target.closest('#notifBellWrap');
@@ -1153,7 +1000,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     // priority: detail modal > notification panel > user menu > login modal
-    const detailModal = document.getElementById('notifDetailModal');
+    const detailModal = document.getElementById('ndOverlay');
     if (detailModal?.classList.contains('open')) {
       NotifDetail.close(); return;
     }
@@ -2090,7 +1937,6 @@ if (document.prerendering) {
 /* ── actions (replaces on* for CSP) ── */
 if (window.Actions) {
   Actions.register({
-    notifDetailClose: () => NotifDetail.close(),
-    tmHideUnsaved:    () => AdminTools._hideUnsaved(),
+    tmHideUnsaved: () => AdminTools._hideUnsaved(),
   });
 }

@@ -7,58 +7,10 @@
         document.documentElement.setAttribute('data-theme', 'dark');
     })();
 
-    /* ── Client-side sanitization of notification HTML (second defense layer) ──
-       Only safe tags and attributes are allowed; everything else is stripped.
-       The source text is also sanitized server-side; this is just a precautionary layer. */
-    function sanitizeNotifHtml(html) {
-      const ALLOWED_TAGS  = ['B','STRONG','I','EM','U','BR','P','DIV','SPAN','UL','OL','LI','A'];
-      const ALLOWED_ATTRS = ['style','dir','href','target','rel'];
-      const tpl = document.createElement('template');
-      tpl.innerHTML = String(html ?? '');
+    /* sanitizeNotifHtml + NotifDetail (the notification detail modal) live in
+       assets/js/notif-detail.js, shared with the dashboard's bell dropdown. */
 
-      const walk = node => {
-        [...node.childNodes].forEach(child => {
-          if (child.nodeType === 1) { // element
-            if (!ALLOWED_TAGS.includes(child.tagName)) {
-              // Disallowed tag: keep its text content, remove the tag itself
-              const text = document.createTextNode(child.textContent || '');
-              child.replaceWith(text);
-              return;
-            }
-            [...child.attributes].forEach(attr => {
-              const name = attr.name.toLowerCase();
-              if (!ALLOWED_ATTRS.includes(name)) { child.removeAttribute(attr.name); return; }
-              if (name === 'style') {
-                // Only a handful of safe style properties
-                const safe = [];
-                child.getAttribute('style').split(';').forEach(decl => {
-                  const [k, v] = decl.split(':').map(s => (s || '').trim().toLowerCase());
-                  if (!k || !v) return;
-                  if (/url\(|expression|javascript:/i.test(v)) return;
-                  if (['text-align','color','background-color','font-weight','font-style','text-decoration','direction'].includes(k)) {
-                    safe.push(`${k}:${v}`);
-                  }
-                });
-                if (safe.length) child.setAttribute('style', safe.join(';'));
-                else child.removeAttribute('style');
-              }
-              if (name === 'href') {
-                const v = child.getAttribute('href') || '';
-                if (!/^(https?:|mailto:|\/)/i.test(v.trim())) child.removeAttribute('href');
-              }
-            });
-            if (child.tagName === 'A') { child.setAttribute('target','_blank'); child.setAttribute('rel','noopener noreferrer'); }
-            walk(child);
-          } else if (child.nodeType !== 3) {
-            child.remove(); // comments and the like
-          }
-        });
-      };
-      walk(tpl.content);
-      return tpl.innerHTML;
-    }
-
-    /* ── Notification Panel ── */
+    /* ── Notification Panel (row list + read state — the modal itself is shared) ── */
     const NP = {
 
       // ── Reads the {id: read_ts} map, with compatibility for the old (array) format ──
@@ -122,190 +74,52 @@
         } catch { /* silent */ }
       },
 
+      // Opens the shared detail modal, then marks the notification as read —
+      // in that order, so the modal still shows the pre-read "edited" pill
+      // (mirrors the bell dropdown's open-then-mark-read flow in script.js).
       open(id) {
         const n = NOTIFS[id];
         if (!n) return;
 
-        // State before marking — for display in the modal's pills
-        const wasEdited = !!n.is_edited;
+        NotifDetail.open(n);
+        this._markRead(id, n);
+      },
 
-        // ── Mark as read (covers both "new" and "edited") ───
-        if (!n.is_read) {
-          n.is_read   = true;
-          n.is_edited = false;
-          // Update the row's appearance
-          const row = document.querySelector(`.notif-row[data-id="${id}"]`);
-          if (row) {
-            row.classList.remove('unread');
-            const pill = row.querySelector('.npill-unread, .npill-edited');
-            if (pill) pill.remove();
-          }
-          // Logged in: API | guest: localStorage
-          if (IS_LOGGED_IN) {
-            fetch('api.php?action=mark_read', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
-              body:    JSON.stringify({ notification_id: id }),
-            }).catch(() => {});
-          } else {
-            try {
-              const map = this._getGuestReadMap();
-              map[id] = Math.floor(Date.now() / 1000);
-              this._setGuestReadMap(map);
-            } catch { /* silent */ }
-          }
+      _markRead(id, n) {
+        if (n.is_read) return;
+        n.is_read   = true;
+        n.is_edited = false;
+
+        const row = document.querySelector(`.notif-row[data-id="${id}"]`);
+        if (row) {
+          row.classList.remove('unread');
+          const pill = row.querySelector('.npill-unread, .npill-edited');
+          if (pill) pill.remove();
         }
 
-        document.getElementById('ndTitle').textContent = n.title || '';
-
-        // Body (rich HTML — sanitized server-side, and again client-side)
-        const textEl = document.getElementById('ndText');
-        if (n.body) {
-          textEl.innerHTML     = sanitizeNotifHtml(n.body);
-          textEl.style.display = 'block';
+        // Logged in: API | guest: localStorage
+        if (IS_LOGGED_IN) {
+          fetch('api.php?action=mark_read', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
+            body:    JSON.stringify({ notification_id: id }),
+          }).catch(() => {});
         } else {
-          textEl.style.display = 'none';
-          textEl.innerHTML     = '';
+          try {
+            const map = this._getGuestReadMap();
+            map[id] = Math.floor(Date.now() / 1000);
+            this._setGuestReadMap(map);
+          } catch { /* silent */ }
         }
-
-        // Image — progressive loading (thumbnail → full)
-        const imgWrap = document.getElementById('ndImageWrap');
-        const img     = document.getElementById('ndImage');
-        if (n.image) {
-          imgWrap.style.display = 'block';
-          imgWrap.classList.add('img-loading');
-          img.alt           = n.title || '';
-          img.style.cssText = '';
-          img.dataset.full  = n.image;   // basis for full-screen display (lightbox)
-
-          if (n.thumbnail) {
-            // Thumbnail available: show it immediately (blurred)
-            img.src             = n.thumbnail;
-            img.style.filter    = 'blur(10px)';
-            img.style.transform = 'scale(1.04)';
-          } else {
-            // No thumbnail: img hidden — shimmer is shown instead
-            img.src           = '';
-            img.style.display = 'none';
-          }
-
-          // Load the full image in the background
-          const loader   = new Image();
-          loader.onload  = async () => {
-            try { await loader.decode(); } catch {}
-            img.style.display   = '';
-            img.src             = n.image;
-            img.style.filter    = '';
-            img.style.transform = '';
-            imgWrap.classList.remove('img-loading');
-          };
-          loader.onerror = () => {
-            imgWrap.classList.remove('img-loading');
-            img.style.display = '';
-            if (!n.thumbnail) imgWrap.style.display = 'none';
-          };
-          loader.src = n.image;
-        } else {
-          imgWrap.style.display = 'none';
-          img.src               = '';
-          img.style.cssText     = '';
-          delete img.dataset.full;
-        }
-
-        this._buildMeta(n, wasEdited);
-
-        // Show
-        const overlay = document.getElementById('ndOverlay');
-        const ndBody = overlay.querySelector('.nd-body');
-        if (ndBody) ndBody.scrollTop = 0;
-        overlay.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        // Focus the box itself (not the close button) so focus doesn't land on
-        // the ✕, while still preserving Escape and accessibility.
-        const box = overlay.querySelector('.nd-box');
-        if (box) box.focus({ preventScroll: true });
-      },
-
-      close() {
-        document.getElementById('ndOverlay').classList.remove('open');
-        document.body.style.overflow = '';
-        // Reset progressive-loading state
-        const img     = document.getElementById('ndImage');
-        const imgWrap = document.getElementById('ndImageWrap');
-        if (img)     { img.src = ''; img.style.cssText = ''; delete img.dataset.full; }
-        if (imgWrap) imgWrap.classList.remove('img-loading');
-      },
-
-      _buildMeta(n, wasEdited) {
-        const meta = document.getElementById('ndMeta');
-        meta.innerHTML = '';
-
-        const created = new Date(n.created_at);
-        const dateRow = this._metaRow(
-          '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-          created.toLocaleString('en-GB')
-        );
-        meta.appendChild(dateRow);
-
-        if (n.expires_at) {
-          const exp = new Date(n.expires_at * 1000);
-          const expRow = this._metaRow(
-            '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-            (n.is_expired ? 'منقضی شد: ' : 'انقضا: ') + exp.toLocaleString('en-GB')
-          );
-          if (n.is_expired) expRow.classList.add('expired-row');
-          meta.appendChild(expRow);
-        }
-
-        // pills (public + badges)
-        const pills = [];
-        if (n.is_public)  pills.push({ text: 'عمومی', cls: 'npill-public' });
-        (n.badges || []).forEach(b => pills.push({ text: b, cls: 'npill-badge' }));
-        if (wasEdited)    pills.push({ text: 'ویرایش شده', cls: 'npill-edited' });
-        if (n.is_expired) pills.push({ text: 'منقضی‌شده', cls: 'npill-expired' });
-
-        if (pills.length) {
-          const pillWrap = document.createElement('div');
-          pillWrap.className = 'nd-pills';
-          pills.forEach(p => {
-            const sp = document.createElement('span');
-            sp.className   = `npill ${p.cls}`;
-            sp.textContent = p.text;
-            pillWrap.appendChild(sp);
-          });
-          meta.appendChild(pillWrap);
-        }
-      },
-
-      _metaRow(svgPaths, text) {
-        const row = document.createElement('div');
-        row.className = 'nd-meta-row';
-        row.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            ${svgPaths}
-          </svg>
-          <span>${this._esc(text)}</span>`;
-        return row;
-      },
-
-      _esc(s) {
-        return String(s ?? '')
-          .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       },
     };
 
-    /* ── Close modal ── */
-    document.getElementById('ndCloseBtn').addEventListener('click',    () => NP.close());
-    document.getElementById('ndCloseAction').addEventListener('click', () => NP.close());
-
-    document.getElementById('ndOverlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) NP.close();
-    });
-
+    // This page has no other overlay to prioritize against, so Escape always
+    // closes the detail modal directly (the bell dropdown's equivalent
+    // priority-aware handler lives in script.js).
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && document.getElementById('ndOverlay').classList.contains('open')) {
-        NP.close();
+      if (e.key === 'Escape' && document.getElementById('ndOverlay')?.classList.contains('open')) {
+        NotifDetail.close();
       }
     });
 
@@ -339,11 +153,11 @@
       row.addEventListener('mouseenter', () => {
         timer = setTimeout(() => {
           const n = NOTIFS[parseInt(row.dataset.id)];
-          if (n?.image && !n._preloaded) {
+          if (n?.image_path && !n._preloaded) {
             n._preloaded = true;
             // Preload both versions
-            if (n.thumbnail) new Image().src = n.thumbnail;
-            new Image().src = n.image;
+            if (n.thumbnail_path) new Image().src = n.thumbnail_path;
+            new Image().src = n.image_path;
           }
         }, 120); // short delay to avoid accidental hovers
       }, { passive: true });
