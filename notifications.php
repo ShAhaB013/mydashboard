@@ -13,7 +13,8 @@ if (!UserSession::check()) {
     exit;
 }
 
-$userId = UserSession::id();
+$userId  = UserSession::id();
+$isAdmin = UserSession::isAdmin();
 
 // CSRF token for the state-changing mark_read request
 $csrfToken = UserSession::ensureCsrfToken();
@@ -28,6 +29,13 @@ $beforeCursor = Cursor::decode(trim($_GET['before'] ?? ''));
 $useKeyset    = ($afterCursor !== null || $beforeCursor !== null || isset($_GET['after']) || isset($_GET['before']));
 $keysetDir    = $beforeCursor !== null || isset($_GET['before']) ? 'prev' : 'next';
 $keysetCursor = $keysetDir === 'prev' ? $beforeCursor : $afterCursor;
+// Prev/Next cursor links carry the page they were rendered from as `cp`, so the
+// display-only page number can be tracked across keyset navigation (cursor nav
+// always moves exactly one page).
+if ($useKeyset) {
+    $knownPage = isset($_GET['cp']) ? max(1, (int) $_GET['cp']) : $page;
+    $page = max(1, $knownPage + ($keysetDir === 'next' ? 1 : -1));
+}
 
 // Items per page — user-adjustable and persisted
 // Priority: current selection in URL → saved cookie → default
@@ -92,13 +100,13 @@ if (!function_exists('notif_page_range')) {
 // ── Fetch data (pagination path) ──
 $nm = new NotificationModel();
 
-$total = $nm->historyCountForUser($userId, $search, $filters);
+$total = $nm->historyCountForUser($userId, $search, $filters, $isAdmin);
 $pages = max(1, (int) ceil($total / $perPage));
 
 $nextCursor = $prevCursor = null;
 
 if ($useKeyset) {
-    $items = $nm->historyForUserKeyset($userId, $keysetCursor, $keysetDir, $perPage, $search, $filters);
+    $items = $nm->historyForUserKeyset($userId, $keysetCursor, $keysetDir, $perPage, $search, $filters, $isAdmin);
 
     $hasMore = count($items) > $perPage;
     $items   = $keysetDir === 'prev' ? array_slice($items, -$perPage) : array_slice($items, 0, $perPage);
@@ -108,18 +116,15 @@ if ($useKeyset) {
         $last  = $items[count($items) - 1];
         // A light (LIMIT 1) peek on both sides to determine whether a next/prev page
         // exists — clearer than inferring purely from the direction of the current request.
-        $peekPrev = $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters);
-        $peekNext = $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id'])), 'next', 1, $search, $filters);
+        $peekPrev = $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters, $isAdmin);
+        $peekNext = $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id'])), 'next', 1, $search, $filters, $isAdmin);
         if (!empty($peekPrev)) $prevCursor = Cursor::encode($first['created_at'], (int) $first['id']);
         if (!empty($peekNext)) $nextCursor = Cursor::encode($last['created_at'], (int) $last['id']);
     }
-    // For compatibility with other parts of the template that still build text based
-    // on $page (e.g. the nearby page number), we keep a display-only estimate; the
-    // real source of truth for navigation is the cursor.
     $page = min($page, $pages);
 } else {
     $page  = min($page, $pages);
-    $items = $nm->historyForUser($userId, $page, $perPage, $search, $filters);
+    $items = $nm->historyForUser($userId, $page, $perPage, $search, $filters, $isAdmin);
     if ($page > 1) {
         $f = $items[0] ?? null;
         if ($f) $prevCursor = Cursor::encode($f['created_at'], (int) $f['id']);
@@ -387,7 +392,7 @@ foreach ($items as $item) {
       ?>
         <nav class="pagination" aria-label="صفحه‌بندی">
           <?php if ($prevCursor !== null): ?>
-            <a class="pagination-btn" href="/notifications?before=<?= urlencode($prevCursor) . $qStr ?>" aria-label="صفحه قبل">
+            <a class="pagination-btn" href="/notifications?before=<?= urlencode($prevCursor) . $qStr ?>&cp=<?= $page ?>" aria-label="صفحه قبل">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
           <?php else: ?>
@@ -397,7 +402,7 @@ foreach ($items as $item) {
           <?php foreach (notif_page_range($page, $pages) as $i): ?>
             <?php if ($i === '...'): ?>
               <span class="pagination-ellipsis">…</span>
-            <?php elseif ($i === $page && !$useKeyset): ?>
+            <?php elseif ($i === $page): ?>
               <span class="pagination-btn active" aria-current="page"><?= $i ?></span>
             <?php else: ?>
               <a class="pagination-btn" href="/notifications?page=<?= $i . $qStr ?>"><?= $i ?></a>
@@ -405,7 +410,7 @@ foreach ($items as $item) {
           <?php endforeach; ?>
 
           <?php if ($nextCursor !== null): ?>
-            <a class="pagination-btn" href="/notifications?after=<?= urlencode($nextCursor) . $qStr ?>" aria-label="صفحه بعد">
+            <a class="pagination-btn" href="/notifications?after=<?= urlencode($nextCursor) . $qStr ?>&cp=<?= $page ?>" aria-label="صفحه بعد">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
             </a>
           <?php else: ?>
@@ -421,7 +426,7 @@ foreach ($items as $item) {
             <label class="pagination-goto-label" for="notifGotoInput">برو به صفحه</label>
             <span class="pagination-goto-field">
               <input type="number" name="page" id="notifGotoInput" min="1" max="<?= (int) $pages ?>"
-                value="<?= !$useKeyset ? (int) $page : '' ?>" class="pagination-goto-input" aria-label="شماره صفحه">
+                value="<?= (int) $page ?>" class="pagination-goto-input" aria-label="شماره صفحه">
               <span class="pagination-goto-stepper">
                 <button type="button" class="pagination-goto-spin" tabindex="-1" aria-label="افزایش شماره صفحه"
                   data-act="notifGotoStep" data-dir="1">
