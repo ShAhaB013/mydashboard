@@ -26,11 +26,10 @@ for ($i = 0; $i < 120; $i++) {
     }
 }
 
-Assert::test('فید زنگوله مهمان هرگز بیش از ۱۰۰ آیتم برنمی‌گرداند', function () use ($BASE) {
+Assert::test('notifications بدون لاگین → 401', function () use ($BASE) {
     $http = new HttpClient($BASE);
     $res = $http->get('/api.php?action=notifications');
-    Assert::jsonOk($res, 'notifications باید ok:true بدهد');
-    Assert::true(count($res['json']['notifications'] ?? []) <= 100, 'تعداد آیتم‌های فید مهمان نباید از ۱۰۰ بیشتر شود', ['count' => count($res['json']['notifications'] ?? [])]);
+    Assert::statusEq($res, 401, 'notifications بدون لاگین باید 401 بدهد');
 });
 
 Assert::test('فید زنگوله کاربر لاگین‌شده هرگز بیش از ۱۰۰ آیتم برنمی‌گرداند و ناخوانده‌ها اول می‌آیند', function () use ($BASE, $ACC) {

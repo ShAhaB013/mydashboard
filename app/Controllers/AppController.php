@@ -20,24 +20,14 @@ class AppController
     // me + assets + tools + notifications + unread_count
     public function bootstrap(): void
     {
-        $isLoggedIn = UserSession::check();
+        if (!$this->requireLogin()) return;
 
-        // ETag/304 for both cases: when navigating between pages, if the data hasn't changed,
+        // ETag/304: when navigating between pages, if the data hasn't changed,
         // only a 304 is returned instead of re-downloading the whole response (assets+tools).
-        if ($isLoggedIn) {
-            $body = $this->buildBootstrapBody(true);
-            $tag  = 'boot-u' . UserSession::id();
-            // Session-dependent: only for that same browser, forcing revalidation
-            header('Cache-Control: private, max-age=0, must-revalidate');
-        } else {
-            // Guest: the response is identical across all visitors (no per-user data;
-            // the guest's read-state is applied client-side from localStorage) — the server
-            // micro-cache collapses N concurrent computations into 1, and stale-while-revalidate
-            // smooths the request wave after the browser/proxy cache expires.
-            $body = MicroCache::remember('boot-guest', 30, fn(): string => $this->buildBootstrapBody(false));
-            $tag  = 'boot-guest';
-            header('Cache-Control: public, max-age=30, stale-while-revalidate=30');
-        }
+        $body = $this->buildBootstrapBody();
+        $tag  = 'boot-u' . UserSession::id();
+        // Session-dependent: only for that same browser, forcing revalidation
+        header('Cache-Control: private, max-age=0, must-revalidate');
 
         $etag       = '"' . $tag . '-' . md5($body) . '"';
         $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
@@ -50,8 +40,8 @@ class AppController
         echo $body;
     }
 
-    /** Build the bootstrap body (me+assets+tools+unread) — for guests this is called from inside the micro-cache */
-    private function buildBootstrapBody(bool $isLoggedIn): string
+    /** Build the bootstrap body (me+assets+tools+unread) */
+    private function buildBootstrapBody(): string
     {
         $config = $this->config;
 
@@ -63,38 +53,29 @@ class AppController
         $assets    = ['ok' => true, 'icons' => $iconDb->all(), 'decos' => $decoDb->all()];
 
         // me
-        if ($isLoggedIn) {
-            $me = [
-                'ok'           => true,
-                'logged_in'    => true,
-                'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
-                'first_name'   => $_SESSION['first_name'] ?? '',
-                'last_name'    => $_SESSION['last_name'] ?? '',
-                'username'     => $_SESSION['username'] ?? '',
-                'phone'        => $_SESSION['phone'] ?? '',
-                'email'        => $_SESSION['email'] ?? '',
-                'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
-            ];
-        } else {
-            $me = ['ok' => true, 'logged_in' => false];
-        }
+        $me = [
+            'ok'           => true,
+            'logged_in'    => true,
+            'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
+            'first_name'   => $_SESSION['first_name'] ?? '',
+            'last_name'    => $_SESSION['last_name'] ?? '',
+            'username'     => $_SESSION['username'] ?? '',
+            'phone'        => $_SESSION['phone'] ?? '',
+            'email'        => $_SESSION['email'] ?? '',
+            'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
+        ];
 
         // tools — admin sees all tools (including private) so they can manage from the same dashboard
         $toolModel = new ToolModel();
-        $isAdmin   = $isLoggedIn && (($_SESSION['role'] ?? 'user') === 'admin');
-        $toolRows  = $isAdmin
-            ? $toolModel->all()
-            : ($isLoggedIn ? $toolModel->allForUser(UserSession::id()) : $toolModel->allPublic());
+        $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
+        $toolRows  = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
         $tools = ['ok' => true, 'tools' => ToolModel::toFrontend($toolRows)];
 
         // unread (light): the full notification list is no longer carried in bootstrap so the cards
         // don't have to wait for a ~105KB notification download. The list is loaded lazily
-        // (action=notifications) in the background after the cards render.
-        // Logged-in user: unread count is computed with a lightweight query so the badge appears immediately.
-        // Guest: count is computed client-side (from localStorage) after the list loads.
-        $unread = $isLoggedIn
-            ? ['ok' => true, 'count' => (new NotificationModel())->unreadCount(UserSession::id())]
-            : ['ok' => true, 'count' => 0];
+        // (action=notifications) in the background after the cards render. The unread count is
+        // computed with a lightweight query so the badge appears immediately.
+        $unread = ['ok' => true, 'count' => (new NotificationModel())->unreadCount(UserSession::id())];
 
         $payload = [
             'ok'     => true,
@@ -110,6 +91,8 @@ class AppController
     // ── assets: icons + animations ─────────────────────────
     public function assets(): void
     {
+        if (!$this->requireLogin()) return;
+
         $config    = $this->config;
         $iconsFile = $config['files']['icons'];
         $decosFile = $config['files']['decos'];
@@ -142,35 +125,16 @@ class AppController
     // ── tools ─────────────────────────────────────────────────
     public function tools(): void
     {
-        $isLoggedIn = UserSession::check();
+        if (!$this->requireLogin()) return;
 
-        if ($isLoggedIn) {
-            $toolModel = new ToolModel();
-            $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
-            $rows      = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
-            $body      = json_encode([
-                'ok'    => true,
-                'tools' => ToolModel::toFrontend($rows),
-            ], JSON_UNESCAPED_UNICODE);
-            header('Cache-Control: private, no-store');
-        } else {
-            // Guest: public tools are identical for everyone — anti-stampede micro-cache
-            $body = MicroCache::remember('tools-guest', 30, static function (): string {
-                return (string) json_encode([
-                    'ok'    => true,
-                    'tools' => ToolModel::toFrontend((new ToolModel())->allPublic()),
-                ], JSON_UNESCAPED_UNICODE);
-            });
-
-            $etag       = '"tools-' . md5($body) . '"';
-            $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
-            header('Cache-Control: public, max-age=30, stale-while-revalidate=30');
-            header('ETag: ' . $etag);
-            if ($clientEtag === $etag) {
-                http_response_code(304);
-                exit;
-            }
-        }
+        $toolModel = new ToolModel();
+        $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
+        $rows      = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
+        $body      = json_encode([
+            'ok'    => true,
+            'tools' => ToolModel::toFrontend($rows),
+        ], JSON_UNESCAPED_UNICODE);
+        header('Cache-Control: private, no-store');
 
         echo $body;
     }
@@ -178,22 +142,20 @@ class AppController
     // ── me ───────────────────────────────────────────────────
     public function me(): void
     {
-        if (UserSession::check()) {
-            $resp = [
-                'ok'           => true,
-                'logged_in'    => true,
-                'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
-                'first_name'   => $_SESSION['first_name'] ?? '',
-                'last_name'    => $_SESSION['last_name'] ?? '',
-                'username'     => $_SESSION['username'] ?? '',
-                'phone'        => $_SESSION['phone'] ?? '',
-                'email'        => $_SESSION['email'] ?? '',
-                'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
-            ];
-            echo json_encode($resp, JSON_UNESCAPED_UNICODE);
-        } else {
-            echo json_encode(['ok' => true, 'logged_in' => false], JSON_UNESCAPED_UNICODE);
-        }
+        if (!$this->requireLogin()) return;
+
+        $resp = [
+            'ok'           => true,
+            'logged_in'    => true,
+            'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
+            'first_name'   => $_SESSION['first_name'] ?? '',
+            'last_name'    => $_SESSION['last_name'] ?? '',
+            'username'     => $_SESSION['username'] ?? '',
+            'phone'        => $_SESSION['phone'] ?? '',
+            'email'        => $_SESSION['email'] ?? '',
+            'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
+        ];
+        echo json_encode($resp, JSON_UNESCAPED_UNICODE);
     }
 
     // ── logout ───────────────────────────────────────────────

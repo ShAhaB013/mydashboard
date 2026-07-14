@@ -1,7 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
 // notifications.php — notification history and search page
-// For logged-in users and guests
 // ═══════════════════════════════════════════════════════════
 declare(strict_types=1);
 require_once __DIR__ . '/version.php';
@@ -9,12 +8,15 @@ require_once __DIR__ . '/version.php';
 // ── Shared bootstrap: autoload + config + DB + session ────
 $config = require __DIR__ . '/bootstrap.php';
 
-// ── User state (guest or logged-in) ───────────────────────
-$isLoggedIn = UserSession::check();
-$userId     = $isLoggedIn ? UserSession::id() : 0;
+if (!UserSession::check()) {
+    header('Location: /login');
+    exit;
+}
 
-// CSRF token for the state-changing mark_read request (logged-in users only)
-$csrfToken = $isLoggedIn ? UserSession::ensureCsrfToken() : '';
+$userId = UserSession::id();
+
+// CSRF token for the state-changing mark_read request
+$csrfToken = UserSession::ensureCsrfToken();
 
 // ── Pagination and search parameters ──────────────────────
 // Two parallel paths: page=N (traditional OFFSET, for page numbers/go-to-page) or
@@ -27,7 +29,7 @@ $useKeyset    = ($afterCursor !== null || $beforeCursor !== null || isset($_GET[
 $keysetDir    = $beforeCursor !== null || isset($_GET['before']) ? 'prev' : 'next';
 $keysetCursor = $keysetDir === 'prev' ? $beforeCursor : $afterCursor;
 
-// Items per page — user-adjustable and persisted (guest + logged-in)
+// Items per page — user-adjustable and persisted
 // Priority: current selection in URL → saved cookie → default
 $perPageAllowed = [10, 20, 50, 100];
 $ppDefault      = 20;
@@ -87,20 +89,16 @@ if (!function_exists('notif_page_range')) {
     }
 }
 
-// ── Fetch data (based on login state + pagination path) ──
+// ── Fetch data (pagination path) ──
 $nm = new NotificationModel();
 
-$total = $isLoggedIn
-    ? $nm->historyCountForUser($userId, $search, $filters)
-    : $nm->historyCountForGuest($search, $filters);
+$total = $nm->historyCountForUser($userId, $search, $filters);
 $pages = max(1, (int) ceil($total / $perPage));
 
 $nextCursor = $prevCursor = null;
 
 if ($useKeyset) {
-    $items = $isLoggedIn
-        ? $nm->historyForUserKeyset($userId, $keysetCursor, $keysetDir, $perPage, $search, $filters)
-        : $nm->historyForGuestKeyset($keysetCursor, $keysetDir, $perPage, $search, $filters);
+    $items = $nm->historyForUserKeyset($userId, $keysetCursor, $keysetDir, $perPage, $search, $filters);
 
     $hasMore = count($items) > $perPage;
     $items   = $keysetDir === 'prev' ? array_slice($items, -$perPage) : array_slice($items, 0, $perPage);
@@ -110,12 +108,8 @@ if ($useKeyset) {
         $last  = $items[count($items) - 1];
         // A light (LIMIT 1) peek on both sides to determine whether a next/prev page
         // exists — clearer than inferring purely from the direction of the current request.
-        $peekPrev = $isLoggedIn
-            ? $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters)
-            : $nm->historyForGuestKeyset(Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters);
-        $peekNext = $isLoggedIn
-            ? $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id'])), 'next', 1, $search, $filters)
-            : $nm->historyForGuestKeyset(Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id'])), 'next', 1, $search, $filters);
+        $peekPrev = $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($first['created_at'], (int) $first['id'])), 'prev', 1, $search, $filters);
+        $peekNext = $nm->historyForUserKeyset($userId, Cursor::decode(Cursor::encode($last['created_at'], (int) $last['id'])), 'next', 1, $search, $filters);
         if (!empty($peekPrev)) $prevCursor = Cursor::encode($first['created_at'], (int) $first['id']);
         if (!empty($peekNext)) $nextCursor = Cursor::encode($last['created_at'], (int) $last['id']);
     }
@@ -125,9 +119,7 @@ if ($useKeyset) {
     $page = min($page, $pages);
 } else {
     $page  = min($page, $pages);
-    $items = $isLoggedIn
-        ? $nm->historyForUser($userId, $page, $perPage, $search, $filters)
-        : $nm->historyForGuest($page, $perPage, $search, $filters);
+    $items = $nm->historyForUser($userId, $page, $perPage, $search, $filters);
     if ($page > 1) {
         $f = $items[0] ?? null;
         if ($f) $prevCursor = Cursor::encode($f['created_at'], (int) $f['id']);
@@ -145,7 +137,6 @@ foreach ($items as $item) {
 }
 
 // Marking as read only happens when each notification is opened in the modal (via JS)
-// Guests: read state is managed via localStorage
 
 // ── Static asset versions ─────────────────────────────────
 $vCss   = asset_v(__DIR__ . '/assets/css/style.css');
@@ -171,9 +162,8 @@ foreach ($items as $item) {
         'is_expired'     => (bool) ($item['is_expired']  ?? false),
         'is_public'      => (bool) ($item['is_public']   ?? false),
         'badges'         => $badgesMap[$item['id']]  ?? [],
-        // Guest: always false — JS reads state from localStorage
-        'is_read'        => $isLoggedIn ? (bool) ($item['is_read']   ?? false) : false,
-        'is_edited'      => $isLoggedIn ? (bool) ($item['is_edited'] ?? false) : false,
+        'is_read'        => (bool) ($item['is_read']   ?? false),
+        'is_edited'      => (bool) ($item['is_edited'] ?? false),
     ];
 }
 ?>
@@ -314,9 +304,8 @@ foreach ($items as $item) {
           $rowIndex = ($page - 1) * $perPage;
         ?>
         <?php foreach ($items as $item):
-          // Logged-in: from DB | Guest: JS reads from localStorage (always false in PHP)
-          $isRead    = $isLoggedIn ? (bool) ($item['is_read']    ?? false) : false;
-          $isEdited  = $isLoggedIn ? (bool) ($item['is_edited']  ?? false) : false;
+          $isRead    = (bool) ($item['is_read']    ?? false);
+          $isEdited  = (bool) ($item['is_edited']  ?? false);
           $isExpired = (bool) ($item['is_expired'] ?? false);
           $hasImage  = !empty($item['image_path']);
           $badges    = $badgesMap[$item['id']] ?? [];
@@ -460,7 +449,6 @@ foreach ($items as $item) {
   <!-- Notification data and user state -->
   <script nonce="<?= csp_nonce() ?>">
     const NOTIFS       = <?= json_encode($notifJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
-    const IS_LOGGED_IN = <?= $isLoggedIn ? 'true' : 'false' ?>;
     window.CSRF_TOKEN  = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
   </script>
 

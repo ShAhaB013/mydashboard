@@ -3,17 +3,20 @@ require_once __DIR__ . '/version.php';
 // Shared bootstrap: autoload + config + DB + session (DB-backed session needs a DB connection)
 $config = require __DIR__ . '/bootstrap.php';
 
-// Read login state server-side so the header renders without a "flash to guest state"
-$isLoggedIn  = UserSession::check();
-$displayName = $isLoggedIn ? UserSession::displayName() : '';
-$username    = $isLoggedIn ? (string) ($_SESSION['username'] ?? '') : '';
-$email       = $isLoggedIn ? (string) ($_SESSION['email'] ?? '') : '';
-$isAdmin     = $isLoggedIn && UserSession::isAdmin();
+if (!UserSession::check()) {
+    header('Location: /login');
+    exit;
+}
+
+$displayName = UserSession::displayName();
+$username    = (string) ($_SESSION['username'] ?? '');
+$email       = (string) ($_SESSION['email'] ?? '');
+$isAdmin     = UserSession::isAdmin();
 $menuName    = $displayName !== '' ? $displayName : $username;
 
-// CSRF token for every logged-in user — needed for state-changing requests to
-// api.php (logout / mark_read / mark_all_read) as well as inline admin management.
-$csrfToken = UserSession::check() ? UserSession::ensureCsrfToken() : '';
+// CSRF token — needed for state-changing requests to api.php (logout / mark_read /
+// mark_all_read) as well as inline admin management.
+$csrfToken = UserSession::ensureCsrfToken();
 
 $v_css   = asset_v(__DIR__ . '/assets/css/style.css');
 $v_js    = asset_v(__DIR__ . '/assets/js/script.js');
@@ -177,18 +180,10 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
         </div>
         <!-- /Notification bell -->
 
-        <!-- Auth area — initial state is rendered server-side (no flash on refresh) -->
+        <!-- Auth area — every visitor is authenticated (login enforced server-side above) -->
         <div class="auth-area">
 
-          <a class="auth-btn" id="authBtn" href="/login" aria-label="ورود به حساب کاربری"<?= $isLoggedIn ? ' style="display:none;"' : '' ?>>
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-            ورود
-          </a>
-
-          <div class="user-menu-wrap" id="userMenuWrap" style="display:<?= $isLoggedIn ? 'flex' : 'none' ?>;">
+          <div class="user-menu-wrap" id="userMenuWrap">
 
             <button
               class="user-menu-btn"
@@ -327,7 +322,6 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
   <!-- ══════════════════════════════════════════════════════
        Notification detail modal
-       Visible to all users (guest and logged-in)
        Shared with notifications.php — see app/Views/partials/notif_detail_modal.php
        Content is filled by NotifDetail.open(n) in assets/js/notif-detail.js
        ══════════════════════════════════════════════════════ -->

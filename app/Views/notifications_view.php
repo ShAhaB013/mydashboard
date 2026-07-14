@@ -250,7 +250,7 @@
           <div class="audience-row">
             <div class="audience-row-label">
               <strong>نمایش عمومی</strong>
-              <span>برای همه بازدیدکنندگان از جمله مهمان‌ها</span>
+              <span>برای همه کاربران، بدون محدودیت دسته‌بندی</span>
             </div>
             <label class="toggle-sw">
               <input type="checkbox" id="nf-public" data-change="nmPublicChange">

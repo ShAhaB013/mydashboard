@@ -36,15 +36,17 @@ Assert::test('لیست اعلان‌های ادمین: page=1 دقیقا با ن
     foreach ($ids as $id) DB::run('DELETE FROM notifications WHERE id=:id', [':id' => $id]);
 });
 
-Assert::test('notifications.php: پارامتر page خیلی بزرگ به آخرین صفحه‌ی موجود کلمپ می‌شود (بدون خطا)', function () use ($BASE) {
+Assert::test('notifications.php: پارامتر page خیلی بزرگ به آخرین صفحه‌ی موجود کلمپ می‌شود (بدون خطا)', function () use ($BASE, $ACC) {
     $http = new HttpClient($BASE);
+    $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
     $res = $http->get('/notifications?page=999999&pp=10');
     Assert::true($res['status'] < 500, 'page خیلی بزرگ نباید 500 بدهد');
     Assert::notContains($res['body'], 'Fatal error', 'نباید خطای PHP نمایش داده شود');
 });
 
-Assert::test('notifications.php: cursor نامعتبر/دستکاری‌شده بی‌صدا به صفحه‌ی اول سقوط می‌کند', function () use ($BASE) {
+Assert::test('notifications.php: cursor نامعتبر/دستکاری‌شده بی‌صدا به صفحه‌ی اول سقوط می‌کند', function () use ($BASE, $ACC) {
     $http = new HttpClient($BASE);
+    $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
     $res = $http->get('/notifications?after=not-a-valid-cursor!!!&pp=10');
     Assert::true($res['status'] < 500, 'cursor نامعتبر نباید 500 بدهد');
     Assert::notContains($res['body'], 'Fatal error', 'نباید خطای PHP نمایش داده شود');

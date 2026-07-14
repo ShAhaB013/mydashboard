@@ -128,13 +128,9 @@ const NotifDetail = {
 
     this._buildMeta(n, wasEdited);
 
-    // "View all" link — only present in the bell dropdown's markup, and only
-    // shown when logged in (guests can't reach the notifications page)
+    // "View all" link — only present in the bell dropdown's markup
     const allLink = document.getElementById('ndViewAllLink');
-    if (allLink) {
-      const loggedIn = typeof Auth !== 'undefined' && Auth.loggedIn;
-      allLink.style.display = loggedIn ? 'inline-flex' : 'none';
-    }
+    if (allLink) allLink.style.display = 'inline-flex';
 
     // Show
     const overlay = document.getElementById('ndOverlay');

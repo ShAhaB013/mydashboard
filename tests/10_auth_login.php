@@ -53,11 +53,10 @@ Assert::test('GET به‌جای POST → 405 (Method Not Allowed)', function () 
     Assert::statusEq($res, 405, 'GET روی login باید 405 بدهد');
 });
 
-Assert::test('me بدون لاگین → logged_in:false', function () use ($BASE) {
+Assert::test('me بدون لاگین → 401', function () use ($BASE) {
     $http = new HttpClient($BASE);
     $res  = $http->get('/api.php?action=me');
-    Assert::jsonOk($res, 'me باید ok:true بدهد حتی مهمان');
-    Assert::eq(false, $res['json']['logged_in'] ?? null, 'مهمان باید logged_in:false داشته باشد');
+    Assert::statusEq($res, 401, 'me بدون لاگین باید 401 بدهد');
 });
 
 Assert::test('me بعد از لاگین → logged_in:true + username صحیح', function () use ($BASE, $ACC) {
@@ -73,7 +72,7 @@ Assert::test('logout → نشست باطل می‌شود', function () use ($BAS
     $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
     $http->get('/api.php?action=logout');
     $res = $http->get('/api.php?action=me');
-    Assert::eq(false, $res['json']['logged_in'] ?? null, 'بعد از logout باید logged_in:false باشد');
+    Assert::statusEq($res, 401, 'بعد از logout، me باید 401 بدهد');
 });
 
 // clean up any login_rate_limit rows for 127.0.0.1/scope=user left by the wrong-password tests

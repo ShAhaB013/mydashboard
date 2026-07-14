@@ -63,8 +63,9 @@ Assert::test('صفحه‌ی اول admin list هیچ prev_cursor ندارد', fu
     Assert::eq(null, $res['json']['pagination']['prev_cursor'], 'prev_cursor صفحه‌ی اول باید null باشد');
 });
 
-Assert::test('notifications.php (تاریخچه عمومی): after= دقیقا صفحه‌ی بعدی OFFSET را می‌دهد', function () use ($BASE) {
+Assert::test('notifications.php (تاریخچه): after= دقیقا صفحه‌ی بعدی OFFSET را می‌دهد', function () use ($BASE, $ACC) {
     $http = new HttpClient($BASE);
+    $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
     $r1 = $http->get('/notifications?page=1&pp=10');
     preg_match('/href="\/notifications\?after=([^"&]+)/', $r1['body'], $m);
     Assert::true(isset($m[1]), 'باید لینک after= در صفحه‌ی اول وجود داشته باشد');

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 // ═══════════════════════════════════════════════════════════
 // HttpClient — a lightweight cURL client for API tests with an independent cookie jar
-// (each instance simulates a separate browser "session": guest/user/admin)
+// (each instance simulates a separate browser "session": logged-out/user/admin)
 // ═══════════════════════════════════════════════════════════
 
 class HttpClient

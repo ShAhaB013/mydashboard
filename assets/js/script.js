@@ -196,13 +196,8 @@ const NotifPanel = {
       if (nData.ok) this._notifications = nData.notifications || [];
       this._loaded = true;
 
-      if (Auth.loggedIn) {
-        if (cData.ok) this._unreadCount = cData.count || 0;
-        this._updateBadge();
-      } else {
-        // for guests, the count is computed from localStorage
-        this._applyGuestReadState();
-      }
+      if (cData.ok) this._unreadCount = cData.count || 0;
+      this._updateBadge();
       // if the panel was open during this background load, re-render now with the real data
       if (this._open) this._renderDropdown();
     } catch {
@@ -242,49 +237,38 @@ const NotifPanel = {
 
   async _poll() {
     try {
-      if (Auth.loggedIn) {
-        // count + identity (me) both ride along in the same response — if the admin or the
-        // user themself edits the name/email/role, it updates on this page within ~25s
-        // without needing a logout/login or manual refresh.
-        const countRes = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
-        const data = await countRes.json();
-        if (!data.ok) return;
+      // count + identity (me) both ride along in the same response — if the admin or the
+      // user themself edits the name/email/role, it updates on this page within ~25s
+      // without needing a logout/login or manual refresh.
+      const countRes = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
+      const data = await countRes.json();
+      if (!data.ok) return;
 
-        // The session may have expired between two polls (either the TTL ran out or an admin
-        // ended it manually) even while the user is still actively using the page. Refreshing
-        // this same page (instead of redirecting to /login) forces the server to re-render
-        // the guest/protected version of this page.
-        if (data.logged_in === false) {
-          Auth.setLoggedOut();
-          this.reset();
-          location.reload();
-          return;
-        }
+      // The session may have expired between two polls (either the TTL ran out or an admin
+      // ended it manually) even while the user is still actively using the page. Refreshing
+      // this same page forces the server to redirect to /login.
+      if (data.logged_in === false) {
+        Auth.setLoggedOut();
+        this.reset();
+        location.reload();
+        return;
+      }
 
-        const meData = data.me;
-        if (meData) {
-          const changed =
-            meData.display_name !== Auth.displayName ||
-            meData.username     !== Auth.username    ||
-            meData.email        !== Auth.email        ||
-            !!meData.is_admin   !== Auth.isAdmin;
-          if (changed) {
-            Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '');
-          }
+      const meData = data.me;
+      if (meData) {
+        const changed =
+          meData.display_name !== Auth.displayName ||
+          meData.username     !== Auth.username    ||
+          meData.email        !== Auth.email        ||
+          !!meData.is_admin   !== Auth.isAdmin;
+        if (changed) {
+          Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '');
         }
+      }
 
-        const newCount = data.count || 0;
-        if (newCount !== this._unreadCount) {
-          await this.load();                 // syncs the list + badge
-          if (this._open) this._renderDropdown();
-        }
-      } else {
-        // guest: fetch the list and compute unread from localStorage
-        const res  = await fetch(`${API_URL}?action=notifications`, { cache: 'no-cache' });
-        const data = await res.json();
-        if (!data.ok) return;
-        this._notifications = data.notifications || [];
-        this._applyGuestReadState();         // count + badge
+      const newCount = data.count || 0;
+      if (newCount !== this._unreadCount) {
+        await this.load();                 // syncs the list + badge
         if (this._open) this._renderDropdown();
       }
     } catch { /* silent */ }
@@ -395,10 +379,8 @@ const NotifPanel = {
       const openDetail = () => {
         this.close();
         NotifDetail.open(n);
-        if (Auth.loggedIn && !n.is_read) {
+        if (!n.is_read) {
           this._markReadSilent(n.id, item, n);
-        } else if (!Auth.loggedIn && !n.is_read) {
-          this._markReadGuest(n.id, n);
         }
       };
 
@@ -445,70 +427,6 @@ const NotifPanel = {
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
         body:    JSON.stringify({ notification_id: id }),
       });
-    } catch { /* silent */ }
-  },
-
-  // mark read for guests — localStorage stores the read timestamp (supports re-badging on edit)
-  _markReadGuest(id, notifObj) {
-    if (notifObj && notifObj.is_read) return;
-    if (notifObj) notifObj.is_read = true;
-    this._unreadCount = Math.max(0, this._unreadCount - 1);
-
-    // an expired notification is removed from the active list once read
-    if (notifObj && notifObj.is_expired) {
-      this._notifications = this._notifications.filter(x => x.id !== id);
-    }
-
-    this._updateBadge();
-    if (this._open) this._renderDropdown();
-
-    try {
-      const map = this._getGuestReadMap();
-      map[id] = Math.floor(Date.now() / 1000);   // read timestamp (seconds)
-      this._setGuestReadMap(map);
-    } catch { /* silent */ }
-  },
-
-  // reads the {id: read_ts} map, staying compatible with the legacy format (array of ids)
-  _getGuestReadMap() {
-    try {
-      const raw = localStorage.getItem('notif_read_ids');
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        // migrate from the legacy format: read id with timestamp 0 (always read unless re-edited)
-        const map = {};
-        parsed.forEach(id => { map[id] = 0; });
-        return map;
-      }
-      return (parsed && typeof parsed === 'object') ? parsed : {};
-    } catch { return {}; }
-  },
-
-  _setGuestReadMap(map) {
-    try {
-      // keep only the last 80 ids so localStorage doesn't grow unbounded
-      let entries = Object.entries(map);
-      if (entries.length > 80) entries = entries.slice(entries.length - 80);
-      localStorage.setItem('notif_read_ids', JSON.stringify(Object.fromEntries(entries)));
-    } catch { /* silent */ }
-  },
-
-  // applies the guest read state + (always) recomputes the unread count
-  _applyGuestReadState() {
-    try {
-      const map = this._getGuestReadMap();
-      this._notifications.forEach(n => {
-        const readTs   = map[n.id];
-        const updatedTs = n.updated_at ? Math.floor(new Date(n.updated_at).getTime() / 1000) : 0;
-        // only counts as read if it was read after the last edit
-        n.is_read = (readTs !== undefined) && (readTs === 0 || readTs >= updatedTs);
-      });
-      // expired notifications that have already been read are removed from the list
-      // (unread expired ones stay, to keep the badge alive)
-      this._notifications = this._notifications.filter(n => !(n.is_expired && n.is_read));
-      this._unreadCount = this._notifications.filter(n => !n.is_read).length;
-      this._updateBadge();
     } catch { /* silent */ }
   },
 
@@ -1021,24 +939,17 @@ document.addEventListener('keydown', e => {
    Logout
    ═══════════════════════════════════════════════════════════ */
 async function handleLogout() {
-  let ok = false;
   try {
-    const res = await fetch(`${API_URL}?action=logout`, {
+    await fetch(`${API_URL}?action=logout`, {
       method: 'POST',
       headers: { 'X-CSRF-Token': window.CSRF_TOKEN || '' },
     });
-    ok = res.ok;
-  } catch { /* network down — we'll refresh below */ }
+  } catch { /* network down — reload below re-tries the real state either way */ }
 
-  // If the server didn't confirm the logout (e.g. a stale CSRF token → 403), the session is
-  // still alive server-side. We must not show the UI as "logged out"; refresh the page instead
-  // so the real state syncs from the server (fresh token + user still logged in).
-  if (!ok) { window.location.reload(); return; }
-
-  Auth.setLoggedOut();
-  NotifPanel.reset();
-  await loadData();
-  await NotifPanel.load();
+  // Every page requires a session now, so a reload is enough either way: if the logout
+  // succeeded, the server-side guard on / redirects to /login; if it didn't (e.g. a stale
+  // CSRF token → 403), the session is still alive and the page reloads normally as logged in.
+  window.location.reload();
 }
 
 /* Login now happens on the separate login.php page (instead of a modal). */
@@ -1180,7 +1091,6 @@ async function initLegacy() {
 
     if (notifData.ok) NotifPanel._notifications = notifData.notifications || [];
     if (countData.ok) NotifPanel._unreadCount   = countData.count         || 0;
-    if (!meData.logged_in) NotifPanel._applyGuestReadState();
     NotifPanel._updateBadge();
 
     startRealtime();
@@ -1925,9 +1835,9 @@ function boot() {
 }
 
 // If this page was prerendered, defer init until "activation" (actual display); otherwise
-// the data would be fetched with the guest session at prerender time, and after logging in
-// the guest state would keep showing until a refresh. Now it loads with the current
-// (post-login) session instead.
+// the data could be fetched with a stale pre-auth session at prerender time, and after
+// logging in that stale state would keep showing until a refresh. Now it loads with the
+// current (post-login) session instead.
 if (document.prerendering) {
   document.addEventListener('prerenderingchange', boot, { once: true });
 } else {

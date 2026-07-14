@@ -18,9 +18,10 @@ function percentile(array $values, float $p): float
     return $values[max(0, min($n - 1, $idx))];
 }
 
-function burstTiming(string $BASE, string $path, int $n, array $headers = []): array
+function burstTiming(string $BASE, string $path, int $n, array $headers = [], array $ACC = null): array
 {
     $http = new HttpClient($BASE);
+    if ($ACC !== null) $http->loginAs($ACC['username'], $ACC['password']);
     $times = [];
     for ($i = 0; $i < $n; $i++) {
         $res = $http->get($path, $headers);
@@ -30,8 +31,8 @@ function burstTiming(string $BASE, string $path, int $n, array $headers = []): a
 }
 
 foreach (['/api.php?action=bootstrap' => 'bootstrap', '/api.php?action=tools' => 'tools', '/api.php?action=notifications' => 'notifications'] as $path => $label) {
-    Assert::test("burst 30 درخواست sequential روی {$label} → p95 زیر آستانه نرم", function () use ($BASE, $path, $label, $P95_THRESHOLD, $MAX_THRESHOLD) {
-        $times = burstTiming($BASE, $path, 30);
+    Assert::test("burst 30 درخواست sequential روی {$label} → p95 زیر آستانه نرم", function () use ($BASE, $path, $label, $P95_THRESHOLD, $MAX_THRESHOLD, $ACC) {
+        $times = burstTiming($BASE, $path, 30, [], $ACC['user']);
         $p95 = percentile($times, 95);
         $max = max($times);
         if ($p95 > $P95_THRESHOLD) {
@@ -72,11 +73,12 @@ Assert::test('list_tools ادمین: تعداد کوئری DB با افزایش 
     foreach ($ids as $id) DB::run('DELETE FROM tools WHERE id=:id', [':id' => $id]);
 });
 
-Assert::test('ETag: تغییر داده باعث تغییر ETag و بازگشت 200 تازه می‌شود', function () use ($BASE) {
+Assert::test('ETag: تغییر داده باعث تغییر ETag و بازگشت 200 تازه می‌شود', function () use ($BASE, $ACC) {
     $http = new HttpClient($BASE);
+    $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
     $res1 = $http->get('/api.php?action=tools');
     $etag1 = $res1['headers']['etag'] ?? null;
-    if ($etag1 === null) { Assert::warn('ETag روی tools ست نشده (شاید کاربر لاگین بود) — رد شد'); return; }
+    if ($etag1 === null) { Assert::warn('ETag روی tools ست نشده — رد شد'); return; }
 
     $id = Fixtures::createTool(['is_public' => 1]);
     $res2 = $http->get('/api.php?action=tools', ['If-None-Match: ' . $etag1]);

@@ -29,10 +29,7 @@ class DecoModel
     {
         $decos       = $this->all();
         $decos[$key] = $svg;
-        $ok = $this->db->save($decos);
-        // Assets are carried inside the guest bootstrap body — its cache must be invalidated
-        MicroCache::forget('boot-guest');
-        return $ok;
+        return $this->db->save($decos);
     }
 
     /** Deletes an animation and reverts dependent tools back to generic */
@@ -41,7 +38,6 @@ class DecoModel
         $decos = $this->all();
         unset($decos[$key]);
         $this->db->save($decos);
-        MicroCache::forget('boot-guest');
 
         // Revert tools that were using this animation back to generic
         $tools    = $toolModel->all();

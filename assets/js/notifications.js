@@ -13,67 +13,6 @@
     /* ── Notification Panel (row list + read state — the modal itself is shared) ── */
     const NP = {
 
-      // ── Reads the {id: read_ts} map, with compatibility for the old (array) format ──
-      _getGuestReadMap() {
-        try {
-          const raw = localStorage.getItem('notif_read_ids');
-          if (!raw) return {};
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            const map = {};
-            parsed.forEach(id => { map[id] = 0; });
-            return map;
-          }
-          return (parsed && typeof parsed === 'object') ? parsed : {};
-        } catch { return {}; }
-      },
-
-      _setGuestReadMap(map) {
-        try {
-          let entries = Object.entries(map);
-          if (entries.length > 80) entries = entries.slice(entries.length - 80);
-          localStorage.setItem('notif_read_ids', JSON.stringify(Object.fromEntries(entries)));
-        } catch { /* silent */ }
-      },
-
-      // ── Applies the guest's read state to the rows ──────
-      // Three possible states: unread / read but since edited / read and current
-      initGuestReadState() {
-        try {
-          const map = this._getGuestReadMap();
-          Object.keys(NOTIFS).forEach(id => {
-            const n = NOTIFS[id];
-            if (!n) return;
-
-            const readTs = map[id];
-            if (readTs === undefined) return;   // never read → keep the "new" tag
-
-            const updatedTs = n.updated_at ? Math.floor(new Date(n.updated_at).getTime() / 1000) : 0;
-            const isCurrent = (readTs === 0 || readTs >= updatedTs);
-
-            const row = document.querySelector(`.notif-row[data-id="${id}"]`);
-            if (!row) return;
-            const unreadPill = row.querySelector('.npill-unread');
-
-            if (isCurrent) {
-              // Read and current: remove the tag entirely
-              n.is_read   = true;
-              n.is_edited = false;
-              row.classList.remove('unread');
-              if (unreadPill) unreadPill.remove();
-            } else {
-              // Read, but edited since: change the tag to "edited"
-              n.is_read   = false;
-              n.is_edited = true;
-              if (unreadPill) {
-                unreadPill.className   = 'npill npill-edited';
-                unreadPill.textContent = 'ویرایش شده';
-              }
-            }
-          });
-        } catch { /* silent */ }
-      },
-
       // Opens the shared detail modal, then marks the notification as read —
       // in that order, so the modal still shows the pre-read "edited" pill
       // (mirrors the bell dropdown's open-then-mark-read flow in script.js).
@@ -97,20 +36,11 @@
           if (pill) pill.remove();
         }
 
-        // Logged in: API | guest: localStorage
-        if (IS_LOGGED_IN) {
-          fetch('api.php?action=mark_read', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
-            body:    JSON.stringify({ notification_id: id }),
-          }).catch(() => {});
-        } else {
-          try {
-            const map = this._getGuestReadMap();
-            map[id] = Math.floor(Date.now() / 1000);
-            this._setGuestReadMap(map);
-          } catch { /* silent */ }
-        }
+        fetch('api.php?action=mark_read', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN || '' },
+          body:    JSON.stringify({ notification_id: id }),
+        }).catch(() => {});
       },
     };
 
@@ -122,9 +52,6 @@
         NotifDetail.close();
       }
     });
-
-    // For guests: apply the read state from localStorage to the rows
-    if (!IS_LOGGED_IN) NP.initGuestReadState();
 
     /* ── Actions (replaces on* handlers, for CSP) ── */
     if (window.Actions) {

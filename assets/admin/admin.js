@@ -1583,11 +1583,10 @@ const SessionWatch = {
 
   async _check() {
     try {
-      const res  = await fetch('/api.php?action=me', { cache: 'no-cache' });
-      const data = await res.json();
+      const res = await fetch('/api.php?action=me', { cache: 'no-cache' });
       // Refresh this same page (instead of redirecting to /login) — the server gate in
-      // admin.php itself redirects the unauthorized/guest user to the right destination (public dashboard).
-      if (data.ok && data.logged_in === false) {
+      // admin.php itself redirects an unauthenticated/unauthorized user to the right destination.
+      if (res.status === 401) {
         location.reload();
       }
     } catch { /* silent — a temporary network error, re-checked on the next poll */ }

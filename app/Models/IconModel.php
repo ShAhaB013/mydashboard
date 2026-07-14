@@ -25,10 +25,7 @@ class IconModel
     {
         $icons       = $this->all();
         $icons[$key] = $svgPath;
-        $ok = $this->db->save($icons);
-        // Assets are carried inside the guest bootstrap body — its cache must be invalidated
-        MicroCache::forget('boot-guest');
-        return $ok;
+        return $this->db->save($icons);
     }
 
     /** Deletes an icon */
@@ -36,9 +33,7 @@ class IconModel
     {
         $icons = $this->all();
         unset($icons[$key]);
-        $ok = $this->db->save($icons);
-        MicroCache::forget('boot-guest');
-        return $ok;
+        return $this->db->save($icons);
     }
 
     /** Checks whether an icon is protected */

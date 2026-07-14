@@ -23,8 +23,9 @@ try {
     // Every POST request from a logged-in user requires a valid X-CSRF-Token header.
     // This "default-deny for POST" model, instead of a manual allowlist, guarantees
     // that every new state-changing action is automatically protected too. Exceptions:
-    //   • login: no session/token exists yet (protected by rate-limiting instead).
-    //   • guest (no session): nothing to forge; handlers return 401 themselves.
+    //   • login/forgot_password/etc.: no session/token exists yet (protected by
+    //     rate-limiting instead); the corresponding handlers require no prior auth.
+    //   • no session at all: nothing to forge; handlers return 401 themselves.
     // Read-only endpoints (bootstrap/tools/notifications/…) are called via GET and
     // never enter this condition at all.
     $action = trim($_GET['action'] ?? '');
