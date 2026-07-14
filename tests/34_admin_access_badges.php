@@ -27,15 +27,21 @@ Assert::test('set_access → tool_access/category_access دقیقا با درخ�
 
     $toolRows = DB::run('SELECT tool_id FROM tool_access WHERE user_id=:id', [':id' => $uid])->fetchAll();
     Assert::eq(2, count($toolRows), 'باید دقیقا ۲ ردیف tool_access وجود داشته باشد');
-    $badgeRows1 = DB::run('SELECT badge FROM category_access WHERE user_id=:id', [':id' => $uid])->fetchAll();
-    Assert::eq(1, count($badgeRows1), 'badge ناموجود باید بی‌صدا فیلتر شود؛ فقط badge واقعی ذخیره می‌شود (whitelist از tools.badge)');
+    $badgeRows1 = DB::run(
+        'SELECT c.name AS badge FROM category_access ca JOIN categories c ON c.id=ca.category_id WHERE ca.user_id=:id',
+        [':id' => $uid]
+    )->fetchAll();
+    Assert::eq(1, count($badgeRows1), 'badge ناموجود باید بی‌صدا فیلتر شود؛ فقط badge واقعی ذخیره می‌شود (whitelist از دسته‌های متصل به ابزار)');
 
     // second call with a subset — the extra rows must be removed (no orphans)
     $res2 = $http->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [$tool1], 'badges' => [$realBadge]]);
     Assert::jsonOk($res2, 'set_access دوم باید موفق باشد');
     $toolRows2 = DB::run('SELECT tool_id FROM tool_access WHERE user_id=:id', [':id' => $uid])->fetchAll();
     Assert::eq(1, count($toolRows2), 'بعد از کاهش لیست، فقط ۱ ردیف باید باقی بماند (بدون ردیف یتیم)');
-    $badgeRows2 = DB::run('SELECT badge FROM category_access WHERE user_id=:id', [':id' => $uid])->fetchAll();
+    $badgeRows2 = DB::run(
+        'SELECT c.name AS badge FROM category_access ca JOIN categories c ON c.id=ca.category_id WHERE ca.user_id=:id',
+        [':id' => $uid]
+    )->fetchAll();
     Assert::eq(1, count($badgeRows2), 'category_access هم باید دقیقا با درخواست جدید مطابقت داشته باشد');
 
     DB::run('DELETE FROM tools WHERE id IN (:a,:b)', [':a' => $tool1, ':b' => $tool2]);

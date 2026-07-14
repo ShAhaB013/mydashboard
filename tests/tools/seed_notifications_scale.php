@@ -42,8 +42,9 @@ $batchSize = 1000;
 
 echo "ساخت کاربر synthetic و دسترسی badge...\n";
 $scaleUserId = Fixtures::ensureFixedAccount(SCALE_USER, 'ZzTest!Scale2026!', 'user', 1);
+$badgeCategoryId = (new CategoryModel())->findOrCreateByName(BADGE);
 DB::run('DELETE FROM category_access WHERE user_id = :id', [':id' => $scaleUserId]);
-DB::run('INSERT INTO category_access (user_id, badge) VALUES (:uid, :b)', [':uid' => $scaleUserId, ':b' => BADGE]);
+DB::run('INSERT INTO category_access (user_id, category_id) VALUES (:uid, :cid)', [':uid' => $scaleUserId, ':cid' => $badgeCategoryId]);
 
 echo "درج {$total} اعلان مصنوعی در دسته‌های {$batchSize} تایی...\n";
 
@@ -97,11 +98,11 @@ foreach (array_chunk($badgeCandidateIds, 1000) as $chunk) {
     $rows = [];
     $params = [];
     foreach ($chunk as $i => $id) {
-        $rows[] = "(:id{$i}, :b{$i})";
-        $params[":id{$i}"] = $id;
-        $params[":b{$i}"]  = BADGE;
+        $rows[] = "(:id{$i}, :cid{$i})";
+        $params[":id{$i}"]  = $id;
+        $params[":cid{$i}"] = $badgeCategoryId;
     }
-    DB::run('INSERT IGNORE INTO notification_badges (notification_id, badge) VALUES ' . implode(',', $rows), $params);
+    DB::run('INSERT IGNORE INTO notification_badges (notification_id, category_id) VALUES ' . implode(',', $rows), $params);
 }
 
 echo "درج notification_reads برای " . count($readCandidateIds) . " ردیف (کاربر synthetic)...\n";

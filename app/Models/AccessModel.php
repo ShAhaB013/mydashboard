@@ -30,7 +30,11 @@ class AccessModel
     {
         return array_column(
             DB::run(
-                'SELECT badge FROM category_access WHERE user_id = :uid',
+                'SELECT c.name AS badge
+                 FROM category_access ca
+                 JOIN categories c ON c.id = ca.category_id
+                 WHERE ca.user_id = :uid
+                 ORDER BY c.name ASC',
                 [':uid' => $userId]
             )->fetchAll(),
             'badge'
@@ -77,19 +81,24 @@ class AccessModel
                 );
             }
 
-            // Insert group access to badges (whitelisted, a single multi-row INSERT)
-            $validBadges = $this->getAvailableBadges();
-            $badges      = array_values(array_filter($badges, fn ($b) => in_array($b, $validBadges, true)));
-            if (!empty($badges)) {
+            // Insert group access to categories (whitelisted, a single multi-row INSERT)
+            $categoryModel = new CategoryModel();
+            $categoryIds   = [];
+            foreach ($badges as $b) {
+                $categoryId = $categoryModel->findIdByName((string) $b);
+                if ($categoryId !== null) $categoryIds[] = $categoryId;
+            }
+            $categoryIds = array_values(array_unique($categoryIds));
+            if (!empty($categoryIds)) {
                 $placeholders = [];
                 $params       = [];
-                foreach ($badges as $i => $badge) {
-                    $placeholders[] = "(:uid{$i}, :badge{$i})";
-                    $params[":uid{$i}"]   = $userId;
-                    $params[":badge{$i}"] = $badge;
+                foreach ($categoryIds as $i => $categoryId) {
+                    $placeholders[] = "(:uid{$i}, :cid{$i})";
+                    $params[":uid{$i}"] = $userId;
+                    $params[":cid{$i}"] = $categoryId;
                 }
                 DB::run(
-                    'INSERT IGNORE INTO category_access (user_id, badge) VALUES ' . implode(', ', $placeholders),
+                    'INSERT IGNORE INTO category_access (user_id, category_id) VALUES ' . implode(', ', $placeholders),
                     $params
                 );
             }
@@ -101,18 +110,5 @@ class AccessModel
             $pdo->rollBack();
             return false;
         }
-    }
-
-    // ── Utility ─────────────────────────────────────────────
-
-    /** List of badges that exist in the system (from the tools table) */
-    public function getAvailableBadges(): array
-    {
-        return array_column(
-            DB::run(
-                "SELECT DISTINCT badge FROM tools WHERE badge != '' ORDER BY badge ASC"
-            )->fetchAll(),
-            'badge'
-        );
     }
 }

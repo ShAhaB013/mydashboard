@@ -56,6 +56,6 @@ class AccessController
 
     public function listBadges(): void
     {
-        Response::ok(['badges' => $this->model->getAvailableBadges()]);
+        Response::ok(['badges' => (new CategoryModel())->namesInUseByTools()]);
     }
 }

@@ -9,20 +9,14 @@ class ToolModel
 {
     // ── Public queries ──────────────────────────────────────
 
-    public function allPublic(): array
-    {
-        return DB::run(
-            'SELECT * FROM tools WHERE is_public = 1 ORDER BY sort_order ASC'
-        )->fetchAll();
-    }
-
     public function allForUser(int $userId): array
     {
         return DB::run(
-            'SELECT DISTINCT t.*
+            'SELECT DISTINCT t.*, c.name AS badge
              FROM tools t
+             LEFT JOIN categories c ON c.id = t.category_id
              LEFT JOIN tool_access ta ON ta.tool_id = t.id AND ta.user_id = :uid
-             LEFT JOIN category_access ca ON ca.badge = t.badge AND ca.user_id = :uid2
+             LEFT JOIN category_access ca ON ca.category_id = t.category_id AND ca.user_id = :uid2
              WHERE
                  t.is_public = 1
                  OR ta.user_id IS NOT NULL
@@ -36,7 +30,10 @@ class ToolModel
     public function all(): array
     {
         return DB::run(
-            'SELECT * FROM tools ORDER BY sort_order ASC'
+            'SELECT t.*, c.name AS badge
+             FROM tools t
+             LEFT JOIN categories c ON c.id = t.category_id
+             ORDER BY t.sort_order ASC'
         )->fetchAll();
     }
 
@@ -54,11 +51,13 @@ class ToolModel
         $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
 
         return DB::run(
-            'SELECT * FROM tools
+            'SELECT t.*, c.name AS badge
+             FROM tools t
+             LEFT JOIN categories c ON c.id = t.category_id
              WHERE (:search = \'\'
-                    OR title LIKE :like OR description LIKE :like2
-                    OR path LIKE :like3 OR badge LIKE :like4)
-             ORDER BY sort_order ASC
+                    OR t.title LIKE :like OR t.description LIKE :like2
+                    OR t.path LIKE :like3 OR c.name LIKE :like4)
+             ORDER BY t.sort_order ASC
              ' . $limitSql,
             [':search' => $search, ':like' => $like, ':like2' => $like, ':like3' => $like, ':like4' => $like]
         )->fetchAll();
@@ -68,10 +67,11 @@ class ToolModel
     {
         $like = '%' . $search . '%';
         return (int) DB::run(
-            'SELECT COUNT(*) FROM tools
+            'SELECT COUNT(*) FROM tools t
+             LEFT JOIN categories c ON c.id = t.category_id
              WHERE (:search = \'\'
-                    OR title LIKE :like OR description LIKE :like2
-                    OR path LIKE :like3 OR badge LIKE :like4)',
+                    OR t.title LIKE :like OR t.description LIKE :like2
+                    OR t.path LIKE :like3 OR c.name LIKE :like4)',
             [':search' => $search, ':like' => $like, ':like2' => $like, ':like3' => $like, ':like4' => $like]
         )->fetchColumn();
     }
@@ -79,7 +79,10 @@ class ToolModel
     public function findById(int $id): ?array
     {
         $row = DB::run(
-            'SELECT * FROM tools WHERE id = :id',
+            'SELECT t.*, c.name AS badge
+             FROM tools t
+             LEFT JOIN categories c ON c.id = t.category_id
+             WHERE t.id = :id',
             [':id' => $id]
         )->fetch();
         return $row ?: null;
@@ -92,7 +95,10 @@ class ToolModel
     public function find(int $index): ?array
     {
         $row = DB::run(
-            'SELECT * FROM tools ORDER BY sort_order ASC LIMIT 1 OFFSET :off',
+            'SELECT t.*, c.name AS badge
+             FROM tools t
+             LEFT JOIN categories c ON c.id = t.category_id
+             ORDER BY t.sort_order ASC LIMIT 1 OFFSET :off',
             [':off' => $index]
         )->fetch();
         return $row ?: null;
@@ -100,31 +106,22 @@ class ToolModel
 
     // ── Write operations ────────────────────────────────────
 
-    /**
-     * Invalidates the guest response micro-cache entries that depend on the tools table —
-     * called at the end of every write operation so an admin's change reaches visitors
-     * immediately instead of waiting for the TTL to expire.
-     */
-    private static function flushGuestCache(): void
-    {
-        MicroCache::forget('tools-guest');
-        MicroCache::forget('boot-guest');
-    }
-
     public function create(array $data): bool
     {
         $maxOrder = (int) DB::run(
             'SELECT COALESCE(MAX(sort_order), -1) FROM tools'
         )->fetchColumn();
 
+        $categoryId = (new CategoryModel())->findOrCreateByName((string) ($data['badge'] ?? ''));
+
         DB::run(
-            'INSERT INTO tools (title, description, path, badge, icon_key, deco, accent_color, is_public, sort_order)
-             VALUES (:title, :description, :path, :badge, :icon_key, :deco, :accent_color, :is_public, :sort_order)',
+            'INSERT INTO tools (title, description, path, category_id, icon_key, deco, accent_color, is_public, sort_order)
+             VALUES (:title, :description, :path, :category_id, :icon_key, :deco, :accent_color, :is_public, :sort_order)',
             [
                 ':title'        => $data['title']       ?? '',
                 ':description'  => $data['description'] ?? '',
                 ':path'         => $data['path']        ?? '',
-                ':badge'        => $data['badge']       ?? '',
+                ':category_id'  => $categoryId,
                 ':icon_key'     => $data['iconKey']     ?? 'star',
                 ':deco'         => $data['deco']        ?? 'generic',
                 ':accent_color' => $data['accentColor'] ?? '',
@@ -132,7 +129,6 @@ class ToolModel
                 ':sort_order'   => $maxOrder + 1,
             ]
         );
-        self::flushGuestCache();
         return true;
     }
 
@@ -142,12 +138,14 @@ class ToolModel
         $tool = $this->find($index);
         if (!$tool) return false;
 
+        $categoryId = (new CategoryModel())->findOrCreateByName((string) ($data['badge'] ?? ''));
+
         DB::run(
             'UPDATE tools SET
                 title        = :title,
                 description  = :description,
                 path         = :path,
-                badge        = :badge,
+                category_id  = :category_id,
                 icon_key     = :icon_key,
                 deco         = :deco,
                 accent_color = :accent_color
@@ -156,26 +154,27 @@ class ToolModel
                 ':title'        => $data['title']       ?? '',
                 ':description'  => $data['description'] ?? '',
                 ':path'         => $data['path']        ?? '',
-                ':badge'        => $data['badge']       ?? '',
+                ':category_id'  => $categoryId,
                 ':icon_key'     => $data['iconKey']     ?? 'star',
                 ':deco'         => $data['deco']        ?? 'generic',
                 ':accent_color' => $data['accentColor'] ?? '',
                 ':id'           => $tool['id'],
             ]
         );
-        self::flushGuestCache();
         return true;
     }
 
     /** Edit a tool directly by ID */
     public function updateById(int $id, array $data): bool
     {
+        $categoryId = (new CategoryModel())->findOrCreateByName((string) ($data['badge'] ?? ''));
+
         DB::run(
             'UPDATE tools SET
                 title        = :title,
                 description  = :description,
                 path         = :path,
-                badge        = :badge,
+                category_id  = :category_id,
                 icon_key     = :icon_key,
                 deco         = :deco,
                 accent_color = :accent_color
@@ -184,14 +183,13 @@ class ToolModel
                 ':title'        => $data['title']       ?? '',
                 ':description'  => $data['description'] ?? '',
                 ':path'         => $data['path']        ?? '',
-                ':badge'        => $data['badge']       ?? '',
+                ':category_id'  => $categoryId,
                 ':icon_key'     => $data['iconKey']     ?? 'star',
                 ':deco'         => $data['deco']        ?? 'generic',
                 ':accent_color' => $data['accentColor'] ?? '',
                 ':id'           => $id,
             ]
         );
-        self::flushGuestCache();
         return true;
     }
 
@@ -202,7 +200,6 @@ class ToolModel
         if (!$tool) return false;
 
         DB::run('DELETE FROM tools WHERE id = :id', [':id' => $tool['id']]);
-        self::flushGuestCache();
         return true;
     }
 
@@ -212,7 +209,6 @@ class ToolModel
             'UPDATE tools SET is_public = 1 - is_public WHERE id = :id',
             [':id' => $id]
         );
-        self::flushGuestCache();
         return true;
     }
 
@@ -232,7 +228,6 @@ class ToolModel
             if (!$tool) return false;
             $stmt->execute([':ord' => $newPos, ':id' => $tool['id']]);
         }
-        self::flushGuestCache();
         return true;
     }
 
@@ -255,7 +250,6 @@ class ToolModel
         foreach ($ids as $pos => $id) {
             $stmt->execute([':o' => $pos, ':id' => $id]);
         }
-        self::flushGuestCache();
         return true;
     }
 
@@ -263,7 +257,6 @@ class ToolModel
     public function deleteById(int $id): bool
     {
         DB::run('DELETE FROM tools WHERE id = :id', [':id' => $id]);
-        self::flushGuestCache();
         return true;
     }
 
@@ -281,7 +274,6 @@ class ToolModel
                 $stmt->execute([':deco' => $t['deco'] ?? 'generic', ':id' => $t['id']]);
             }
         }
-        self::flushGuestCache();
         return true;
     }
 

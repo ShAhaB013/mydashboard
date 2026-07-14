@@ -56,7 +56,7 @@ if (!$isAdmin) {
         );
         exit;
     }
-    // Page: unauthorized/guest user → public dashboard (login is there)
+    // Page: unauthorized/unauthenticated user → dashboard (which itself gates on login)
     header('Location: /');
     exit;
 }
@@ -119,7 +119,7 @@ if ($isApi) {
 $page = $request->query('page');
 
 if ($page === 'notifications') {
-    $availableBadges   = $notificationModel->getAvailableBadges();
+    $availableBadges   = (new CategoryModel())->namesInUseByTools();
     $badgesJson        = json_encode($availableBadges, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
     $csrfToken         = $_SESSION['csrf_token'] ?? '';
     require __DIR__ . '/app/Views/notifications_view.php';

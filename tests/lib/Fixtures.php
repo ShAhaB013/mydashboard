@@ -11,19 +11,6 @@ class Fixtures
 {
     public const PREFIX = 'zztest_';
 
-    /**
-     * Flush the guest response micro-cache — since Fixtures writes directly to the DB
-     * (bypassing the models, which invalidate the cache themselves), this is called after
-     * every write so guest feed/tool tests don't see a stale version.
-     * (the test server's php -S runs on this same machine; sys_get_temp_dir is shared)
-     */
-    private static function flushGuestMicroCache(): void
-    {
-        MicroCache::forget('notif-guest');
-        MicroCache::forget('tools-guest');
-        MicroCache::forget('boot-guest');
-    }
-
     public static function uniq(string $suffix = ''): string
     {
         return self::PREFIX . bin2hex(random_bytes(4)) . ($suffix !== '' ? '_' . $suffix : '');
@@ -43,12 +30,15 @@ class Fixtures
             'sort_order'  => 9999,
         ], $overrides);
 
+        $categoryId = (new CategoryModel())->findOrCreateByName((string) $data['badge']);
+        unset($data['badge']);
+        $data['category_id'] = $categoryId;
+
         DB::run(
-            'INSERT INTO tools (title, description, path, badge, icon_key, deco, accent_color, is_public, sort_order)
-             VALUES (:title,:description,:path,:badge,:icon_key,:deco,:accent_color,:is_public,:sort_order)',
+            'INSERT INTO tools (title, description, path, category_id, icon_key, deco, accent_color, is_public, sort_order)
+             VALUES (:title,:description,:path,:category_id,:icon_key,:deco,:accent_color,:is_public,:sort_order)',
             $data
         );
-        self::flushGuestMicroCache();
         return (int) DB::get()->lastInsertId();
     }
 
@@ -98,7 +88,6 @@ class Fixtures
         $params  = array_intersect_key($data, array_flip($cols));
 
         DB::run("INSERT INTO notifications ({$colList}) VALUES ({$phList})", $params);
-        self::flushGuestMicroCache();
         return (int) DB::get()->lastInsertId();
     }
 
@@ -111,7 +100,6 @@ class Fixtures
             DB::run('DELETE FROM tools WHERE id = :id', [':id' => $row['id']]);
             $n++;
         }
-        self::flushGuestMicroCache();
         return $n;
     }
 
@@ -146,7 +134,6 @@ class Fixtures
             DB::run('DELETE FROM notifications WHERE id = :id', [':id' => $id]);
             $n++;
         }
-        self::flushGuestMicroCache();
         return $n;
     }
 

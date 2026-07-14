@@ -18,39 +18,27 @@ class NotificationModel
     // ── Visibility Queries ──────────────────────────────────
 
     /**
-     * Notifications visible to a guest visitor.
-     * All public ones (active + expired) are returned with an is_expired flag —
-     * the frontend removes read/expired ones from the list
-     * so the badge is preserved for unread/expired ones.
-     */
-    public function allForGuest(): array
-    {
-        $now = time();
-        return DB::run(
-            'SELECT n.*,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
-             FROM notifications n
-             WHERE n.is_public = 1
-             ORDER BY n.created_at DESC
-             LIMIT ' . self::BELL_CAP,
-            [':now' => $now]
-        )->fetchAll();
-    }
-
-    /**
-     * Three-branch UNION subquery for the notifications "accessible" to a user
-     * (public ∪ target_all_users ∪ badge-matched) — instead of a three-table JOIN
-     * + OR condition that no index combination could optimize (index merge
-     * only works for OR on a single table), each branch is scanned with its own
-     * dedicated index (idx_pub_created / idx_target_created / badge join).
-     * UNION (not UNION ALL) itself removes duplicate rows between branches
-     * since the selected columns for a shared row are exactly identical.
+     * Four-branch UNION subquery for the notifications "accessible" to a user
+     * (public ∪ target_all_users ∪ category-access-matched ∪ tool-access-matched)
+     * — instead of a JOIN + OR condition that no index combination could optimize
+     * (index merge only works for OR on a single table), each branch is scanned
+     * with its own dedicated index (idx_pub_created / idx_target_created / the
+     * category/tool access joins). UNION (not UNION ALL) itself removes duplicate
+     * rows between branches since the selected columns for a shared row are
+     * exactly identical.
+     *
+     * The 4th branch (tool_access) mirrors ToolModel::allForUser(), which already
+     * treats direct access to one specific tool as equivalent to category access
+     * for card visibility — a user who can see a categorized tool via tool_access
+     * alone (no category_access row) should also see notifications targeted at
+     * that tool's category.
      *
      * @param string $cols selected columns (n.* or just the needed subset)
-     * @param string $uidParam PDO parameter name for user_id (must be unique across calls)
+     * @param string $uidParam PDO parameter name for user_id, category_access branch (must be unique across calls)
+     * @param string $uidParam2 PDO parameter name for user_id, tool_access branch (must be unique across calls)
      * @param int|null $limitPerBranch if set, each branch gets its own LIMIT (the bell's limited feed)
      */
-    private function accessibleUnionSql(string $cols, string $uidParam, ?int $limitPerBranch = null): string
+    private function accessibleUnionSql(string $cols, string $uidParam, string $uidParam2, ?int $limitPerBranch = null): string
     {
         $tail = $limitPerBranch !== null
             ? ' ORDER BY n.created_at DESC, n.id DESC LIMIT ' . $limitPerBranch
@@ -61,7 +49,13 @@ class NotificationModel
                  UNION
                  (SELECT {$cols} FROM notifications n
                     JOIN notification_badges nb ON nb.notification_id = n.id
-                    JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :{$uidParam}
+                    JOIN category_access     ca ON ca.category_id = nb.category_id AND ca.user_id = :{$uidParam}
+                  {$tail})
+                 UNION
+                 (SELECT {$cols} FROM notifications n
+                    JOIN notification_badges nb ON nb.notification_id = n.id
+                    JOIN tools        t  ON t.category_id = nb.category_id
+                    JOIN tool_access  ta ON ta.tool_id = t.id AND ta.user_id = :{$uidParam2}
                   {$tail})";
     }
 
@@ -77,7 +71,7 @@ class NotificationModel
     public function allActiveForUser(int $userId): array
     {
         $now   = time();
-        $union = $this->accessibleUnionSql('n.*', 'uid1', self::BELL_CAP);
+        $union = $this->accessibleUnionSql('n.*', 'uid1', 'uid3', self::BELL_CAP);
         return DB::run(
             "SELECT u.*,
                     CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read,
@@ -91,18 +85,7 @@ class NotificationModel
              )
              ORDER BY is_read ASC, u.created_at DESC, u.id DESC
              LIMIT " . self::BELL_CAP,
-            [':uid1' => $userId, ':uid2' => $userId, ':now' => $now, ':now2' => $now]
-        )->fetchAll();
-    }
-
-    /**
-     * Lightweight version (id/created_at only) of the guest feed — for a cheap ETag
-     * computation before running the full query + serialize (only needed when something actually changed).
-     */
-    public function guestFingerprint(): array
-    {
-        return DB::run(
-            'SELECT id, created_at FROM notifications WHERE is_public = 1 ORDER BY created_at DESC LIMIT ' . self::BELL_CAP
+            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now, ':now2' => $now]
         )->fetchAll();
     }
 
@@ -116,7 +99,7 @@ class NotificationModel
     public function activeUserFingerprint(int $userId): array
     {
         $now   = time();
-        $union = $this->accessibleUnionSql('n.id, n.created_at, n.updated_at, n.expires_at', 'uid1', self::BELL_CAP);
+        $union = $this->accessibleUnionSql('n.id, n.created_at, n.updated_at, n.expires_at', 'uid1', 'uid3', self::BELL_CAP);
         return DB::run(
             "SELECT u.id, u.updated_at,
                     CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read
@@ -128,7 +111,7 @@ class NotificationModel
              )
              ORDER BY is_read ASC, u.created_at DESC, u.id DESC
              LIMIT " . self::BELL_CAP,
-            [':uid1' => $userId, ':uid2' => $userId, ':now' => $now]
+            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now]
         )->fetchAll();
     }
 
@@ -208,46 +191,6 @@ class NotificationModel
     }
 
     /**
-     * Guest history with keyset pagination (adjacent Prev/Next arrows — fast at any
-     * depth, unlike historyForGuest, which uses traditional OFFSET and is for "go to page N").
-     * @param array{created_at:string,id:int}|null $cursor
-     * @param string $dir 'next' (older) or 'prev' (newer)
-     * @return array may have up to perPage+1 rows (the extra row signals "there's a next/prev page"; the caller strips it)
-     */
-    public function historyForGuestKeyset(?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
-    {
-        $perPage = max(1, min(100, $perPage));
-        $cap     = $perPage + 1;
-        $now     = time();
-        $desc    = $dir !== 'prev';
-
-        $params    = [':now' => $now];
-        $searchSql = $this->buildSearchClause($search, $params);
-        $filterSql = $this->buildHistoryFilters($filters, $params);
-
-        $cursorSql = '';
-        if ($cursor !== null) {
-            $cmp = $desc ? '<' : '>';
-            $params[':cc'] = $cursor['created_at'];
-            $params[':ci'] = $cursor['id'];
-            $cursorSql = " AND (n.created_at, n.id) {$cmp} (:cc, :ci)";
-        }
-        $order = $desc ? 'ORDER BY n.created_at DESC, n.id DESC' : 'ORDER BY n.created_at ASC, n.id ASC';
-
-        $rows = DB::run(
-            "SELECT n.*,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
-             FROM notifications n
-             WHERE n.is_public = 1{$cursorSql}{$searchSql}{$filterSql}
-             {$order}
-             LIMIT {$cap}",
-            $params
-        )->fetchAll();
-
-        return $desc ? $rows : array_reverse($rows);
-    }
-
-    /**
      * User history with keyset pagination — same per-branch-cap reasoning as historyForUser
      * (a row at position p in a sorted branch can only be in the global result if p<=cap),
      * with a cursor condition added to each branch.
@@ -259,23 +202,27 @@ class NotificationModel
         $now     = time();
         $desc    = $dir !== 'prev';
 
-        $params = [':uid1' => $userId, ':uid2' => $userId, ':now' => $now];
+        $params = [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
         $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
         $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
         $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
         $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
         $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
         $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
+        $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
+        $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
 
-        $c1 = $c2 = $c3 = '';
+        $c1 = $c2 = $c3 = $c4 = '';
         if ($cursor !== null) {
             $cmp = $desc ? '<' : '>';
             $params[':cc1'] = $cursor['created_at']; $params[':ci1'] = $cursor['id'];
             $params[':cc2'] = $cursor['created_at']; $params[':ci2'] = $cursor['id'];
             $params[':cc3'] = $cursor['created_at']; $params[':ci3'] = $cursor['id'];
+            $params[':cc4'] = $cursor['created_at']; $params[':ci4'] = $cursor['id'];
             $c1 = " AND (n.created_at, n.id) {$cmp} (:cc1, :ci1)";
             $c2 = " AND (n.created_at, n.id) {$cmp} (:cc2, :ci2)";
             $c3 = " AND (n.created_at, n.id) {$cmp} (:cc3, :ci3)";
+            $c4 = " AND (n.created_at, n.id) {$cmp} (:cc4, :ci4)";
         }
 
         $order = $desc
@@ -288,8 +235,14 @@ class NotificationModel
                    UNION
                    (SELECT n.* FROM notifications n
                       JOIN notification_badges nb ON nb.notification_id = n.id
-                      JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid1
-                    WHERE 1=1{$c3}{$s3}{$f3} {$order})";
+                      JOIN category_access     ca ON ca.category_id = nb.category_id AND ca.user_id = :uid1
+                    WHERE 1=1{$c3}{$s3}{$f3} {$order})
+                   UNION
+                   (SELECT n.* FROM notifications n
+                      JOIN notification_badges nb ON nb.notification_id = n.id
+                      JOIN tools        t  ON t.category_id = nb.category_id
+                      JOIN tool_access  ta ON ta.tool_id = t.id AND ta.user_id = :uid3
+                    WHERE 1=1{$c4}{$s4}{$f4} {$order})";
 
         $outerOrder = $desc ? 'ORDER BY u.created_at DESC, u.id DESC' : 'ORDER BY u.created_at ASC, u.id ASC';
 
@@ -345,51 +298,6 @@ class NotificationModel
     }
 
     /**
-     * Public notification history for a guest — with pagination and search.
-     * Also includes expired notifications (full history).
-     */
-    public function historyForGuest(int $page, int $perPage, string $search = '', array $filters = []): array
-    {
-        $page    = max(1, $page);
-        $perPage = max(1, min(100, $perPage));
-        $offset  = ($page - 1) * $perPage;
-        $now     = time();
-
-        $params    = [':now' => $now];
-        $searchSql = $this->buildSearchClause($search, $params);
-        $filterSql = $this->buildHistoryFilters($filters, $params);
-
-        // LIMIT/OFFSET are validated integers, injected directly into the query
-        $limitSql = sprintf('LIMIT %d OFFSET %d', $perPage, $offset);
-
-        return DB::run(
-            'SELECT n.*,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
-             FROM notifications n
-             WHERE n.is_public = 1
-             ' . $searchSql . $filterSql . '
-             ORDER BY n.created_at DESC, n.id DESC
-             ' . $limitSql,
-            $params
-        )->fetchAll();
-    }
-
-    public function historyCountForGuest(string $search = '', array $filters = []): int
-    {
-        $params    = [];
-        $searchSql = $this->buildSearchClause($search, $params);
-        $filterSql = $this->buildHistoryFilters($filters, $params);
-
-        return (int) DB::run(
-            'SELECT COUNT(*)
-             FROM notifications n
-             WHERE n.is_public = 1
-             ' . $searchSql . $filterSql,
-            $params
-        )->fetchColumn();
-    }
-
-    /**
      * Paginated history for a logged-in user.
      *
      * Unlike allActiveForUser (which is the bell's limited feed), this method must be able to
@@ -411,13 +319,15 @@ class NotificationModel
         $now     = time();
         $cap     = $offset + $perPage;
 
-        $params = [':uid1' => $userId, ':uid2' => $userId, ':now' => $now];
+        $params = [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
         $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
         $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
         $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
         $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
         $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
         $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
+        $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
+        $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
         $order = "ORDER BY n.created_at DESC, n.id DESC LIMIT {$cap}";
 
         $union = "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$s1}{$f1} {$order})
@@ -426,8 +336,14 @@ class NotificationModel
                    UNION
                    (SELECT n.* FROM notifications n
                       JOIN notification_badges nb ON nb.notification_id = n.id
-                      JOIN category_access     ca ON ca.badge = nb.badge AND ca.user_id = :uid1
-                    WHERE 1=1{$s3}{$f3} {$order})";
+                      JOIN category_access     ca ON ca.category_id = nb.category_id AND ca.user_id = :uid1
+                    WHERE 1=1{$s3}{$f3} {$order})
+                   UNION
+                   (SELECT n.* FROM notifications n
+                      JOIN notification_badges nb ON nb.notification_id = n.id
+                      JOIN tools        t  ON t.category_id = nb.category_id
+                      JOIN tool_access  ta ON ta.tool_id = t.id AND ta.user_id = :uid3
+                    WHERE 1=1{$s4}{$f4} {$order})";
 
         return DB::run(
             "SELECT u.*,
@@ -445,8 +361,8 @@ class NotificationModel
     public function historyCountForUser(int $userId, string $search = '', array $filters = []): int
     {
         // Only the columns needed for counting/filtering (not the full n.*) — a lighter COUNT
-        $union  = $this->accessibleUnionSql('n.id, n.title, n.body, n.created_at, n.expires_at', 'uid1');
-        $params = [':uid1' => $userId];
+        $union  = $this->accessibleUnionSql('n.id, n.title, n.body, n.created_at, n.expires_at', 'uid1', 'uid2');
+        $params = [':uid1' => $userId, ':uid2' => $userId];
         $searchSql = $this->buildSearchClause($search, $params, 'u');
         $filterSql = $this->buildHistoryFilters($filters, $params, 'u');
 
@@ -467,14 +383,14 @@ class NotificationModel
      */
     public function unreadCount(int $userId): int
     {
-        $union = $this->accessibleUnionSql('n.id, n.updated_at', 'uid1');
+        $union = $this->accessibleUnionSql('n.id, n.updated_at', 'uid1', 'uid3');
         return (int) DB::run(
             "SELECT COUNT(*) FROM (
                 SELECT u.id FROM ({$union}) u
                 LEFT JOIN notification_reads r ON r.notification_id = u.id AND r.user_id = :uid2
                 WHERE r.notification_id IS NULL OR r.read_at < u.updated_at
              ) t",
-            [':uid1' => $userId, ':uid2' => $userId]
+            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]
         )->fetchColumn();
     }
 
@@ -496,12 +412,12 @@ class NotificationModel
      */
     public function markAllRead(int $userId): void
     {
-        $union = $this->accessibleUnionSql('n.id', 'uid2');
+        $union = $this->accessibleUnionSql('n.id', 'uid2', 'uid3');
         DB::run(
             "INSERT INTO notification_reads (user_id, notification_id)
              SELECT :uid1, u.id FROM ({$union}) u
              ON DUPLICATE KEY UPDATE read_at = CURRENT_TIMESTAMP",
-            [':uid1' => $userId, ':uid2' => $userId]
+            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]
         );
     }
 
@@ -558,10 +474,11 @@ class NotificationModel
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $rows = DB::run(
-            "SELECT notification_id, badge
-             FROM notification_badges
-             WHERE notification_id IN ($placeholders)
-             ORDER BY badge ASC",
+            "SELECT nb.notification_id, c.name AS badge
+             FROM notification_badges nb
+             JOIN categories c ON c.id = nb.category_id
+             WHERE nb.notification_id IN ($placeholders)
+             ORDER BY c.name ASC",
             $ids
         )->fetchAll();
 
@@ -585,7 +502,11 @@ class NotificationModel
     {
         return array_column(
             DB::run(
-                'SELECT badge FROM notification_badges WHERE notification_id = :nid ORDER BY badge ASC',
+                'SELECT c.name AS badge
+                 FROM notification_badges nb
+                 JOIN categories c ON c.id = nb.category_id
+                 WHERE nb.notification_id = :nid
+                 ORDER BY c.name ASC',
                 [':nid' => $notificationId]
             )->fetchAll(),
             'badge'
@@ -593,16 +514,6 @@ class NotificationModel
     }
 
     // ── Admin Write Operations ──────────────────────────────
-
-    /**
-     * Invalidate the guest feed micro-cache — called at the end of every admin write
-     * so a new/edited notification reaches guests immediately (without waiting for the TTL).
-     * (Users' read-state changes have no effect on the guest feed and don't need invalidation)
-     */
-    private static function flushGuestCache(): void
-    {
-        MicroCache::forget('notif-guest');
-    }
 
     /** Create a new notification — returns the created ID */
     public function create(array $data): int
@@ -627,7 +538,6 @@ class NotificationModel
             $this->setBadges($id, $data['badges']);
         }
 
-        self::flushGuestCache();
         return $id;
     }
 
@@ -677,7 +587,6 @@ class NotificationModel
 
         $this->setBadges($id, $data['badges'] ?? []);
 
-        self::flushGuestCache();
         return true;
     }
 
@@ -685,7 +594,6 @@ class NotificationModel
     public function delete(int $id): bool
     {
         DB::run('DELETE FROM notifications WHERE id = :id', [':id' => $id]);
-        self::flushGuestCache();
         return true;
     }
 
@@ -696,7 +604,6 @@ class NotificationModel
             'UPDATE notifications SET image_path = NULL, thumbnail_path = NULL WHERE id = :id',
             [':id' => $id]
         );
-        self::flushGuestCache();
     }
 
     // ── Badge Management ────────────────────────────────────
@@ -714,28 +621,17 @@ class NotificationModel
         }
 
         $stmt = DB::get()->prepare(
-            'INSERT IGNORE INTO notification_badges (notification_id, badge) VALUES (:nid, :badge)'
+            'INSERT IGNORE INTO notification_badges (notification_id, category_id) VALUES (:nid, :category_id)'
         );
 
-        // Only record valid badges (existing in tools)
-        $validBadges = $this->getAvailableBadges();
+        // Only record valid badges (existing in tools) — resolved to category_id
+        $categoryModel = new CategoryModel();
         foreach ($badges as $badge) {
-            $badge = (string) $badge;
-            if ($badge !== '' && in_array($badge, $validBadges, true)) {
-                $stmt->execute([':nid' => $notificationId, ':badge' => $badge]);
+            $categoryId = $categoryModel->findIdByName((string) $badge);
+            if ($categoryId !== null) {
+                $stmt->execute([':nid' => $notificationId, ':category_id' => $categoryId]);
             }
         }
-    }
-
-    /** List of badges available in the system (from the tools table) */
-    public function getAvailableBadges(): array
-    {
-        return array_column(
-            DB::run(
-                "SELECT DISTINCT badge FROM tools WHERE badge != '' ORDER BY badge ASC"
-            )->fetchAll(),
-            'badge'
-        );
     }
 
     // ── Helpers ─────────────────────────────────────────────
