@@ -57,6 +57,7 @@ class Router
         'delete_notification'         => [NotificationController::class, 'delete'],
         'delete_notification_image'   => [NotificationController::class, 'deleteImage'],
         'upload_notification_image'   => [NotificationController::class, 'uploadImage'],
+        'notification_readers'        => [NotificationController::class, 'readers'],
 
         // ── email/SMTP settings ──────────────────────────────
         'save_settings' => [SettingsController::class, 'save'],

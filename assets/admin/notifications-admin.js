@@ -421,6 +421,10 @@ const NM = {
     this._loading = true;
     this._renderSkeleton();
 
+    // cursor nav always moves exactly one page, so the page number can be
+    // tracked locally for display (goto-field / active state) without an OFFSET query
+    const nextPage = this._page ? this._page + (dir === 'next' ? 1 : -1) : null;
+
     const res = await apiCall('list_notifications', {
       cursor,
       dir,
@@ -438,7 +442,7 @@ const NM = {
     const pg = res.pagination || {};
     this._total       = pg.total       ?? this._notifications.length;
     this._pageCount    = pg.page_count  ?? 1;
-    this._page         = null; // the exact page number is unknown on the cursor path
+    this._page         = nextPage;
     this._nextCursor   = pg.next_cursor ?? null;
     this._prevCursor    = pg.prev_cursor ?? null;
 
@@ -483,7 +487,7 @@ const NM = {
     const info = document.getElementById('notifPageInfo');
     const total     = this._total;
     const pageCount = this._pageCount;
-    const cur       = this._page; // may be unknown (null) after loadCursor()
+    const cur       = this._page;
     const shown     = this._notifications.length;
 
     if (total === 0) {
@@ -681,6 +685,7 @@ const NM = {
     } else {
       pills.push(`<span class="pill pill-noexp" title="بدون تاریخ انقضا">بدون انقضا</span>`);
     }
+    pills.push(`<span class="pill pill-reads" title="تعداد کاربرانی که این اعلان را خوانده‌اند">خوانده‌شده: ${(n.read_count || 0).toLocaleString('en-GB')}</span>`);
 
     row.innerHTML = `
       <div class="notif-row-num" aria-hidden="true">${rowNum.toLocaleString('en-GB')}</div>
@@ -692,6 +697,12 @@ const NM = {
         </div>
       </div>
       <div class="notif-row-actions">
+        <button class="btn btn-secondary btn-icon btn-sm" title="مشاهده‌کنندگان" data-act="nmOpenReaders" data-id="${n.id}" data-title="${this._escAttr(n.title)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
         <button class="btn btn-secondary btn-icon btn-sm" title="ویرایش" data-act="nmOpenEdit" data-id="${n.id}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -1217,6 +1228,119 @@ const NM = {
     else        { Toast.show(res.msg || 'خطا در حذف', 'error'); }
   },
 
+  // ── Readers ("who read this") ──────────────────────────
+  // Same loading-skeleton markup as the admin panel's SKELETON_TABLE_ROW (admin.js),
+  // reproduced here since this page doesn't load admin.js/admin.css.
+  _SKELETON_TABLE_ROW:
+    '<div class="sk-table-row" aria-hidden="true">'
+    + '<div class="sk sk-avatar"></div>'
+    + '<div class="sk-lines"><div class="sk sk-line sk-line--title"></div><div class="sk sk-line sk-line--sub"></div></div>'
+    + '</div>',
+
+  _readersId:      0,
+  _readersOffset:  0,
+  _readersLoading: false,
+  _readersHasMore: false,
+  _readersReqSeq:  0,   // bumped on each open/close so a stale in-flight fetch can't write into a reused modal
+  _readersScrollHandler: null,
+
+  async openReaders(id, title) {
+    document.getElementById('notifReadersTitle').textContent = `مشاهده‌کنندگان «${this._esc(title)}»`;
+    document.getElementById('notifReadersCount').textContent = '';
+    document.getElementById('notifReadersList').innerHTML    = this._SKELETON_TABLE_ROW.repeat(3);
+    this._readersId      = id;
+    this._readersOffset  = 0;
+    this._readersHasMore = false;
+    this._readersReqSeq++;
+    this._openModal('notifReadersModal');
+
+    // Infinite scroll: fetch the next page automatically once the user scrolls
+    // near the bottom, instead of a manual "load more" button.
+    const list = document.getElementById('notifReadersList');
+    if (this._readersScrollHandler) list.removeEventListener('scroll', this._readersScrollHandler);
+    this._readersScrollHandler = () => {
+      if (!this._readersHasMore || this._readersLoading) return;
+      if (list.scrollTop + list.clientHeight >= list.scrollHeight - 80) {
+        this._loadReadersPage(false);
+      }
+    };
+    list.addEventListener('scroll', this._readersScrollHandler);
+
+    await this._loadReadersPage(true);
+  },
+
+  async _loadReadersPage(isFirstPage) {
+    if (this._readersLoading) return;
+    this._readersLoading = true;
+    const reqSeq = this._readersReqSeq;
+
+    const list = document.getElementById('notifReadersList');
+    let sentinel = null;
+    if (!isFirstPage) {
+      sentinel = document.createElement('div');
+      sentinel.innerHTML = this._SKELETON_TABLE_ROW;
+      list.appendChild(sentinel.firstElementChild);
+    }
+
+    const res = await apiCall('notification_readers', { id: this._readersId, offset: this._readersOffset });
+    if (reqSeq !== this._readersReqSeq) return; // the modal was closed/reopened while this was in flight
+
+    const lastSkeleton = list.querySelector('.sk-table-row:last-child');
+    if (!isFirstPage && lastSkeleton) lastSkeleton.remove();
+
+    if (!res.ok) {
+      list.innerHTML = `<div class="readers-empty">${this._esc(res.msg || 'خطا در دریافت اطلاعات')}</div>`;
+      this._readersLoading = false;
+      return;
+    }
+
+    const readers  = res.readers || [];
+    const rowsHtml = readers.map(r => this._readerRow(r)).join('');
+
+    if (isFirstPage) {
+      document.getElementById('notifReadersCount').textContent =
+        res.total ? `${res.total.toLocaleString('en-GB')} نفر این اعلان را خوانده‌اند` : 'هنوز هیچ کاربری این اعلان را نخوانده است';
+      list.innerHTML = rowsHtml;
+    } else {
+      list.insertAdjacentHTML('beforeend', rowsHtml);
+    }
+
+    this._readersOffset += readers.length;
+    this._readersHasMore = !!res.has_more;
+    this._readersLoading = false;
+  },
+
+  _readerRow(r) {
+    const when    = new Date(r.read_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+    const name    = (r.display_name || r.username || '؟').trim();
+    const initial = name.charAt(0).toUpperCase();
+    return `
+      <div class="blk-row">
+        <div class="blk-info">
+          <div class="reader-avatar" aria-hidden="true">${this._esc(initial)}</div>
+          <div class="blk-info-text">
+            <div class="blk-ip">${this._esc(r.display_name)}</div>
+            <div class="blk-meta">${this._esc(r.username)}</div>
+          </div>
+        </div>
+        <div class="blk-side">
+          <span class="pill pill-date">${when}</span>
+        </div>
+      </div>`;
+  },
+
+  closeReaders() {
+    this._closeModal('notifReadersModal');
+    this._readersReqSeq++; // invalidate any in-flight fetch
+    this._readersLoading = false;
+    const list = document.getElementById('notifReadersList');
+    if (this._readersScrollHandler) list.removeEventListener('scroll', this._readersScrollHandler);
+    // Clear the (possibly hundreds-of-rows-deep) list immediately instead of leaving it in the DOM
+    // during the close transition — with a masked, scrollable subtree that large, animating the
+    // modal's fade/scale-out while it's still fully rendered visibly stutters.
+    list.innerHTML = '';
+  },
+
   _openModal(id)  { document.getElementById(id).classList.add('open');    document.body.style.overflow = 'hidden'; },
   _closeModal(id) {
     document.getElementById(id).classList.remove('open');
@@ -1258,6 +1382,8 @@ if (window.Actions) {
     nmGoToInputKey:   (el, e) => NM.goToInputKey(e),
     nmOpenEdit:       (el) => NM.openEdit(parseInt(el.dataset.id, 10)),
     nmOpenDelete:     (el) => NM.openDelete(parseInt(el.dataset.id, 10), el.dataset.title),
+    nmOpenReaders:    (el) => NM.openReaders(parseInt(el.dataset.id, 10), el.dataset.title),
+    nmCloseReaders:   () => NM.closeReaders(),
   });
 }
 
@@ -1278,6 +1404,7 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
     if (e.target !== o) return;
     if (o.id === 'notifFormModal')    NM.closeForm();
     if (o.id === 'notifConfirmModal') NM.cancelConfirm();
+    if (o.id === 'notifReadersModal') NM.closeReaders();
   });
 });
 document.addEventListener('keydown', e => {
@@ -1287,6 +1414,7 @@ document.addEventListener('keydown', e => {
   const top = open[open.length - 1];   // last = topmost
   if (top.id === 'notifConfirmModal')   NM.cancelConfirm();
   else if (top.id === 'notifFormModal') NM.closeForm();
+  else if (top.id === 'notifReadersModal') NM.closeReaders();
 });
 
 // ── CustomSelect: upgrades native <select>s into theme-matching dropdowns ──

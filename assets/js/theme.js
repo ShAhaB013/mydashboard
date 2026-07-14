@@ -148,7 +148,7 @@
     + ' .pg-btn, .access-tool-label, .deco-opt, .nm-adv-toggle, .section-box-head,'
     + ' .notif-drop-view-all, .nd-view-all-link, .header-search-close, .clear-button,'
     + ' .nd-close-btn, .nd-close-action,'
-    + ' .login-forgot-link, .login-back-link, .forgot-back-top, .reg-back-btn,'
+    + ' .login-forgot-link, .forgot-back-top, .reg-back-btn,'
     + ' .reg-resend, .login-pass-toggle, .login-pass-gen, .profile-pass-toggle,'
     + ' .profile-link-btn, .tm-close,'
     + ' .tm-combo-toggle, .tm-combo-option, .toast-msg-close,'

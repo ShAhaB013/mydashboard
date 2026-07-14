@@ -351,6 +351,26 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="notifReadersModal" role="dialog" aria-modal="true" aria-labelledby="notifReadersTitle">
+  <div class="modal readers-modal">
+    <div class="modal-head">
+      <h3 id="notifReadersTitle">مشاهده‌کنندگان</h3>
+      <button class="modal-close" data-act="nmCloseReaders" aria-label="بستن">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body readers-modal-body">
+      <p class="readers-count" id="notifReadersCount"></p>
+      <div id="notifReadersList" class="readers-list"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" data-act="nmCloseReaders">بستن</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast (content built by JS) -->
 <div class="toast" id="toast" aria-live="assertive"></div>
 

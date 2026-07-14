@@ -68,10 +68,12 @@ class NotificationModel
      * to BELL_CAP) — access to records older than this window is provided by
      * the history page (/notifications, historyForUser), not here.
      */
-    public function allActiveForUser(int $userId): array
+    public function allActiveForUser(int $userId, bool $isAdmin = false): array
     {
         $now   = time();
-        $union = $this->accessibleUnionSql('n.*', 'uid1', 'uid3', self::BELL_CAP);
+        $union = $isAdmin
+            ? '(SELECT n.* FROM notifications n ORDER BY n.created_at DESC, n.id DESC LIMIT ' . self::BELL_CAP . ')'
+            : $this->accessibleUnionSql('n.*', 'uid1', 'uid3', self::BELL_CAP);
         return DB::run(
             "SELECT u.*,
                     CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read,
@@ -85,7 +87,9 @@ class NotificationModel
              )
              ORDER BY is_read ASC, u.created_at DESC, u.id DESC
              LIMIT " . self::BELL_CAP,
-            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now, ':now2' => $now]
+            $isAdmin
+                ? [':uid2' => $userId, ':now' => $now, ':now2' => $now]
+                : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now, ':now2' => $now]
         )->fetchAll();
     }
 
@@ -96,10 +100,12 @@ class NotificationModel
      * or the user's own read-state change) — unlike an approximate signature like
      * MAX(updated_at)+COUNT(*), which doesn't see read-state.
      */
-    public function activeUserFingerprint(int $userId): array
+    public function activeUserFingerprint(int $userId, bool $isAdmin = false): array
     {
         $now   = time();
-        $union = $this->accessibleUnionSql('n.id, n.created_at, n.updated_at, n.expires_at', 'uid1', 'uid3', self::BELL_CAP);
+        $union = $isAdmin
+            ? '(SELECT n.id, n.created_at, n.updated_at, n.expires_at FROM notifications n ORDER BY n.created_at DESC, n.id DESC LIMIT ' . self::BELL_CAP . ')'
+            : $this->accessibleUnionSql('n.id, n.created_at, n.updated_at, n.expires_at', 'uid1', 'uid3', self::BELL_CAP);
         return DB::run(
             "SELECT u.id, u.updated_at,
                     CASE WHEN r.notification_id IS NOT NULL AND r.read_at >= u.updated_at THEN 1 ELSE 0 END AS is_read
@@ -111,7 +117,9 @@ class NotificationModel
              )
              ORDER BY is_read ASC, u.created_at DESC, u.id DESC
              LIMIT " . self::BELL_CAP,
-            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now]
+            $isAdmin
+                ? [':uid2' => $userId, ':now' => $now]
+                : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now]
         )->fetchAll();
     }
 
@@ -195,41 +203,50 @@ class NotificationModel
      * (a row at position p in a sorted branch can only be in the global result if p<=cap),
      * with a cursor condition added to each branch.
      */
-    public function historyForUserKeyset(int $userId, ?array $cursor, string $dir, int $perPage, string $search = '', array $filters = []): array
+    public function historyForUserKeyset(int $userId, ?array $cursor, string $dir, int $perPage, string $search = '', array $filters = [], bool $isAdmin = false): array
     {
         $perPage = max(1, min(100, $perPage));
         $cap     = $perPage + 1;
         $now     = time();
         $desc    = $dir !== 'prev';
 
-        $params = [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
+        $params = $isAdmin
+            ? [':uid2' => $userId, ':now' => $now]
+            : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
         $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
         $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
-        $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
-        $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
-        $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
-        $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
-        $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
-        $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
+        $s2 = $s3 = $s4 = $f2 = $f3 = $f4 = '';
+        if (!$isAdmin) {
+            $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
+            $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
+            $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
+            $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
+            $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
+            $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
+        }
 
         $c1 = $c2 = $c3 = $c4 = '';
         if ($cursor !== null) {
             $cmp = $desc ? '<' : '>';
             $params[':cc1'] = $cursor['created_at']; $params[':ci1'] = $cursor['id'];
-            $params[':cc2'] = $cursor['created_at']; $params[':ci2'] = $cursor['id'];
-            $params[':cc3'] = $cursor['created_at']; $params[':ci3'] = $cursor['id'];
-            $params[':cc4'] = $cursor['created_at']; $params[':ci4'] = $cursor['id'];
             $c1 = " AND (n.created_at, n.id) {$cmp} (:cc1, :ci1)";
-            $c2 = " AND (n.created_at, n.id) {$cmp} (:cc2, :ci2)";
-            $c3 = " AND (n.created_at, n.id) {$cmp} (:cc3, :ci3)";
-            $c4 = " AND (n.created_at, n.id) {$cmp} (:cc4, :ci4)";
+            if (!$isAdmin) {
+                $params[':cc2'] = $cursor['created_at']; $params[':ci2'] = $cursor['id'];
+                $params[':cc3'] = $cursor['created_at']; $params[':ci3'] = $cursor['id'];
+                $params[':cc4'] = $cursor['created_at']; $params[':ci4'] = $cursor['id'];
+                $c2 = " AND (n.created_at, n.id) {$cmp} (:cc2, :ci2)";
+                $c3 = " AND (n.created_at, n.id) {$cmp} (:cc3, :ci3)";
+                $c4 = " AND (n.created_at, n.id) {$cmp} (:cc4, :ci4)";
+            }
         }
 
         $order = $desc
             ? "ORDER BY n.created_at DESC, n.id DESC LIMIT {$cap}"
             : "ORDER BY n.created_at ASC, n.id ASC LIMIT {$cap}";
 
-        $union = "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$c1}{$s1}{$f1} {$order})
+        $union = $isAdmin
+            ? "(SELECT n.* FROM notifications n WHERE 1=1{$c1}{$s1}{$f1} {$order})"
+            : "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$c1}{$s1}{$f1} {$order})
                    UNION
                    (SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$c2}{$s2}{$f2} {$order})
                    UNION
@@ -286,8 +303,11 @@ class NotificationModel
 
         $rows = DB::run(
             "SELECT n.*,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
+                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired,
+                    COALESCE(rc.c, 0) AS read_count
              FROM notifications n
+             LEFT JOIN (SELECT notification_id, COUNT(*) c FROM notification_reads GROUP BY notification_id) rc
+                    ON rc.notification_id = n.id
              WHERE 1=1{$cursorSql}{$searchSql}{$filterSql}
              {$order}
              LIMIT {$cap}",
@@ -311,7 +331,7 @@ class NotificationModel
      * pagination (very large page numbers) the cursor/keyset path (phase 3) is used instead,
      * which doesn't depend on this cap at all.
      */
-    public function historyForUser(int $userId, int $page, int $perPage, string $search = '', array $filters = []): array
+    public function historyForUser(int $userId, int $page, int $perPage, string $search = '', array $filters = [], bool $isAdmin = false): array
     {
         $page    = max(1, $page);
         $perPage = max(1, min(100, $perPage));
@@ -319,18 +339,25 @@ class NotificationModel
         $now     = time();
         $cap     = $offset + $perPage;
 
-        $params = [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
+        $params = $isAdmin
+            ? [':uid2' => $userId, ':now' => $now]
+            : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
         $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
         $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
-        $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
-        $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
-        $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
-        $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
-        $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
-        $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
+        $s2 = $s3 = $s4 = $f2 = $f3 = $f4 = '';
+        if (!$isAdmin) {
+            $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
+            $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
+            $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
+            $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
+            $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
+            $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
+        }
         $order = "ORDER BY n.created_at DESC, n.id DESC LIMIT {$cap}";
 
-        $union = "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$s1}{$f1} {$order})
+        $union = $isAdmin
+            ? "(SELECT n.* FROM notifications n WHERE 1=1{$s1}{$f1} {$order})"
+            : "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$s1}{$f1} {$order})
                    UNION
                    (SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$s2}{$f2} {$order})
                    UNION
@@ -358,11 +385,13 @@ class NotificationModel
         )->fetchAll();
     }
 
-    public function historyCountForUser(int $userId, string $search = '', array $filters = []): int
+    public function historyCountForUser(int $userId, string $search = '', array $filters = [], bool $isAdmin = false): int
     {
         // Only the columns needed for counting/filtering (not the full n.*) — a lighter COUNT
-        $union  = $this->accessibleUnionSql('n.id, n.title, n.body, n.created_at, n.expires_at', 'uid1', 'uid2');
-        $params = [':uid1' => $userId, ':uid2' => $userId];
+        $union  = $isAdmin
+            ? '(SELECT n.id, n.title, n.body, n.created_at, n.expires_at FROM notifications n)'
+            : $this->accessibleUnionSql('n.id, n.title, n.body, n.created_at, n.expires_at', 'uid1', 'uid2');
+        $params = $isAdmin ? [] : [':uid1' => $userId, ':uid2' => $userId];
         $searchSql = $this->buildSearchClause($search, $params, 'u');
         $filterSql = $this->buildHistoryFilters($filters, $params, 'u');
 
@@ -381,16 +410,20 @@ class NotificationModel
      * are still counted, so the badge stays until the user reads them,
      * even after expiry.
      */
-    public function unreadCount(int $userId): int
+    public function unreadCount(int $userId, bool $isAdmin = false): int
     {
-        $union = $this->accessibleUnionSql('n.id, n.updated_at', 'uid1', 'uid3');
+        $union = $isAdmin
+            ? '(SELECT n.id, n.updated_at FROM notifications n)'
+            : $this->accessibleUnionSql('n.id, n.updated_at', 'uid1', 'uid3');
         return (int) DB::run(
             "SELECT COUNT(*) FROM (
                 SELECT u.id FROM ({$union}) u
                 LEFT JOIN notification_reads r ON r.notification_id = u.id AND r.user_id = :uid2
                 WHERE r.notification_id IS NULL OR r.read_at < u.updated_at
              ) t",
-            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]
+            $isAdmin
+                ? [':uid2' => $userId]
+                : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]
         )->fetchColumn();
     }
 
@@ -410,14 +443,18 @@ class NotificationModel
      * No expiry condition: all accessible notifications (including expired ones)
      * are recorded as read so the badge drops fully to zero.
      */
-    public function markAllRead(int $userId): void
+    public function markAllRead(int $userId, bool $isAdmin = false): void
     {
-        $union = $this->accessibleUnionSql('n.id', 'uid2', 'uid3');
+        $union = $isAdmin
+            ? '(SELECT n.id FROM notifications n)'
+            : $this->accessibleUnionSql('n.id', 'uid2', 'uid3');
         DB::run(
             "INSERT INTO notification_reads (user_id, notification_id)
              SELECT :uid1, u.id FROM ({$union}) u
              ON DUPLICATE KEY UPDATE read_at = CURRENT_TIMESTAMP",
-            [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]
+            $isAdmin
+                ? [':uid1' => $userId]
+                : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]
         );
     }
 
@@ -438,8 +475,11 @@ class NotificationModel
 
         return DB::run(
             'SELECT n.*,
-                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired
+                    CASE WHEN n.expires_at > 0 AND n.expires_at <= :now THEN 1 ELSE 0 END AS is_expired,
+                    COALESCE(rc.c, 0) AS read_count
              FROM notifications n
+             LEFT JOIN (SELECT notification_id, COUNT(*) c FROM notification_reads GROUP BY notification_id) rc
+                    ON rc.notification_id = n.id
              WHERE 1=1
              ' . $searchSql . $filterSql . '
              ORDER BY n.created_at DESC, n.id DESC
@@ -511,6 +551,34 @@ class NotificationModel
             )->fetchAll(),
             'badge'
         );
+    }
+
+    /**
+     * Users who have read a given notification, most recent first — for the admin "read by" view.
+     * Paginated (limit/offset) so a widely-read notification doesn't load thousands of rows at once.
+     */
+    public function getReaders(int $notificationId, int $limit = 50, int $offset = 0): array
+    {
+        $limit  = max(1, min(200, $limit));
+        $offset = max(0, $offset);
+        return DB::run(
+            "SELECT u.id, u.username, u.display_name, r.read_at
+             FROM notification_reads r
+             JOIN users u ON u.id = r.user_id
+             WHERE r.notification_id = :nid
+             ORDER BY r.read_at DESC
+             LIMIT {$limit} OFFSET {$offset}",
+            [':nid' => $notificationId]
+        )->fetchAll();
+    }
+
+    /** Total number of users who have read a given notification (for the "N نفر" summary + load-more) */
+    public function getReaderCount(int $notificationId): int
+    {
+        return (int) DB::run(
+            'SELECT COUNT(*) FROM notification_reads WHERE notification_id = :nid',
+            [':nid' => $notificationId]
+        )->fetchColumn();
     }
 
     // ── Admin Write Operations ──────────────────────────────

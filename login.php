@@ -229,8 +229,6 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
         </div>
       </form>
 
-      <a href="/" class="login-back-link">بازگشت به داشبورد</a>
-
     </div>
   </main>
 

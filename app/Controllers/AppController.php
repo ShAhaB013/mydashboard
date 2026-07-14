@@ -75,7 +75,7 @@ class AppController
         // don't have to wait for a ~105KB notification download. The list is loaded lazily
         // (action=notifications) in the background after the cards render. The unread count is
         // computed with a lightweight query so the badge appears immediately.
-        $unread = ['ok' => true, 'count' => (new NotificationModel())->unreadCount(UserSession::id())];
+        $unread = ['ok' => true, 'count' => (new NotificationModel())->unreadCount(UserSession::id(), $isAdmin)];
 
         $payload = [
             'ok'     => true,

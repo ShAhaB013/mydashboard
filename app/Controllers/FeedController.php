@@ -32,7 +32,8 @@ class FeedController
     private function notificationsForUser(int $uid): void
     {
         $nm          = new NotificationModel();
-        $fp          = $nm->activeUserFingerprint($uid);
+        $isAdmin     = UserSession::isAdmin();
+        $fp          = $nm->activeUserFingerprint($uid, $isAdmin);
         $fingerprint = implode('|', array_map(
             static fn($r) => $r['id'] . ':' . $r['updated_at'] . ':' . $r['is_read'],
             $fp
@@ -50,7 +51,7 @@ class FeedController
         }
 
         // Only here (fingerprint mismatch) does the full query + badges + serialize run
-        $rows = $nm->allActiveForUser($uid);
+        $rows = $nm->allActiveForUser($uid, $isAdmin);
         // Fetch badges in one batched query instead of N separate queries (like bootstrap)
         $ids      = array_map(fn($r) => (int) $r['id'], $rows);
         $badgeMap = $nm->getBadgesForIds($ids);
@@ -82,7 +83,7 @@ class FeedController
         }
 
         $nm    = new NotificationModel();
-        $count = $nm->unreadCount(UserSession::id());
+        $count = $nm->unreadCount(UserSession::id(), UserSession::isAdmin());
         $tag   = 'notif-count-u' . UserSession::id();
         $me    = [
             'display_name' => $_SESSION['display_name'] ?? $_SESSION['username'] ?? '',
@@ -149,7 +150,7 @@ class FeedController
             return;
         }
         $nm = new NotificationModel();
-        $nm->markAllRead(UserSession::id());
+        $nm->markAllRead(UserSession::id(), UserSession::isAdmin());
         echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
     }
 }

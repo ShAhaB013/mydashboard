@@ -46,8 +46,50 @@
     .pill-created  { background:var(--accent-bg); color:var(--accent); border:1px solid rgba(88,166,255,.25); font-weight:500; }
     .pill-expiry   { background:var(--bg-input); color:var(--text-2); border:1px solid var(--border); font-weight:500; }
     .pill-noexp    { background:var(--bg-input); color:var(--text-3); border:1px solid var(--border); font-weight:400; }
+    .pill-reads    { background:rgba(14,164,114,.10); color:#0ea472; border:1px solid rgba(14,164,114,.25); font-weight:500; }
 
     .notif-row-actions { display:flex; gap:6px; flex-shrink:0; align-self:center; }
+
+    /* ── Readers ("who read this") modal — rows reuse .blk-row/.sk-table-row from
+       admin.css (also loaded on this page), so this modal doesn't invent its own
+       row/skeleton style. The generic .modal-body is a 2-column grid meant for the
+       tool/notification edit form's preview pane — this modal overrides it to a
+       plain single-column block, since it's just a list, not a form+preview. ── */
+    .readers-modal { max-width:420px; }
+    .readers-modal-body { display:flex; flex-direction:column; padding:18px 0 20px; overflow-y:visible; }
+    .readers-count {
+      font-size:12.5px; font-weight:600; color:var(--text-2); margin:0 0 10px;
+      padding:0 20px 10px; border-bottom:1px solid var(--border);
+    }
+    /* List bleeds edge-to-edge with the modal (no side padding/gap between rows —
+       just a hairline separator). A mask-image fade (not a box-shadow line) softens
+       the top/bottom edges as a scroll-affordance hint — the same technique used by
+       modern scroll-area components (fades content out instead of drawing a shadow). */
+    .readers-list {
+      display:flex; flex-direction:column; max-height:360px; overflow-y:auto;
+      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+      mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+    }
+    .readers-empty { text-align:center; color:var(--text-3); font-size:13px; padding:26px 12px; }
+
+    .readers-list .blk-row {
+      border-radius:0; border-inline:none; border-top:none; border-bottom:1px solid var(--border);
+      background:transparent; padding:12px 20px;
+    }
+    .readers-list .blk-row:last-child { border-bottom:none; }
+    .readers-list .sk-table-row { border-radius:0; border-inline:none; border-top:none; border-bottom:1px solid var(--border); padding:12px 20px; }
+
+    /* Avatar circle (initial letter) — matches the accent-tinted circle convention
+       used elsewhere in the admin panel (e.g. .user-row-avatar), sized like .sk-avatar */
+    .reader-avatar {
+      width:38px; height:38px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--accent-bg); color:var(--accent);
+      border:1.5px solid rgba(88,166,255,.25);
+      font-size:14px; font-weight:700; font-family:'DashboardFont',sans-serif;
+    }
+    .blk-row .blk-info { display:flex; align-items:center; gap:12px; }
+    .blk-info-text { min-width:0; }
 
     .notif-empty { text-align:center; padding:60px 24px; color:var(--text-2); border:1.5px dashed var(--border); border-radius:var(--radius-lg); }
     .notif-empty svg { width:40px; height:40px; opacity:.35; display:block; margin:0 auto 12px; }

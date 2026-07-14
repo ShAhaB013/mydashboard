@@ -130,6 +130,33 @@ class NotificationController
         ]);
     }
 
+    /** Who has read a given notification (admin-only "read by" list) — paginated */
+    public function readers(): void
+    {
+        $id     = $this->request->inputInt('id');
+        $offset = max(0, $this->request->inputInt('offset', 0));
+        $limit  = 50;
+
+        if ($id <= 0) { Response::error('شناسه اعلان نامعتبر است'); return; }
+        if (!$this->model->findById($id)) { Response::error('اعلان یافت نشد'); return; }
+
+        $total = $this->model->getReaderCount($id);
+        $rows  = $this->model->getReaders($id, $limit, $offset);
+        $readers = array_map(static fn($r) => [
+            'id'           => (int) $r['id'],
+            'username'     => $r['username'],
+            'display_name' => $r['display_name'] ?: $r['username'],
+            'read_at'      => $r['read_at'],
+        ], $rows);
+
+        Response::ok([
+            'readers'  => $readers,
+            'total'    => $total,
+            'offset'   => $offset,
+            'has_more' => ($offset + count($readers)) < $total,
+        ]);
+    }
+
     public function create(): void
     {
         $data = $this->extractData();
