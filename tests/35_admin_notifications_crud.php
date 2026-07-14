@@ -62,18 +62,29 @@ Assert::test('list_notifications: pagination لبه‌ها (page=0/-1/999999, pe
 
 Assert::test('XSS: sanitizeBody یک payload بدخیم را قبل از ذخیره پاک می‌کند', function () use ($BASE, $ACC) {
     $http = admin_http($BASE, $ACC);
+    // sanitizeBody() disallowed tags را با متن داخلی‌شان جایگزین می‌کند، نه اینکه کامل حذفشان کند —
+    // پس payloadهایی که هیچ متن داخلی ندارند (مثل <img>/<svg> خودبسته) پس از پاک‌سازی به رشته‌ی
+    // خالی می‌رسند و به‌درستی با خطای "متن اعلان الزامی است" رد می‌شوند؛ این رفتار امن و مورد انتظار
+    // است، نه یک باگ. بقیه‌ی payloadها متن داخلی دارند پس باید پاک‌سازی‌شده ذخیره شوند.
     $payloads = [
-        '<img src=x onerror=alert(1)>',
-        '<a href="javascript:alert(1)">link</a>',
-        '<div style="background:url(javascript:alert(1))">x</div>',
-        '<div style="width:expression(alert(1))">x</div>',
-        '<svg><script>alert(1)</script></svg>',
-        '<svg onload=alert(1)>',
-        '<IMG SRC=x OnErRor=alert(1)>',
+        ['<img src=x onerror=alert(1)>', false],
+        ['<a href="javascript:alert(1)">link</a>', true],
+        ['<div style="background:url(javascript:alert(1))">x</div>', true],
+        ['<div style="width:expression(alert(1))">x</div>', true],
+        ['<svg><script>alert(1)</script></svg>', true],
+        ['<svg onload=alert(1)>', false],
+        ['<IMG SRC=x OnErRor=alert(1)>', false],
     ];
-    foreach ($payloads as $i => $payload) {
+    foreach ($payloads as $i => [$payload, $expectSaved]) {
         $title = Fixtures::uniq('xss' . $i);
         $res = $http->postJson('/admin.php?api=create_notification', ['title' => $title, 'body' => $payload, 'is_public' => 1, 'target_all_users' => 1]);
+
+        if (!$expectSaved) {
+            Assert::jsonFail($res, "payload شماره {$i}: بعد از پاک‌سازی خالی می‌شود، پس باید رد شود (نه ساخته شود)");
+            Assert::eq('body', $res['json']['field'] ?? null, "payload شماره {$i}: خطا باید روی فیلد body باشد");
+            continue;
+        }
+
         Assert::jsonOk($res, "ایجاد اعلان با payload شماره {$i} نباید خطا بدهد (فقط باید پاک شود)");
         $row = DB::run('SELECT body FROM notifications WHERE title=:t', [':t' => $title])->fetch();
         $stored = (string) ($row['body'] ?? '');
