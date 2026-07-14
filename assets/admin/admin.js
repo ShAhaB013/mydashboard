@@ -648,10 +648,8 @@ const UserManager = {
     const password = document.getElementById('editUserPassword').value;
     const role     = document.getElementById('editUserRole')?.value || 'user';
     if (!fullName) return FieldErr.set('editFullName', 'نام و نام خانوادگی الزامی است');
-    if (isAdd) {
-      if (!username) return FieldErr.set('editUsername', 'نام‌کاربری الزامی است');
-      if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
-    }
+    if (!username) return FieldErr.set('editUsername', 'نام‌کاربری الزامی است');
+    if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
     if (phone && !/^09\d{9}$/.test(phone)) return FieldErr.set('editPhone', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود');
     if (!email) return FieldErr.set('editEmail', 'ایمیل الزامی است');
     if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(email)) return FieldErr.set('editEmail', 'قالب ایمیل نامعتبر است');
@@ -661,7 +659,7 @@ const UserManager = {
     const action = isAdd ? 'add_user' : 'edit_user';
     const body   = isAdd
       ? { full_name: fullName, username, phone, email, password, role }
-      : { id: parseInt(idVal), full_name: fullName, phone, email, password, role };
+      : { id: parseInt(idVal), full_name: fullName, username, phone, email, password, role };
     const res = await Api.call(action, body);
     if (res.ok) {
       this.close(true);

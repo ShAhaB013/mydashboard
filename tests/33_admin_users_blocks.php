@@ -47,9 +47,41 @@ Assert::test('edit_user گارد ضدقفل‌شدن: آخرین ادمین فع
         return;
     }
     $res = $http->postJson('/admin.php?api=edit_user', [
-        'id' => $adminRow['id'], 'full_name' => 'ادمین تست', 'email' => $adminRow['email'] ?: 'zzadmin@example.com', 'role' => 'user',
+        'id' => $adminRow['id'], 'full_name' => 'ادمین تست', 'username' => $adminRow['username'],
+        'email' => $adminRow['email'] ?: 'zzadmin@example.com', 'role' => 'user',
     ]);
     Assert::jsonFail($res, 'تنزل تنها ادمین فعال باید رد شود');
+});
+
+Assert::test('edit_user با username جدید → واقعا در DB ذخیره می‌شود', function () use ($BASE, $ACC) {
+    $http = admin_http($BASE, $ACC);
+    $uid = Fixtures::createUser(['email' => Fixtures::uniq('edituser') . '@example.com']);
+    $existing = DB::run('SELECT first_name, last_name, email FROM users WHERE id=:id', [':id' => $uid])->fetch();
+    $newUsername = Fixtures::uniq('renamed');
+    $res = $http->postJson('/admin.php?api=edit_user', [
+        'id' => $uid,
+        'full_name' => trim($existing['first_name'] . ' ' . $existing['last_name']),
+        'username' => $newUsername,
+        'email' => $existing['email'],
+    ]);
+    Assert::jsonOk($res, 'edit_user با username معتبر باید موفق باشد');
+    $after = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
+    Assert::eq($newUsername, $after['username'], 'username باید واقعا در DB به‌روزرسانی شده باشد');
+});
+
+Assert::test('edit_user با username تکراری کاربر دیگر → رد می‌شود', function () use ($BASE, $ACC) {
+    $http = admin_http($BASE, $ACC);
+    $uid1 = Fixtures::createUser();
+    $uid2 = Fixtures::createUser(['email' => Fixtures::uniq('edituser2') . '@example.com']);
+    $row1 = DB::run('SELECT username, first_name, last_name, email FROM users WHERE id=:id', [':id' => $uid1])->fetch();
+    $row2 = DB::run('SELECT first_name, last_name, email FROM users WHERE id=:id', [':id' => $uid2])->fetch();
+    $res = $http->postJson('/admin.php?api=edit_user', [
+        'id' => $uid2,
+        'full_name' => trim($row2['first_name'] . ' ' . $row2['last_name']),
+        'username' => $row1['username'],
+        'email' => $row2['email'],
+    ]);
+    Assert::jsonFail($res, 'username تکراری هنگام ویرایش باید رد شود');
 });
 
 Assert::test('toggle_user و delete → روی کاربر تستی معمولی کار می‌کند و DB را واقعا تغییر می‌دهد', function () use ($BASE, $ACC) {

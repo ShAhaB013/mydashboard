@@ -134,6 +134,7 @@ class UserController
     {
         $id       = $this->request->inputInt('id');
         $fullName = trim((string) $this->request->input('full_name'));
+        $username = trim((string) $this->request->input('username'));
         $phone    = trim((string) $this->request->input('phone'));
         $email    = trim((string) $this->request->input('email'));
         $password = $this->request->input('password');
@@ -154,6 +155,10 @@ class UserController
         }
         [$firstName, $lastName] = UserModel::splitName($fullName);
 
+        if (($err = Validator::username($username)) !== '') {
+            Response::error($err, 'username');
+            return;
+        }
         // Mobile number is optional; only validated if entered
         if ($phone !== '' && ($err = Validator::phone($phone)) !== '') {
             Response::error($err, 'phone');
@@ -174,6 +179,10 @@ class UserController
             return;
         }
 
+        if ($this->model->usernameExists($username, $id)) {
+            Response::error('این نام‌کاربری قبلا ثبت شده است', 'username');
+            return;
+        }
         if ($phone !== '' && $this->model->phoneExists($phone, $id)) {
             Response::error('این شماره موبایل قبلا ثبت شده است', 'phone');
             return;
@@ -191,7 +200,7 @@ class UserController
             return;
         }
 
-        $this->model->update($id, $firstName, $lastName, $phone, $email, $role);
+        $this->model->update($id, $firstName, $lastName, $username, $phone, $email, $role);
 
         // Password change is optional
         if ($password !== '') {

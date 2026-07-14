@@ -192,15 +192,16 @@ class UserModel
         return (int) DB::get()->lastInsertId();
     }
 
-    /** Edit user info (first/last name/phone/email/role, without changing password or username) */
-    public function update(int $id, string $firstName, string $lastName, string $phone, string $email, string $role = 'user'): bool
+    /** Edit user info (first/last name/username/phone/email/role, without changing password) */
+    public function update(int $id, string $firstName, string $lastName, string $username, string $phone, string $email, string $role = 'user'): bool
     {
         DB::run(
-            'UPDATE users SET first_name = :f, last_name = :l, display_name = :d, phone = :p, email = :e, role = :r WHERE id = :id',
+            'UPDATE users SET first_name = :f, last_name = :l, display_name = :d, username = :u, phone = :p, email = :e, role = :r WHERE id = :id',
             [
                 ':f'  => $firstName,
                 ':l'  => $lastName,
                 ':d'  => trim($firstName . ' ' . $lastName),
+                ':u'  => $username,
                 ':p'  => ($phone === '' ? null : $phone),   // empty → NULL (compatible with the UNIQUE index)
                 ':e'  => $email,
                 ':r'  => self::normalizeRole($role),
