@@ -40,7 +40,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
     .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
     .test-email-row { display:flex; align-items:flex-end; gap:10px; }
     .test-email-row .field { flex:1 1 auto; min-width:0; position:relative; }
-    .test-email-row .btn { flex:0 0 auto; }
+    .test-email-row .btn { flex:0 0 auto; height:44px; }
     .test-email-row .field-error-msg { position:absolute; top:100%; right:0; margin-top:3px; }
     .test-email-row { margin-bottom:22px; }
     @media (max-width:560px){
@@ -87,17 +87,6 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
 </header>
 
 <div class="admin-wrap">
-
-  <!-- ── Sub-bar (no title; the page title is "Email settings" in the header above) ── -->
-  <div class="tools-header" style="justify-content:flex-end;">
-    <div class="tools-header-actions">
-      <button type="button" class="btn btn-primary btn-sm" id="saveSettingsBtn" data-act="saveSettings">
-        <span class="btn-spinner" aria-hidden="true"></span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        ذخیره تنظیمات
-      </button>
-    </div>
-  </div>
 
   <div class="settings-card">
 
@@ -170,6 +159,14 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
         <input type="text" id="setCodeTtl" value="<?= $val('code_ttl') ?>" placeholder="600" dir="ltr" style="direction:ltr;text-align:left">
         <div class="set-hint">بازه مجاز: ۶۰ تا ۸۶۴۰۰ ثانیه</div>
       </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-primary" id="saveSettingsBtn" data-act="saveSettings">
+        <span class="btn-spinner" aria-hidden="true"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        ذخیره تنظیمات
+      </button>
     </div>
 
   </div>
