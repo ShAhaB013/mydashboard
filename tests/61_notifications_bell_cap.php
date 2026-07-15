@@ -7,7 +7,9 @@ $ACC  = $cfg['test']['accounts'];
 
 Assert::group('61_notifications_bell_cap');
 
-// 120 synthetic public notifications (more than BELL_CAP=100) with a read/unread mix for the test user
+// 120 synthetic public notifications (more than one page — default page size is 20) —
+// under the notification_recipients architecture the bell has no overall cap at all;
+// this only exercises pagination depth, not a "does it get cut off at N" limit.
 $passU = $ACC['user']['password'];
 $uid   = (int) DB::run('SELECT id FROM users WHERE username=:u', [':u' => $ACC['user']['username']])->fetchColumn();
 
@@ -32,27 +34,54 @@ Assert::test('notifications بدون لاگین → 401', function () use ($BASE
     Assert::statusEq($res, 401, 'notifications بدون لاگین باید 401 بدهد');
 });
 
-Assert::test('فید زنگوله کاربر لاگین‌شده هرگز بیش از ۱۰۰ آیتم برنمی‌گرداند و ناخوانده‌ها اول می‌آیند', function () use ($BASE, $ACC) {
+Assert::test('فید زنگوله: صفحه اول حداکثر به اندازه limit درخواستی است و کل ۱۲۰ مورد از طریق صفحه‌بندی (cursor) در دسترس‌اند — بدون سقف مصنوعی', function () use ($BASE, $ACC, $ids) {
     $http = new HttpClient($BASE);
     $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
-    $res = $http->get('/api.php?action=notifications');
+
+    $res = $http->get('/api.php?action=notifications&limit=20');
     Assert::jsonOk($res, 'notifications باید ok:true بدهد');
     $items = $res['json']['notifications'] ?? [];
-    Assert::true(count($items) <= 100, 'تعداد آیتم‌ها نباید از ۱۰۰ بیشتر شود', ['count' => count($items)]);
+    Assert::true(count($items) <= 20, 'اندازه صفحه نباید از limit درخواستی بیشتر شود', ['count' => count($items)]);
 
-    $seenRead = false;
-    $orderOk = true;
-    foreach ($items as $it) {
-        if (($it['is_read'] ?? false) === true) {
-            $seenRead = true;
-        } elseif ($seenRead) {
-            $orderOk = false; // an unread item was seen after a read one → wrong order
-        }
+    // walk every page via next_cursor and collect all ids belonging to this test's fixtures
+    $seen = [];
+    $cursor = $res['json']['next_cursor'] ?? null;
+    $hasMore = $res['json']['has_more'] ?? false;
+    foreach ($items as $it) $seen[(int) $it['id']] = true;
+    $safety = 0;
+    while ($hasMore && $cursor && $safety++ < 30) {
+        $res = $http->get('/api.php?action=notifications&limit=20&before=' . urlencode($cursor));
+        Assert::jsonOk($res, 'صفحه بعدی notifications باید ok:true بدهد');
+        foreach (($res['json']['notifications'] ?? []) as $it) $seen[(int) $it['id']] = true;
+        $cursor  = $res['json']['next_cursor'] ?? null;
+        $hasMore = $res['json']['has_more'] ?? false;
     }
-    Assert::true($orderOk, 'همه‌ی آیتم‌های ناخوانده باید قبل از خوانده‌ها بیایند');
+
+    $missing = array_filter($ids, fn($id) => !isset($seen[$id]));
+    Assert::true(empty($missing), 'همه ۱۲۰ اعلان تستی باید از طریق صفحه‌بندی بدون سقف در دسترس باشند', ['missing_count' => count($missing)]);
 });
 
-// deleting notifications automatically clears the dependent notification_reads rows too (ON DELETE CASCADE)
+Assert::test('فید زنگوله: ترتیب کاملا زمانی (created_at,id) نزولی است — بدون اولویت‌دهی ناخوانده/خوانده', function () use ($BASE, $ACC) {
+    $http = new HttpClient($BASE);
+    $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
+    $res = $http->get('/api.php?action=notifications&limit=50');
+    Assert::jsonOk($res, 'notifications باید ok:true بدهد');
+    $items = $res['json']['notifications'] ?? [];
+
+    $ordered = true;
+    $prev = null;
+    foreach ($items as $it) {
+        $key = [$it['created_at'], (int) $it['id']];
+        if ($prev !== null && ($key[0] > $prev[0] || ($key[0] === $prev[0] && $key[1] > $prev[1]))) {
+            $ordered = false;
+        }
+        $prev = $key;
+    }
+    Assert::true($ordered, 'آیتم‌ها باید دقیقا بر اساس (created_at,id) نزولی مرتب باشند، صرف‌نظر از وضعیت خوانده/ناخوانده');
+});
+
+// deleting notifications automatically clears the dependent notification_reads/
+// notification_recipients rows too (ON DELETE CASCADE)
 foreach ($ids as $id) DB::run('DELETE FROM notifications WHERE id=:id', [':id' => $id]);
 Fixtures::deleteNotificationsByPrefix();
 
@@ -68,7 +97,7 @@ Assert::test('فید زنگوله: منقضی+خوانده حذف می‌شود�
 
     $http = new HttpClient($BASE);
     $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
-    $res = $http->get('/api.php?action=notifications');
+    $res = $http->get('/api.php?action=notifications&limit=100');
     Assert::jsonOk($res, 'notifications باید ok:true بدهد');
     $ids = array_column($res['json']['notifications'] ?? [], 'id');
 

@@ -103,6 +103,12 @@ class AccessModel
                 );
             }
 
+            // Access just changed — recompute which notifications this user can now see
+            // (notification_recipients is a write-time materialization of this exact
+            // resolution; see NotificationModel::refreshRecipientsForUser). Runs inside
+            // the same transaction, so a failure here rolls back the access change too.
+            (new NotificationModel())->refreshRecipientsForUser($userId);
+
             $pdo->commit();
             return true;
 

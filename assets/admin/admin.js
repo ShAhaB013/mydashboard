@@ -1354,6 +1354,15 @@ const SessionsManager = {
   _curUser: 0,
   _curUserName: '',
 
+  // Infinite-scroll state (same approach as NM's readers modal: fetch by offset,
+  // load the next page once the scroll container nears its bottom, guard stale
+  // in-flight fetches with a bumped request sequence).
+  _sessOffset:  0,
+  _sessLoading: false,
+  _sessHasMore: false,
+  _sessReqSeq:  0,
+  _sessScrollHandler: null,
+
   // ── single-user modal ──
   openUser(uid, name) {
     this._curUser = uid;
@@ -1361,25 +1370,81 @@ const SessionsManager = {
     const t = document.getElementById('sessionsUserTitle');
     if (t) t.textContent = 'نشست‌های فعال — ' + (name || '');
     Modal.open('sessionsUserModal');
+
+    const body = document.getElementById('sessionsUserBody');
+    if (this._sessScrollHandler) body.removeEventListener('scroll', this._sessScrollHandler);
+    this._sessScrollHandler = () => {
+      if (!this._sessHasMore || this._sessLoading) return;
+      if (body.scrollTop + body.clientHeight >= body.scrollHeight - 80) {
+        this._loadUserPage(false);
+      }
+    };
+    body.addEventListener('scroll', this._sessScrollHandler);
+
     this.loadUser();
   },
 
+  /** (Re)loads from the first page — also used to refresh after a terminate action. */
   async loadUser() {
+    this._sessOffset  = 0;
+    this._sessHasMore = false;
+    this._sessReqSeq++;
+    await this._loadUserPage(true);
+  },
+
+  async _loadUserPage(isFirstPage) {
+    if (this._sessLoading) return;
+    this._sessLoading = true;
+    const reqSeq = this._sessReqSeq;
+
     const box = document.getElementById('sessionsUserList');
-    if (!box) return;
+    if (!box) { this._sessLoading = false; return; }
     const killBtn = document.getElementById('sessTerminateUserBtn');
-    if (killBtn) killBtn.disabled = true;
-    box.innerHTML = SKELETON_TABLE_ROW.repeat(2);
-    const res = await Api.call('list_sessions', { user_id: this._curUser });
-    if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت نشست‌ها</div>'; return; }
-    const list = res.sessions || [];
-    box.innerHTML = list.length
-      ? list.map(s => this._row(s, false)).join('')
-      : '<div class="blocks-empty">این کاربر نشست فعالی ندارد.</div>';
-    // If the only remaining session is the admin's own current one, "log out of all devices"
-    // has nothing to terminate (the server excludes it so the admin doesn't get kicked out of the panel).
-    const onlyOwnCurrent = list.length === 1 && list[0].is_current;
-    if (killBtn) killBtn.disabled = !list.length || onlyOwnCurrent;
+
+    let sentinel = null;
+    if (isFirstPage) {
+      box.innerHTML = SKELETON_TABLE_ROW.repeat(2);
+      if (killBtn) killBtn.disabled = true;
+    } else {
+      sentinel = document.createElement('div');
+      sentinel.innerHTML = SKELETON_TABLE_ROW;
+      box.appendChild(sentinel.firstElementChild);
+    }
+
+    const res = await Api.call('list_sessions', { user_id: this._curUser, offset: this._sessOffset });
+    if (reqSeq !== this._sessReqSeq) return; // modal closed/reopened while this was in flight
+
+    const lastSkeleton = box.querySelector('.sk-table-row:last-child');
+    if (!isFirstPage && lastSkeleton) lastSkeleton.remove();
+
+    if (!res.ok) {
+      box.innerHTML = '<div class="blocks-empty">خطا در دریافت نشست‌ها</div>';
+      this._sessLoading = false;
+      return;
+    }
+
+    const list     = res.sessions || [];
+    const rowsHtml = list.map(s => this._row(s, false)).join('');
+
+    if (isFirstPage) {
+      box.innerHTML = rowsHtml || '<div class="blocks-empty">این کاربر نشست فعالی ندارد.</div>';
+    } else {
+      box.insertAdjacentHTML('beforeend', rowsHtml);
+    }
+
+    this._sessOffset += list.length;
+    this._sessHasMore = !!res.has_more;
+    this._sessLoading = false;
+
+    // If the only remaining session (across ALL pages, not just this one) is the admin's own
+    // current one, "log out of all devices" has nothing to terminate (the server excludes it
+    // so the admin doesn't get kicked out of the panel). Only decided once fully loaded, since
+    // more pages may still hold other sessions.
+    if (killBtn && !this._sessHasMore) {
+      const rows = box.querySelectorAll('.blk-row');
+      const onlyOwnCurrent = rows.length === 1 && !!box.querySelector('.blk-current');
+      killBtn.disabled = rows.length === 0 || onlyOwnCurrent;
+    }
   },
 
   _row(s, showName) {

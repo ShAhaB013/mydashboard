@@ -15,12 +15,19 @@ class SessionController
         $this->request = $request;
     }
 
-    /** List of active sessions (all, or filtered by user_id) */
+    /** List of active sessions (all, or filtered by user_id), paginated (limit/offset) so
+     *  a heavily-used install doesn't load thousands of rows — or silently truncate them —
+     *  in one response. The panel infinite-scrolls further pages in via `offset`. */
     public function list(): void
     {
-        $uid  = $this->request->inputInt('user_id', 0);
-        $rows = SessionModel::active($uid > 0 ? $uid : null);
-        $cur  = session_id();
+        $uid    = $this->request->inputInt('user_id', 0);
+        $offset = max(0, $this->request->inputInt('offset', 0));
+        $limit  = 50;
+        $userId = $uid > 0 ? $uid : null;
+
+        $rows  = SessionModel::active($userId, $limit, $offset);
+        $total = SessionModel::activeCount($userId);
+        $cur   = session_id();
 
         $out = array_map(static function (array $r) use ($cur): array {
             return [
@@ -36,7 +43,13 @@ class SessionController
             ];
         }, $rows);
 
-        Response::ok(['sessions' => $out, 'current_id' => $cur]);
+        Response::ok([
+            'sessions'   => $out,
+            'current_id' => $cur,
+            'total'      => $total,
+            'offset'     => $offset,
+            'has_more'   => ($offset + count($out)) < $total,
+        ]);
     }
 
     /** End a specific session */

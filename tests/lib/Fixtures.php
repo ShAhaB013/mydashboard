@@ -62,7 +62,14 @@ class Fixtures
              VALUES (:username,:phone,:email,:password_hash,:first_name,:last_name,:display_name,:role,:is_active)',
             $data
         );
-        return (int) DB::get()->lastInsertId();
+        $id = (int) DB::get()->lastInsertId();
+
+        // A raw fixture insert bypasses UserController::create()'s fan-out call — without this,
+        // a fixture user would never see target_all_users=1 notifications under the
+        // notification_recipients architecture (see NotificationModel::refreshRecipientsForUser).
+        (new NotificationModel())->refreshRecipientsForUser($id);
+
+        return $id;
     }
 
     public static function createNotification(array $overrides = []): int
@@ -87,7 +94,14 @@ class Fixtures
         $params  = array_intersect_key($data, array_flip($cols));
 
         DB::run("INSERT INTO notifications ({$colList}) VALUES ({$phList})", $params);
-        return (int) DB::get()->lastInsertId();
+        $id = (int) DB::get()->lastInsertId();
+
+        // Same reasoning as createUser() above: a raw insert bypasses NotificationModel::create()'s
+        // fan-out, so notification_recipients must be seeded here directly for fixture notifications
+        // to actually show up in any bell/history read.
+        (new NotificationModel())->refreshRecipientsForNotification($id);
+
+        return $id;
     }
 
     public static function deleteToolsByPrefix(): int

@@ -135,8 +135,8 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
               </span>
             </div>
 
-            <!-- Items are built by JS -->
-            <div class="notif-drop-body" id="notifDropdownBody" role="list">
+            <!-- Items are built by JS; infinite-scrolled as the user scrolls near the bottom -->
+            <div class="notif-drop-body" id="notifDropdownBody" role="list" aria-busy="true">
               <div class="sk-list-item" aria-hidden="true">
                 <div class="sk sk-list-icon"></div>
                 <div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>
@@ -150,22 +150,10 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
                 <div class="sk-list-lines"><div class="sk sk-line"></div><div class="sk sk-line sk-line--short"></div></div>
               </div>
             </div>
+            <!-- Screen-reader-only announcer for content that streams in silently on scroll -->
+            <span id="notifLiveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></span>
 
             <div class="notif-drop-footer">
-
-              <div id="notifPagination" class="notif-drop-pagination" style="display:none;" aria-label="صفحه‌بندی اعلان‌ها">
-                <button class="notif-pag-arrow" id="notifPrevBtn" aria-label="صفحه قبل" disabled>
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-                <span id="notifPageInfo" class="notif-pag-info"></span>
-                <button class="notif-pag-arrow" id="notifNextBtn" aria-label="صفحه بعد">
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                    <polyline points="15 18 9 12 15 6"/>
-                  </svg>
-                </button>
-              </div>
 
               <a href="/notifications" class="notif-drop-view-all">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">

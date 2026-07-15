@@ -14,7 +14,10 @@ $oldId = Fixtures::createNotification([
     'created_at' => $threeYearsAgo,
 ]);
 
-// also 105 new notifications to ensure the old record falls outside the BELL_CAP=100 window
+// also 105 new notifications to push the old record off the bell's first page (default
+// page size 20) — the bell has no overall cap under the notification_recipients
+// architecture, but the FIRST page is still just "the most recent N", so a record this
+// old still won't appear without paginating deep via next_cursor.
 $fillerIds = [];
 for ($i = 0; $i < 105; $i++) {
     $fillerIds[] = Fixtures::createNotification([
@@ -22,12 +25,12 @@ for ($i = 0; $i < 105; $i++) {
     ]);
 }
 
-Assert::test('اعلان خیلی قدیمی از فید محدود زنگوله (bell) غایب است', function () use ($BASE, $ACC, $oldId) {
+Assert::test('اعلان خیلی قدیمی از صفحه اول فید زنگوله (bell) غایب است', function () use ($BASE, $ACC, $oldId) {
     $http = new HttpClient($BASE);
     $http->loginAs($ACC['user']['username'], $ACC['user']['password']);
     $res = $http->get('/api.php?action=notifications');
     $ids = array_map(fn($n) => (int) $n['id'], $res['json']['notifications'] ?? []);
-    Assert::true(!in_array($oldId, $ids, true), 'اعلان سه‌سال‌قبل نباید در فید زنگوله (که به ۱۰۰ مورد اخیر محدوده) دیده شود');
+    Assert::true(!in_array($oldId, $ids, true), 'اعلان سه‌سال‌قبل نباید در صفحه اول فید زنگوله (جدیدترین‌ها) دیده شود');
 });
 
 Assert::test('اعلان خیلی قدیمی از صفحه‌ی تاریخچه با جستجو قابل‌دسترسی است', function () use ($BASE, $ACC, $oldTitle) {

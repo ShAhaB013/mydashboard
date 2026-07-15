@@ -126,6 +126,13 @@ class UserController
         }
 
         $id = $this->model->create($firstName, $lastName, $username, $phone, $email, $password, $role);
+
+        // Seed target_all_users notifications for the new account — the old live query had
+        // no user-creation-date filter (every logged-in user saw every target_all_users=1
+        // notification regardless of when their account was made), so the materialized
+        // fan-out table must replicate that from the first moment the account exists.
+        (new NotificationModel())->refreshRecipientsForUser($id);
+
         Response::ok(['id' => $id]);
     }
 

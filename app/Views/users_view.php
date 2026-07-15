@@ -360,7 +360,7 @@
         </svg>
       </button>
     </div>
-    <div class="modal-body" style="display:block;padding:18px 20px;max-height:70vh;overflow-y:auto;">
+    <div class="modal-body" id="sessionsUserBody" style="display:block;padding:18px 20px;max-height:70vh;overflow-y:auto;">
       <p class="blocks-hint">نشست‌های فعال این کاربر روی دستگاه‌های مختلف. می‌توانید هرکدام را جداگانه، یا همه را با هم پایان دهید (خروج اجباری).</p>
       <div id="sessionsUserList" class="sess-list">
         <div class="blocks-loading">در حال بارگذاری…</div>

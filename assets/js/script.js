@@ -174,31 +174,38 @@ const UserMenu = {
    ═══════════════════════════════════════════════════════════ */
 const NotifPanel = {
   _open:          false,
-  _notifications: [],
+  _notifications: [],       // flat, accumulated across pages (no client-side re-slicing)
   _unreadCount:   0,
-  _page:          1,
-  _PER_PAGE:      6,
+  _nextCursor:    null,      // Cursor string for the next page, or null if none/unknown yet
+  _hasMore:       false,
+  _scrolledDeeper: false,    // has the user loaded a 2nd+ page since the last fresh load()?
   _pollTimer:     null,
   _POLL_MS:        25000,  // minimum poll interval: 25s
   _POLL_JITTER_MS: 5000,   // random jitter 0..5s per cycle (prevents clients from synchronizing)
-  _loaded:        false,   // has the full list (lazy-loaded) arrived yet?
-  _loading:       false,   // guard against concurrent calls
+  _PAGE_SIZE:      20,
+  _loaded:        false,   // has at least one fetch completed (skeleton vs. real empty state)
+  _loading:       false,   // guard against concurrent first-page loads
+  _loadingMore:   false,   // guard against concurrent "load next page" calls
+  _scrollHandler: null,
 
+  /** Fresh load of the first page — replaces (not appends to) the current list. */
   async load() {
-    if (this._loading) return;          // prevent duplicate concurrent calls
+    if (this._loading) return;
     this._loading = true;
     try {
-      const [nRes, cRes] = await Promise.all([
-        fetch(`${API_URL}?action=notifications`, { cache: 'no-cache' }),
-        fetch(`${API_URL}?action=unread_count`,  { cache: 'no-cache' }),
-      ]);
-      const [nData, cData] = await Promise.all([nRes.json(), cRes.json()]);
-      if (nData.ok) this._notifications = nData.notifications || [];
+      const page = await this._fetchPage(null);
+      if (page) {
+        this._notifications  = page.notifications;
+        this._nextCursor     = page.next_cursor;
+        this._hasMore         = page.has_more;
+        this._scrolledDeeper = false;
+      }
       this._loaded = true;
 
+      const cRes  = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
+      const cData = await cRes.json();
       if (cData.ok) this._unreadCount = cData.count || 0;
       this._updateBadge();
-      // if the panel was open during this background load, re-render now with the real data
       if (this._open) this._renderDropdown();
     } catch {
       // on error, don't clear previous state (it may still be valid from an earlier load)
@@ -208,11 +215,64 @@ const NotifPanel = {
     }
   },
 
+  /** Infinite scroll: fetch the next page and append it to the already-rendered list. */
+  async _loadMore() {
+    if (this._loadingMore || !this._hasMore || !this._nextCursor) return;
+    this._loadingMore = true;
+    this._renderDropdown(); // shows the trailing "loading more" skeleton row
+
+    const before = this._notifications.length;
+    try {
+      const page = await this._fetchPage(this._nextCursor);
+      if (page) {
+        this._notifications.push(...page.notifications);
+        this._nextCursor     = page.next_cursor;
+        this._hasMore        = page.has_more;
+        this._scrolledDeeper = true;
+        this._announce(
+          page.notifications.length === 1
+            ? 'یک اعلان دیگر بارگذاری شد'
+            : `${page.notifications.length} اعلان دیگر بارگذاری شد`
+        );
+      }
+    } finally {
+      this._loadingMore = false;
+      this._renderDropdown();
+      // restore scroll position relative to content instead of jumping to the top
+      const body = document.getElementById('notifDropdownBody');
+      if (body && before > 0) {
+        const anchor = body.children[before - 1];
+        if (anchor) anchor.scrollIntoView({ block: 'start' });
+      }
+    }
+  },
+
+  /** Shared fetch + ETag handling for one page (cursor=null → first page). */
+  async _fetchPage(cursor) {
+    let url = `${API_URL}?action=notifications&limit=${this._PAGE_SIZE}`;
+    if (cursor) url += `&before=${encodeURIComponent(cursor)}`;
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (res.status === 304) return null; // nothing changed since the last identical request
+      const data = await res.json();
+      if (!data.ok) return null;
+      return {
+        notifications: data.notifications || [],
+        has_more:      !!data.has_more,
+        next_cursor:   data.next_cursor || null,
+      };
+    } catch {
+      return null;
+    }
+  },
+
   reset() {
-    this._notifications = [];
-    this._unreadCount   = 0;
-    this._page          = 1;
-    this._loaded        = false;   // so it reloads on the next login/logout
+    this._notifications  = [];
+    this._unreadCount    = 0;
+    this._nextCursor     = null;
+    this._hasMore        = false;
+    this._scrolledDeeper = false;
+    this._loaded         = false;   // so it reloads on the next login/logout
     this._updateBadge();
     this.close();
   },
@@ -268,8 +328,16 @@ const NotifPanel = {
 
       const newCount = data.count || 0;
       if (newCount !== this._unreadCount) {
-        await this.load();                 // syncs the list + badge
-        if (this._open) this._renderDropdown();
+        this._unreadCount = newCount;
+        this._updateBadge();
+        // Only silently refresh the rendered list if the user hasn't scrolled past the
+        // first page — replacing/reordering content out from under someone actively
+        // scrolling through older items would be jarring. If they have scrolled deeper,
+        // the list simply refreshes fresh the next time the panel is reopened (open()
+        // always reloads page 1), and the badge above already reflects the true count.
+        if (this._open && !this._scrolledDeeper) {
+          await this.load();
+        }
       }
     } catch { /* silent */ }
   },
@@ -293,16 +361,32 @@ const NotifPanel = {
 
   open() {
     this._open = true;
-    // if the lazy list hasn't arrived yet, fetch it now (load() re-renders once it's back)
-    if (!this._loaded) this.load();
+    // Every fresh open re-fetches page 1 (cheap: ETag/304 short-circuits when nothing
+    // changed) instead of reusing whatever was last loaded — so reopening the panel
+    // always shows current data, without needing to silently rewrite an actively-scrolled
+    // list (see _poll()'s _scrolledDeeper guard for why that's avoided while open).
+    this.load();
+
     const btn      = document.getElementById('notifBellBtn');
     const dropdown = document.getElementById('notifDropdown');
+    const body     = document.getElementById('notifDropdownBody');
     if (btn)      btn.setAttribute('aria-expanded', 'true');
     if (dropdown) {
       this._renderDropdown();
       dropdown.classList.add('open');
       dropdown.setAttribute('aria-hidden', 'false');
     }
+
+    // Infinite scroll: fetch the next page once the user scrolls near the bottom
+    // (same threshold/technique already used by the admin panel's readers/sessions modals).
+    if (body) {
+      if (this._scrollHandler) body.removeEventListener('scroll', this._scrollHandler);
+      this._scrollHandler = () => {
+        if (body.scrollTop + body.clientHeight >= body.scrollHeight - 80) this._loadMore();
+      };
+      body.addEventListener('scroll', this._scrollHandler);
+    }
+
     UserMenu.close();
   },
 
@@ -310,32 +394,25 @@ const NotifPanel = {
     this._open = false;
     const btn      = document.getElementById('notifBellBtn');
     const dropdown = document.getElementById('notifDropdown');
+    const body     = document.getElementById('notifDropdownBody');
     if (btn)      btn.setAttribute('aria-expanded', 'false');
     if (dropdown) { dropdown.classList.remove('open'); dropdown.setAttribute('aria-hidden', 'true'); }
+    if (body && this._scrollHandler) body.removeEventListener('scroll', this._scrollHandler);
+  },
+
+  /** Screen-reader-only announcement (e.g. "3 more notifications loaded") for the
+   *  infinite-scroll region — new content that streams in silently on scroll would
+   *  otherwise be invisible to assistive tech. */
+  _announce(msg) {
+    const live = document.getElementById('notifLiveRegion');
+    if (live) live.textContent = msg;
   },
 
   _renderDropdown() {
     const body = document.getElementById('notifDropdownBody');
     if (!body) return;
 
-    const total = this._notifications.length;
-    const pages = Math.max(1, Math.ceil(total / this._PER_PAGE));
-    this._page  = Math.min(Math.max(1, this._page), pages);
-
-    const start = (this._page - 1) * this._PER_PAGE;
-    const list  = this._notifications.slice(start, start + this._PER_PAGE);
-
-    // ── pagination ───────────────────────────────────────
-    const pagWrap  = document.getElementById('notifPagination');
-    const prevBtn  = document.getElementById('notifPrevBtn');
-    const nextBtn  = document.getElementById('notifNextBtn');
-    const pageInfo = document.getElementById('notifPageInfo');
-    if (pagWrap) {
-      pagWrap.style.display   = pages > 1 ? 'flex' : 'none';
-      if (prevBtn)  prevBtn.disabled  = this._page <= 1;
-      if (nextBtn)  nextBtn.disabled  = this._page >= pages;
-      if (pageInfo) pageInfo.textContent = pages > 1 ? `${this._page} / ${pages}` : '';
-    }
+    const list = this._notifications;
 
     if (!list.length) {
       body.innerHTML = this._loaded
@@ -347,8 +424,10 @@ const NotifPanel = {
              <p>اعلانی برای نمایش وجود ندارد</p>
            </div>`
         : SKELETON_LIST_ITEM.repeat(3);
+      body.setAttribute('aria-busy', this._loaded ? 'false' : 'true');
       return;
     }
+    body.setAttribute('aria-busy', 'false');
 
     body.innerHTML = '';
     const frag = document.createDocumentFragment();
@@ -395,16 +474,13 @@ const NotifPanel = {
       frag.appendChild(item);
     });
 
+    if (this._loadingMore) {
+      const sentinel = document.createElement('div');
+      sentinel.innerHTML = SKELETON_LIST_ITEM;
+      frag.appendChild(sentinel.firstElementChild);
+    }
+
     body.appendChild(frag);
-  },
-
-  prevPage() {
-    if (this._page > 1) { this._page--; this._renderDropdown(); }
-  },
-
-  nextPage() {
-    const pages = Math.ceil(this._notifications.length / this._PER_PAGE);
-    if (this._page < pages) { this._page++; this._renderDropdown(); }
   },
 
   // mark read without closing the modal or touching the (already-closed) dropdown UI
@@ -954,12 +1030,6 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // ── notification dropdown pagination ───────────────────────
-  const notifPrev = e.target.closest('#notifPrevBtn');
-  if (notifPrev) { e.stopPropagation(); NotifPanel.prevPage(); return; }
-  const notifNext = e.target.closest('#notifNextBtn');
-  if (notifNext) { e.stopPropagation(); NotifPanel.nextPage(); return; }
-
   // (closing the detail modal — close button + overlay click — is wired
   // directly in assets/js/notif-detail.js, shared with the notifications page)
 
@@ -1170,8 +1240,13 @@ async function initLegacy() {
 
     allToolsList = toolsData.ok ? toolsData.tools : [];
 
-    if (notifData.ok) NotifPanel._notifications = notifData.notifications || [];
-    if (countData.ok) NotifPanel._unreadCount   = countData.count         || 0;
+    if (notifData.ok) {
+      NotifPanel._notifications = notifData.notifications || [];
+      NotifPanel._nextCursor    = notifData.next_cursor || null;
+      NotifPanel._hasMore       = !!notifData.has_more;
+      NotifPanel._loaded        = true;
+    }
+    if (countData.ok) NotifPanel._unreadCount = countData.count || 0;
     NotifPanel._updateBadge();
 
     startRealtime();

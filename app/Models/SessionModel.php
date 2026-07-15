@@ -9,9 +9,11 @@ declare(strict_types=1);
 
 class SessionModel
 {
-    /** List of active sessions (with the username). $userId=null -> all users. */
-    public static function active(?int $userId = null, int $limit = 300): array
+    /** List of active sessions (with the username), paginated. $userId=null -> all users. */
+    public static function active(?int $userId = null, int $limit = 300, int $offset = 0): array
     {
+        $limit  = max(1, min(300, $limit));
+        $offset = max(0, $offset);
         $sql = 'SELECT s.id, s.user_id, s.ip, s.user_agent, s.last_seen, s.expires_at,
                        u.username, u.display_name, u.role
                   FROM sessions s
@@ -22,11 +24,27 @@ class SessionModel
             $sql .= ' AND s.user_id = :uid';
             $params[':uid'] = $userId;
         }
-        $sql .= ' ORDER BY s.last_seen DESC LIMIT ' . max(1, (int) $limit);
+        $sql .= ' ORDER BY s.last_seen DESC LIMIT ' . $limit . ' OFFSET ' . $offset;
         try {
             return DB::run($sql, $params)->fetchAll();
         } catch (\Throwable $e) {
             return [];
+        }
+    }
+
+    /** Total number of active sessions — same scope as active(), for pagination's has_more */
+    public static function activeCount(?int $userId = null): int
+    {
+        $sql    = 'SELECT COUNT(*) FROM sessions WHERE expires_at > :now';
+        $params = [':now' => time()];
+        if ($userId !== null) {
+            $sql .= ' AND user_id = :uid';
+            $params[':uid'] = $userId;
+        }
+        try {
+            return (int) DB::run($sql, $params)->fetchColumn();
+        } catch (\Throwable $e) {
+            return 0;
         }
     }
 

@@ -9,13 +9,16 @@ declare(strict_types=1);
 
 class FeedController
 {
-    // ── notifications: active notifications visible to the current user ──
+    // ── notifications: active notifications visible to the current user (bell panel) ──
     //
-    // Cheap ETag: since this endpoint is polled every 25 seconds by the bell panel,
-    // only a lightweight query (id/updated_at/is_read) runs first and an ETag is built
-    // from it; the full query + badges + serialize only runs when this fingerprint
-    // doesn't match If-None-Match — meaning in the frequent "nothing changed" case,
-    // the heavy cost is never paid at all.
+    // Keyset-paginated (?before=<cursor>&limit=N — same Cursor encoding as the history
+    // page) instead of returning a capped all-at-once list — the client infinite-scrolls
+    // further pages in as needed, no arbitrary "bell shows at most N" limitation.
+    //
+    // Cheap ETag: since this is polled on every fresh panel-open, an O(1) watermark
+    // (latest timestamp + total + unread count — each a single indexed lookup against
+    // notification_recipients, no per-row scan) is hashed together with the requested
+    // cursor/limit; the full query + badges + serialize only runs on a miss.
     public function notifications(): void
     {
         if (!UserSession::check()) {
@@ -28,18 +31,19 @@ class FeedController
     }
 
     // Logged-in user's feed — it's per-user and doesn't enter the shared micro-cache;
-    // the same "cheap fingerprint → 304" pattern removes the cost of the frequent path.
+    // the same "cheap watermark → 304" pattern removes the cost of the frequent path.
     private function notificationsForUser(int $uid): void
     {
-        $nm          = new NotificationModel();
-        $isAdmin     = UserSession::isAdmin();
-        $fp          = $nm->activeUserFingerprint($uid, $isAdmin);
-        $fingerprint = implode('|', array_map(
-            static fn($r) => $r['id'] . ':' . $r['updated_at'] . ':' . $r['is_read'],
-            $fp
-        ));
+        $nm      = new NotificationModel();
+        $isAdmin = UserSession::isAdmin();
 
-        $etag       = '"notif-u' . $uid . '-' . md5($fingerprint) . '"';
+        $perPage = max(1, min(50, (int) ($_GET['limit'] ?? 20)));
+        $cursor  = Cursor::decode(trim($_GET['before'] ?? ''));
+
+        $watermark = $nm->bellWatermark($uid, $isAdmin);
+        $etagBase  = ($watermark['latest'] ?? '') . '|' . $watermark['total'] . '|' . $watermark['unread']
+            . '|' . ($cursor !== null ? $cursor['created_at'] . ':' . $cursor['id'] : '') . '|' . $perPage;
+        $etag       = '"notif-u' . $uid . '-' . md5($etagBase) . '"';
         $clientEtag = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
 
         header('Cache-Control: private, max-age=0, must-revalidate');
@@ -50,8 +54,9 @@ class FeedController
             exit;
         }
 
-        // Only here (fingerprint mismatch) does the full query + badges + serialize run
-        $rows = $nm->allActiveForUser($uid, $isAdmin);
+        // Only here (watermark mismatch) does the full query + badges + serialize run
+        $page = $nm->bellFeed($uid, $isAdmin, $cursor, $perPage);
+        $rows = $page['rows'];
         // Fetch badges in one batched query instead of N separate queries (like bootstrap)
         $ids      = array_map(fn($r) => (int) $r['id'], $rows);
         $badgeMap = $nm->getBadgesForIds($ids);
@@ -61,7 +66,18 @@ class FeedController
             $result[] = NotificationModel::toFrontend($row, $badges);
         }
 
-        echo json_encode(['ok' => true, 'notifications' => $result], JSON_UNESCAPED_UNICODE);
+        $nextCursor = null;
+        if ($page['has_more'] && !empty($rows)) {
+            $last       = end($rows);
+            $nextCursor = Cursor::encode($last['created_at'], (int) $last['id']);
+        }
+
+        echo json_encode([
+            'ok'            => true,
+            'notifications' => $result,
+            'has_more'      => $page['has_more'],
+            'next_cursor'   => $nextCursor,
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ── unread_count: count of unread notifications — with ETag/304 support ──
@@ -132,6 +148,10 @@ class FeedController
             return;
         }
         $nm = new NotificationModel();
+        if (!$nm->findById($nid)) {
+            echo json_encode(['ok' => false, 'msg' => 'اعلان یافت نشد']);
+            return;
+        }
         $nm->markRead(UserSession::id(), $nid);
         echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
     }

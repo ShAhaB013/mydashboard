@@ -104,6 +104,11 @@ class CategoryModel
      * in use should be cleared via its tools, not deleted out from under them). category_access
      * and notification_badges rows referencing it are cleaned up automatically by the FK
      * ON DELETE CASCADE set up in the categories migration.
+     *
+     * Since no tool may carry this category (checked above), the tool_access visibility path
+     * can never have matched it anyway — the only notifications affected are the ones that had
+     * it as a direct badge, which cascade-delete along with the category. Those notifications'
+     * notification_recipients rows need a fresh recompute (their badge set just shrank).
      */
     public function delete(int $id): bool
     {
@@ -113,7 +118,18 @@ class CategoryModel
         )->fetchColumn();
         if ($toolCount > 0) return false;
 
+        $affectedNotifIds = array_column(
+            DB::run('SELECT notification_id FROM notification_badges WHERE category_id = :id', [':id' => $id])->fetchAll(),
+            'notification_id'
+        );
+
         DB::run('DELETE FROM categories WHERE id = :id', [':id' => $id]);
+
+        $nm = new NotificationModel();
+        foreach ($affectedNotifIds as $nid) {
+            $nm->refreshRecipientsForNotification((int) $nid);
+        }
+
         return true;
     }
 }

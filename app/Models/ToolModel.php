@@ -161,13 +161,19 @@ class ToolModel
                 ':id'           => $tool['id'],
             ]
         );
+
+        if ((int) $tool['category_id'] !== (int) $categoryId) {
+            $this->refreshRecipientsForToolAccess((int) $tool['id']);
+        }
+
         return true;
     }
 
     /** Edit a tool directly by ID */
     public function updateById(int $id, array $data): bool
     {
-        $categoryId = (new CategoryModel())->findOrCreateByName((string) ($data['badge'] ?? ''));
+        $categoryId    = (new CategoryModel())->findOrCreateByName((string) ($data['badge'] ?? ''));
+        $oldCategoryId = DB::run('SELECT category_id FROM tools WHERE id = :id', [':id' => $id])->fetchColumn();
 
         DB::run(
             'UPDATE tools SET
@@ -190,6 +196,11 @@ class ToolModel
                 ':id'           => $id,
             ]
         );
+
+        if ((int) $oldCategoryId !== (int) $categoryId) {
+            $this->refreshRecipientsForToolAccess($id);
+        }
+
         return true;
     }
 
@@ -200,6 +211,14 @@ class ToolModel
         if (!$tool) return false;
 
         DB::run('DELETE FROM tools WHERE id = :id', [':id' => $tool['id']]);
+        return true;
+    }
+
+    /** Delete a tool directly by ID */
+    public function deleteById(int $id): bool
+    {
+        $this->refreshRecipientsForToolAccess($id); // capture affected users BEFORE tool_access cascades away
+        DB::run('DELETE FROM tools WHERE id = :id', [':id' => $id]);
         return true;
     }
 
@@ -218,9 +237,32 @@ class ToolModel
         );
         $isPublic = (int) DB::run('SELECT is_public FROM tools WHERE id = :id', [':id' => $id])->fetchColumn();
         if ($isPublic === 1) {
+            $this->refreshRecipientsForToolAccess($id); // capture affected users BEFORE the purge below
             DB::run('DELETE FROM tool_access WHERE tool_id = :id', [':id' => $id]);
         }
         return true;
+    }
+
+    /**
+     * Recomputes notification visibility for every user with tool_access to this tool —
+     * called BEFORE any change that alters or removes that access (tool deleted, made
+     * public, or re-categorized), since it reads tool_access itself to find who's affected.
+     * A tool's category assignment (and who holds tool_access to it) determines which
+     * notifications those users can reach via NotificationModel's tool-access path; see
+     * refreshRecipientsForUser() there for the full per-user recompute.
+     */
+    private function refreshRecipientsForToolAccess(int $toolId): void
+    {
+        $userIds = array_column(
+            DB::run('SELECT user_id FROM tool_access WHERE tool_id = :id', [':id' => $toolId])->fetchAll(),
+            'user_id'
+        );
+        if (empty($userIds)) return;
+
+        $nm = new NotificationModel();
+        foreach ($userIds as $uid) {
+            $nm->refreshRecipientsForUser((int) $uid);
+        }
     }
 
     /** Reorder based on an array of indexes */
@@ -261,13 +303,6 @@ class ToolModel
         foreach ($ids as $pos => $id) {
             $stmt->execute([':o' => $pos, ':id' => $id]);
         }
-        return true;
-    }
-
-    /** Delete a tool directly by id */
-    public function deleteById(int $id): bool
-    {
-        DB::run('DELETE FROM tools WHERE id = :id', [':id' => $id]);
         return true;
     }
 
