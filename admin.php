@@ -74,6 +74,7 @@ $decoModel         = new DecoModel($decoDb, $config['protected_decos']);
 $userModel         = new UserModel();
 $accessModel       = new AccessModel();
 $notificationModel = new NotificationModel();
+$categoryModel     = new CategoryModel();
 
 // ── API routing ────────────────────────────────────────────
 if ($isApi) {
@@ -99,6 +100,7 @@ if ($isApi) {
     $notifCtrl  = new NotificationController($notificationModel, $request);
     $settingsCtrl = new SettingsController($request);
     $sessionCtrl  = new SessionController($request);
+    $categoryCtrl = new CategoryController($categoryModel, $request);
 
     $router = new Router(
         $request,
@@ -109,7 +111,8 @@ if ($isApi) {
         $accessCtrl,
         $notifCtrl,
         $settingsCtrl,
-        $sessionCtrl
+        $sessionCtrl,
+        $categoryCtrl
     );
     $router->dispatch();
     exit;
@@ -140,6 +143,12 @@ if ($page === 'settings') {
     $settings  = SettingsModel::all();
     $csrfToken = $_SESSION['csrf_token'] ?? '';
     require __DIR__ . '/app/Views/settings_view.php';
+    exit;
+}
+
+if ($page === 'categories') {
+    $csrfToken = $_SESSION['csrf_token'] ?? '';
+    require __DIR__ . '/app/Views/categories_view.php';
     exit;
 }
 

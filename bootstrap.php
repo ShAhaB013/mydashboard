@@ -57,6 +57,7 @@ spl_autoload_register(function (string $class): void {
             'NotificationController' => $ctl . 'NotificationController.php',
             'SessionController'      => $ctl . 'SessionController.php',
             'SettingsController'     => $ctl . 'SettingsController.php',
+            'CategoryController'     => $ctl . 'CategoryController.php',
             // ── Controllers (public — api.php) ────────────
             'AppController'          => $ctl . 'AppController.php',
             'AuthController'         => $ctl . 'AuthController.php',

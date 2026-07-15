@@ -58,4 +58,62 @@ class CategoryModel
         $id = DB::run('SELECT id FROM categories WHERE name = :name', [':name' => $name])->fetchColumn();
         return $id !== false ? (int) $id : null;
     }
+
+    /**
+     * Every category (including ones with zero tools — "orphans" left behind when a
+     * category's last tool is deleted/recategorized, since there is no cascading
+     * cleanup for that) with counts of what still references it, for the category
+     * management page. tool_count=0 rows are the ones a category_access/notification_badges
+     * grant could be silently pointing at with no tool left to make it discoverable
+     * anywhere else in the admin UI.
+     */
+    public function allWithCounts(): array
+    {
+        return DB::run(
+            'SELECT c.id, c.name,
+                    COUNT(DISTINCT t.id)   AS tool_count,
+                    COUNT(DISTINCT ca.user_id)          AS access_count,
+                    COUNT(DISTINCT nb.notification_id)  AS notification_count
+             FROM categories c
+             LEFT JOIN tools t                ON t.category_id = c.id
+             LEFT JOIN category_access ca      ON ca.category_id = c.id
+             LEFT JOIN notification_badges nb  ON nb.category_id = c.id
+             GROUP BY c.id, c.name
+             ORDER BY c.name ASC'
+        )->fetchAll();
+    }
+
+    /** Rename a category. Fails if the new name is empty or already used by another category. */
+    public function rename(int $id, string $newName): bool
+    {
+        $newName = trim($newName);
+        if ($newName === '') return false;
+
+        $clash = DB::run(
+            'SELECT id FROM categories WHERE name = :name AND id != :id',
+            [':name' => $newName, ':id' => $id]
+        )->fetchColumn();
+        if ($clash !== false) return false;
+
+        DB::run('UPDATE categories SET name = :name WHERE id = :id', [':name' => $newName, ':id' => $id]);
+        return true;
+    }
+
+    /**
+     * Delete a category — only allowed when no tool currently carries it (a category still
+     * in use should be cleared via its tools, not deleted out from under them). category_access
+     * and notification_badges rows referencing it are cleaned up automatically by the FK
+     * ON DELETE CASCADE set up in the categories migration.
+     */
+    public function delete(int $id): bool
+    {
+        $toolCount = (int) DB::run(
+            'SELECT COUNT(*) FROM tools WHERE category_id = :id',
+            [':id' => $id]
+        )->fetchColumn();
+        if ($toolCount > 0) return false;
+
+        DB::run('DELETE FROM categories WHERE id = :id', [':id' => $id]);
+        return true;
+    }
 }

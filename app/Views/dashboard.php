@@ -94,6 +94,20 @@
       <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
 
+    <a href="/admin?page=categories" class="admin-tile">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.17L4 3a1 1 0 0 0-1 1l.17 5.59a2 2 0 0 0 .66 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.34a2 2 0 0 0 0-2.83z"/>
+          <circle cx="7.5" cy="7.5" r="1.5"/>
+        </svg>
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">مدیریت دسته‌بندی‌ها</span>
+        <span class="admin-tile-count">تغییر نام و حذف دسته‌بندی‌های بدون ابزار</span>
+      </span>
+      <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+
     <button type="button" class="admin-tile" data-act="togglePanel" data-panel="iconsBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

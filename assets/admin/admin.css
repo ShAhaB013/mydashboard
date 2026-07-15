@@ -276,6 +276,14 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   .blk-side { justify-content:space-between; }
 }
 
+/* Category management page: small inline count chips inside .blk-meta */
+.cat-count { display:inline-flex; align-items:center; font-size:10.5px; font-weight:700;
+  border-radius:var(--radius-xs); padding:2px 8px; margin-left:6px;
+  background:var(--bg-hover); color:var(--text-2); border:1px solid var(--border); }
+.cat-count-warn { background:rgba(217,119,6,.12); color:#d97706; border:1px solid rgba(217,119,6,.3); }
+.category-list-empty { text-align:center; color:var(--text-3); font-size:13px; padding:26px 12px; }
+.category-list { display:flex; flex-direction:column; gap:9px; padding:16px; }
+
 /* ── Layout ── */
 .admin-wrap { max-width:1040px; margin:0 auto; padding:32px 24px 80px; }
 /* ═══════════════════════════════════════════════════════════
@@ -572,6 +580,12 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .modal-body { display:grid; grid-template-columns:1fr 220px; overflow:hidden; flex:1; min-height:0; }
 .modal-form-col { padding:18px 20px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
 .modal-preview-col { padding:16px; border-right:1px solid var(--border); background:var(--bg); display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+
+/* Small single-field modal (e.g. category rename) — overrides the default
+   two-column .modal-body layout meant for a form+preview pane */
+.rename-modal { max-width:380px; }
+.rename-modal-body { display:block; padding:18px 20px 20px; overflow-y:visible; }
+.rename-modal-body .field:last-child { margin-bottom:0; }
 .modal-foot { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:12px 20px; border-top:1px solid var(--border); flex-shrink:0; }
 .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .form-grid .full { grid-column:1/-1; }

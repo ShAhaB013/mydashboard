@@ -203,12 +203,23 @@ class ToolModel
         return true;
     }
 
+    /**
+     * Toggles a tool's is_public flag. When flipping to public, any existing tool_access
+     * grants for it are purged — a public tool is already visible to everyone, so a stale
+     * tool_access row would otherwise keep silently expanding just that user's notification
+     * reach (NotificationModel's tool_access UNION branch has no is_public check of its own)
+     * with no way for an admin to see or suspect it in the UI.
+     */
     public function togglePublic(int $id): bool
     {
         DB::run(
             'UPDATE tools SET is_public = 1 - is_public WHERE id = :id',
             [':id' => $id]
         );
+        $isPublic = (int) DB::run('SELECT is_public FROM tools WHERE id = :id', [':id' => $id])->fetchColumn();
+        if ($isPublic === 1) {
+            DB::run('DELETE FROM tool_access WHERE tool_id = :id', [':id' => $id]);
+        }
         return true;
     }
 

@@ -16,6 +16,7 @@ class Router
     private NotificationController $notifCtrl;
     private SettingsController     $settingsCtrl;
     private SessionController      $sessionCtrl;
+    private CategoryController     $categoryCtrl;
 
     private const ROUTES = [
         // ── tools ────────────────────────────────────────────
@@ -69,6 +70,11 @@ class Router
         'terminate_user_sessions' => [SessionController::class, 'terminateUser'],
         'terminate_other_sessions'=> [SessionController::class, 'terminateOthers'],
         'save_session_ttl'        => [SessionController::class, 'saveTtl'],
+
+        // ── categories ───────────────────────────────────────
+        'list_categories'   => [CategoryController::class, 'list'],
+        'rename_category'   => [CategoryController::class, 'rename'],
+        'delete_category'   => [CategoryController::class, 'delete'],
     ];
 
     public function __construct(
@@ -80,7 +86,8 @@ class Router
         AccessController       $accessCtrl,
         NotificationController $notifCtrl,
         SettingsController     $settingsCtrl,
-        SessionController      $sessionCtrl
+        SessionController      $sessionCtrl,
+        CategoryController     $categoryCtrl
     ) {
         $this->request      = $request;
         $this->toolCtrl     = $toolCtrl;
@@ -91,6 +98,7 @@ class Router
         $this->notifCtrl    = $notifCtrl;
         $this->settingsCtrl = $settingsCtrl;
         $this->sessionCtrl  = $sessionCtrl;
+        $this->categoryCtrl = $categoryCtrl;
     }
 
     public function dispatch(): void
@@ -118,6 +126,7 @@ class Router
             NotificationController::class => $this->notifCtrl,
             SettingsController::class     => $this->settingsCtrl,
             SessionController::class      => $this->sessionCtrl,
+            CategoryController::class     => $this->categoryCtrl,
             default => (function () {
                 Response::error('کنترلر یافت نشد');
                 exit;

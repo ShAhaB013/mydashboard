@@ -1433,6 +1433,114 @@ const SessionsManager = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// CategoriesManager — category management page (rename / delete)
+// A category can only be deleted once no tool carries it anymore (enforced server-side
+// too); this page exists mainly to clean up "orphan" categories — ones a tool no longer
+// references but that still have stray category_access/notification_badges rows pointing
+// at them, since nothing else in the admin UI can see or reach those.
+// ═══════════════════════════════════════════════════════════
+const CategoriesManager = {
+  _categories: [],
+
+  async load() {
+    const list = document.getElementById('categoryList');
+    list.innerHTML = SKELETON_TABLE_ROW.repeat(3);
+    const res = await Api.call('list_categories', {});
+    if (!res.ok) {
+      list.innerHTML = `<div class="category-list-empty">${esc(res.msg || 'خطا در دریافت دسته‌بندی‌ها')}</div>`;
+      return;
+    }
+    this._categories = res.categories || [];
+    document.getElementById('categoryCountBadge').textContent = this._categories.length;
+    this._render();
+  },
+
+  _render() {
+    const list = document.getElementById('categoryList');
+    if (!this._categories.length) {
+      list.innerHTML = '<div class="category-list-empty">هیچ دسته‌بندی‌ای ثبت نشده است</div>';
+      return;
+    }
+    list.className = 'category-list';
+    list.innerHTML = this._categories.map(c => this._row(c)).join('');
+  },
+
+  _row(c) {
+    const orphan = c.tool_count === 0;
+    const toolChip = `<span class="cat-count${orphan ? ' cat-count-warn' : ''}">${c.tool_count} ابزار</span>`;
+    const accessChip = c.access_count > 0 ? `<span class="cat-count">${c.access_count} دسترسی کاربر</span>` : '';
+    const notifChip  = c.notification_count > 0 ? `<span class="cat-count">${c.notification_count} اعلان</span>` : '';
+    const deleteTitle = orphan ? 'حذف دسته‌بندی' : 'برای حذف، ابتدا دسته‌بندی ابزارهای این دسته را تغییر دهید';
+    return `
+      <div class="blk-row">
+        <div class="blk-info">
+          <div class="blk-ip">${esc(c.name)}</div>
+          <div class="blk-meta">${toolChip}${accessChip}${notifChip}</div>
+        </div>
+        <div class="blk-side">
+          <button class="btn btn-secondary btn-icon btn-sm" title="تغییر نام" data-act="catOpenRename" data-id="${c.id}" data-name="${esc(c.name)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="btn btn-danger btn-icon btn-sm" title="${esc(deleteTitle)}" data-act="catOpenDelete" data-id="${c.id}" data-name="${esc(c.name)}" ${orphan ? '' : 'disabled aria-disabled="true"'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>`;
+  },
+
+  openRename(id, name) {
+    document.getElementById('catRenameId').value = id;
+    document.getElementById('catRenameName').value = name;
+    Modal.open('categoryRenameModal');
+    setTimeout(() => document.getElementById('catRenameName').focus(), 100);
+  },
+
+  closeRename() { Modal.close('categoryRenameModal'); },
+
+  renameKey(e) {
+    if (e.key === 'Enter') { e.preventDefault(); this.saveRename(); }
+  },
+
+  async saveRename() {
+    const id   = parseInt(document.getElementById('catRenameId').value, 10);
+    const name = document.getElementById('catRenameName').value.trim();
+    if (!name) return FieldErr.set('catRenameName', 'نام دسته‌بندی الزامی است');
+
+    const res = await Api.call('rename_category', { id, name });
+    if (res.ok) {
+      Toast.show('نام دسته‌بندی تغییر کرد', 'success', 'ذخیره موفق');
+      this.closeRename();
+      this.load();
+    } else {
+      FieldErr.set('catRenameName', res.msg || 'خطا در تغییر نام');
+    }
+  },
+
+  openDelete(id, name) {
+    Confirm.show({
+      title: 'حذف دسته‌بندی',
+      heading: 'این دسته‌بندی حذف شود؟',
+      body: `دسته‌بندی «<span class="item-name">${esc(name)}</span>» برای همیشه حذف می‌شود.`,
+      warn: 'این عملیات قابل بازگشت نیست.',
+      btnLabel: 'حذف',
+      onConfirm: async () => {
+        const res = await Api.call('delete_category', { id });
+        if (!res.ok) { Toast.show(res.msg || 'خطا در حذف', 'error'); return; }
+        Confirm.close();
+        Toast.show('دسته‌بندی حذف شد', 'success', 'حذف موفق');
+        this.load();
+      },
+    });
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
 // SettingsManager — saves email/SMTP settings + sends a test email
 // ═══════════════════════════════════════════════════════════
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/;
@@ -1608,6 +1716,11 @@ document.addEventListener('DOMContentLoaded', () => {
     UserManager.load();
   }
 
+  // category management page
+  if (document.getElementById('categoryList')) {
+    CategoriesManager.load();
+  }
+
   // test email (settings page): the send button stays disabled until the email format is valid
   const testEmailInput = document.getElementById('setTestEmail');
   const testEmailBtn   = document.querySelector('[data-act="testSettings"]');
@@ -1751,5 +1864,11 @@ if (window.Actions) {
     // email/SMTP settings
     saveSettings:       () => SettingsManager.save(),
     testSettings:       () => SettingsManager.test(),
+    // categories
+    catOpenRename:      (el) => CategoriesManager.openRename(parseInt(el.dataset.id, 10), el.dataset.name),
+    catCloseRename:     () => CategoriesManager.closeRename(),
+    catSaveRename:      () => CategoriesManager.saveRename(),
+    catRenameKey:       (el, e) => CategoriesManager.renameKey(e),
+    catOpenDelete:      (el) => CategoriesManager.openDelete(parseInt(el.dataset.id, 10), el.dataset.name),
   });
 }
