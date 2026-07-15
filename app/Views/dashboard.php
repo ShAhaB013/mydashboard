@@ -163,7 +163,7 @@
           </button>
         </div>
       </div>
-      <div class="add-asset-form">
+      <div class="add-asset-form" id="iconAddForm" style="display:none;">
         <h4>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -180,7 +180,7 @@
             <textarea id="newIconPath" rows="3" placeholder='<path d="M12 2..." fill="currentColor"/>'></textarea>
           </div>
         </div>
-        <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
           <button class="btn btn-primary btn-sm" data-act="addNewIcon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             افزودن آیکون
@@ -227,7 +227,7 @@
           </button>
         </div>
       </div>
-      <div class="add-asset-form">
+      <div class="add-asset-form" id="decoAddForm" style="display:none;">
         <h4>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -244,7 +244,7 @@
             <textarea id="newDecoSVG" rows="5" placeholder='<svg class="card-deco" viewBox="0 0 120 60" aria-hidden="true">...</svg>'></textarea>
           </div>
         </div>
-        <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
           <button class="btn btn-primary btn-sm" data-act="addNewDeco">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             افزودن انیمیشن

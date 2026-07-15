@@ -11,6 +11,8 @@ const State = {
   selColor:    '',
   selIconKey:  null,
   selDecoKey:  null,
+  iconAddOpen: false,
+  decoAddOpen: false,
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -974,9 +976,28 @@ const IconEditor = {
       btn.onclick = () => this.open(key);
       grid.appendChild(btn);
     }
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'asset-opt asset-opt-add' + (State.iconAddOpen ? ' active' : '');
+    addBtn.title = 'آیکون جدید';
+    addBtn.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    addBtn.onclick = () => this.toggleAdd();
+    grid.appendChild(addBtn);
+  },
+  toggleAdd() {
+    State.iconAddOpen = !State.iconAddOpen;
+    if (State.iconAddOpen) {
+      State.selIconKey = null;
+      document.getElementById('iconEditor').style.display = 'none';
+    }
+    document.getElementById('iconAddForm').style.display = State.iconAddOpen ? 'block' : 'none';
+    this.buildGrid();
+    if (State.iconAddOpen) setTimeout(() => document.getElementById('newIconKey').focus(), 30);
   },
   open(key) {
     State.selIconKey = key;
+    State.iconAddOpen = false;
+    document.getElementById('iconAddForm').style.display = 'none';
     this.buildGrid();
     document.getElementById('iconEditor').style.display    = 'block';
     document.getElementById('iconEditorKey').textContent   = key;
@@ -1063,9 +1084,28 @@ const DecoEditor = {
       btn.onclick = () => this.open(key);
       grid.appendChild(btn);
     }
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'asset-opt deco-item asset-opt-add' + (State.decoAddOpen ? ' active' : '');
+    addBtn.title = 'انیمیشن جدید';
+    addBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    addBtn.onclick = () => this.toggleAdd();
+    grid.appendChild(addBtn);
+  },
+  toggleAdd() {
+    State.decoAddOpen = !State.decoAddOpen;
+    if (State.decoAddOpen) {
+      State.selDecoKey = null;
+      document.getElementById('decoEditor').style.display = 'none';
+    }
+    document.getElementById('decoAddForm').style.display = State.decoAddOpen ? 'block' : 'none';
+    this.buildGrid();
+    if (State.decoAddOpen) setTimeout(() => document.getElementById('newDecoKey').focus(), 30);
   },
   open(key) {
     State.selDecoKey = key;
+    State.decoAddOpen = false;
+    document.getElementById('decoAddForm').style.display = 'none';
     this.buildGrid();
     document.getElementById('decoEditor').style.display  = 'block';
     document.getElementById('decoEditorKey').textContent = key;
