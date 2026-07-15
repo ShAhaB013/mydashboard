@@ -785,6 +785,7 @@ const NM = {
     if (window.ThemedTimePicker) ThemedTimePicker.refresh(document.getElementById('nf-expires-time'));
     document.getElementById('nf-all-users').checked  = false;
     document.querySelectorAll('.badge-check-cb').forEach(cb => cb.checked = false);
+    this._syncAudienceUI();
     this._showExpiryDisplay(0);
     if (this._xhr) { try { this._xhr.abort(); } catch (e) {} this._xhr = null; }
     this._pendingImage  = null;
@@ -821,6 +822,7 @@ const NM = {
       const cb = document.querySelector(`.badge-check-cb[value="${CSS.escape(b)}"]`);
       if (cb) cb.checked = true;
     });
+    this._syncAudienceUI();
 
     // ── set the expiry date and time ────────────────────────
     if (n.expires_at) {
@@ -873,6 +875,8 @@ const NM = {
     const mark = () => this._markDirty();
     modal.addEventListener('input',  mark);
     modal.addEventListener('change', mark);
+
+    document.getElementById('nf-all-users').addEventListener('change', () => this._syncAudienceUI());
   },
 
   // ── live character counter for the notification title (same pattern as RTE._updateCounter) ──
@@ -931,6 +935,14 @@ const NM = {
       label.appendChild(document.createTextNode(badge));
       grid.appendChild(label);
     });
+  },
+
+  // When "all users" is on, the category grid is irrelevant — disable it, but leave
+  // prior selections checked so they reappear if the toggle is switched off again.
+  _syncAudienceUI() {
+    const allOn = document.getElementById('nf-all-users').checked;
+    document.getElementById('badgesRow').classList.toggle('is-disabled', allOn);
+    document.querySelectorAll('.badge-check-cb').forEach(cb => cb.disabled = allOn);
   },
 
   // ── image upload (single file, with a live progress bar) ────────
@@ -1094,7 +1106,8 @@ const NM = {
     const body        = RTE.getHTML();
     const allUsersChk = document.getElementById('nf-all-users').checked;
     const allUsers    = allUsersChk ? '1' : '0';
-    const badges      = [...document.querySelectorAll('.badge-check-cb:checked')].map(c => c.value);
+    // categories are disabled (and irrelevant) once "all users" is on — never submit them
+    const badges      = allUsersChk ? [] : [...document.querySelectorAll('.badge-check-cb:checked')].map(c => c.value);
 
     // combine date+time and convert to UTC for correct storage regardless of server timezone
     const expiresDate = document.getElementById('nf-expires-date').value;

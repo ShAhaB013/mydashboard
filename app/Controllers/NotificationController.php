@@ -333,8 +333,24 @@ class NotificationController
             Response::error('مسیر تصویر بند انگشتی نامعتبر است'); return null;
         }
 
-        if (!$targetAll && empty($badges)) {
-            Response::error('مخاطبان اعلان را مشخص کنید', 'target_all_users'); return null;
+        if (!$targetAll) {
+            if (empty($badges)) {
+                Response::error('مخاطبان اعلان را مشخص کنید', 'target_all_users'); return null;
+            }
+
+            // Drop any category no longer linked to a tool (same whitelist NotificationModel::setBadges
+            // uses) — if that empties the list, saving would silently create a notification nobody
+            // can see, so reject it here instead of failing invisibly.
+            $categoryModel = new CategoryModel();
+            $validBadges   = array_values(array_filter(
+                $badges,
+                static fn($b) => $categoryModel->findIdByName((string) $b) !== null
+            ));
+            if (empty($validBadges)) {
+                Response::error('دسته‌بندی‌های انتخاب‌شده دیگر معتبر نیستند، لطفاً صفحه را تازه‌سازی کنید', 'target_all_users');
+                return null;
+            }
+            $badges = $validBadges;
         }
 
         return [
