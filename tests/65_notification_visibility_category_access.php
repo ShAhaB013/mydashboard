@@ -17,7 +17,6 @@ $notifTitle = Fixtures::uniq('catnotif');
 $createRes  = $admin->postJson('/admin.php?api=create_notification', [
     'title'            => $notifTitle,
     'body'             => 'category-restricted body',
-    'is_public'        => 0,
     'target_all_users' => 0,
     'badges'           => [$categoryName],
 ]);

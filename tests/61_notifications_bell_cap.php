@@ -16,7 +16,7 @@ $now = time();
 for ($i = 0; $i < 120; $i++) {
     $id = Fixtures::createNotification([
         'title' => Fixtures::uniq('bell' . $i),
-        'is_public' => 1, 'target_all_users' => 1,
+        'target_all_users' => 1,
         'created_at' => date('Y-m-d H:i:s', $now - $i), // descending, newest first
     ]);
     $ids[] = $id;
@@ -59,9 +59,9 @@ Fixtures::deleteNotificationsByPrefix();
 Assert::test('فید زنگوله: منقضی+خوانده حذف می‌شود، منقضی+ناخوانده و فعال+خوانده باقی می‌مانند', function () use ($BASE, $ACC, $uid) {
     $past = time() - 3600; // expired
 
-    $expiredRead   = Fixtures::createNotification(['title' => Fixtures::uniq('exp_read'), 'is_public' => 1, 'target_all_users' => 1, 'expires_at' => $past]);
-    $expiredUnread = Fixtures::createNotification(['title' => Fixtures::uniq('exp_unread'), 'is_public' => 1, 'target_all_users' => 1, 'expires_at' => $past]);
-    $activeRead    = Fixtures::createNotification(['title' => Fixtures::uniq('act_read'), 'is_public' => 1, 'target_all_users' => 1, 'expires_at' => 0]);
+    $expiredRead   = Fixtures::createNotification(['title' => Fixtures::uniq('exp_read'), 'target_all_users' => 1, 'expires_at' => $past]);
+    $expiredUnread = Fixtures::createNotification(['title' => Fixtures::uniq('exp_unread'), 'target_all_users' => 1, 'expires_at' => $past]);
+    $activeRead    = Fixtures::createNotification(['title' => Fixtures::uniq('act_read'), 'target_all_users' => 1, 'expires_at' => 0]);
 
     DB::run('INSERT INTO notification_reads (user_id, notification_id, read_at) VALUES (:u,:n,NOW())', [':u' => $uid, ':n' => $expiredRead]);
     DB::run('INSERT INTO notification_reads (user_id, notification_id, read_at) VALUES (:u,:n,NOW())', [':u' => $uid, ':n' => $activeRead]);

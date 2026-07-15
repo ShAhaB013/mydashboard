@@ -18,16 +18,15 @@ class NotificationModel
     // ── Visibility Queries ──────────────────────────────────
 
     /**
-     * Four-branch UNION subquery for the notifications "accessible" to a user
-     * (public ∪ target_all_users ∪ category-access-matched ∪ tool-access-matched)
+     * Three-branch UNION subquery for the notifications "accessible" to a user
+     * (target_all_users ∪ category-access-matched ∪ tool-access-matched)
      * — instead of a JOIN + OR condition that no index combination could optimize
      * (index merge only works for OR on a single table), each branch is scanned
-     * with its own dedicated index (idx_pub_created / idx_target_created / the
-     * category/tool access joins). UNION (not UNION ALL) itself removes duplicate
-     * rows between branches since the selected columns for a shared row are
-     * exactly identical.
+     * with its own dedicated index (idx_target_created / the category/tool access
+     * joins). UNION (not UNION ALL) itself removes duplicate rows between branches
+     * since the selected columns for a shared row are exactly identical.
      *
-     * The 4th branch (tool_access) mirrors ToolModel::allForUser(), which already
+     * The 3rd branch (tool_access) mirrors ToolModel::allForUser(), which already
      * treats direct access to one specific tool as equivalent to category access
      * for card visibility — a user who can see a categorized tool via tool_access
      * alone (no category_access row) should also see notifications targeted at
@@ -43,9 +42,7 @@ class NotificationModel
         $tail = $limitPerBranch !== null
             ? ' ORDER BY n.created_at DESC, n.id DESC LIMIT ' . $limitPerBranch
             : '';
-        return "(SELECT {$cols} FROM notifications n WHERE n.is_public = 1{$tail})
-                 UNION
-                 (SELECT {$cols} FROM notifications n WHERE n.target_all_users = 1{$tail})
+        return "(SELECT {$cols} FROM notifications n WHERE n.target_all_users = 1{$tail})
                  UNION
                  (SELECT {$cols} FROM notifications n
                     JOIN notification_badges nb ON nb.notification_id = n.id
@@ -61,7 +58,7 @@ class NotificationModel
 
     /**
      * Notifications visible to a logged-in user (the bell's limited feed).
-     * Includes: public + all-users + badge matching the user's access.
+     * Includes: all-users + badge matching the user's access.
      *
      * Capped at the most recent BELL_CAP items at scale (each branch yields up
      * to BELL_CAP candidates, then sorted with unread priority and trimmed back
@@ -215,17 +212,15 @@ class NotificationModel
             : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
         $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
         $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
-        $s2 = $s3 = $s4 = $f2 = $f3 = $f4 = '';
+        $s2 = $s3 = $f2 = $f3 = '';
         if (!$isAdmin) {
             $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
             $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
             $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
             $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
-            $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
-            $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
         }
 
-        $c1 = $c2 = $c3 = $c4 = '';
+        $c1 = $c2 = $c3 = '';
         if ($cursor !== null) {
             $cmp = $desc ? '<' : '>';
             $params[':cc1'] = $cursor['created_at']; $params[':ci1'] = $cursor['id'];
@@ -233,10 +228,8 @@ class NotificationModel
             if (!$isAdmin) {
                 $params[':cc2'] = $cursor['created_at']; $params[':ci2'] = $cursor['id'];
                 $params[':cc3'] = $cursor['created_at']; $params[':ci3'] = $cursor['id'];
-                $params[':cc4'] = $cursor['created_at']; $params[':ci4'] = $cursor['id'];
                 $c2 = " AND (n.created_at, n.id) {$cmp} (:cc2, :ci2)";
                 $c3 = " AND (n.created_at, n.id) {$cmp} (:cc3, :ci3)";
-                $c4 = " AND (n.created_at, n.id) {$cmp} (:cc4, :ci4)";
             }
         }
 
@@ -246,20 +239,18 @@ class NotificationModel
 
         $union = $isAdmin
             ? "(SELECT n.* FROM notifications n WHERE 1=1{$c1}{$s1}{$f1} {$order})"
-            : "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$c1}{$s1}{$f1} {$order})
-                   UNION
-                   (SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$c2}{$s2}{$f2} {$order})
+            : "(SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$c1}{$s1}{$f1} {$order})
                    UNION
                    (SELECT n.* FROM notifications n
                       JOIN notification_badges nb ON nb.notification_id = n.id
                       JOIN category_access     ca ON ca.category_id = nb.category_id AND ca.user_id = :uid1
-                    WHERE 1=1{$c3}{$s3}{$f3} {$order})
+                    WHERE 1=1{$c2}{$s2}{$f2} {$order})
                    UNION
                    (SELECT n.* FROM notifications n
                       JOIN notification_badges nb ON nb.notification_id = n.id
                       JOIN tools        t  ON t.category_id = nb.category_id
                       JOIN tool_access  ta ON ta.tool_id = t.id AND ta.user_id = :uid3
-                    WHERE 1=1{$c4}{$s4}{$f4} {$order})";
+                    WHERE 1=1{$c3}{$s3}{$f3} {$order})";
 
         $outerOrder = $desc ? 'ORDER BY u.created_at DESC, u.id DESC' : 'ORDER BY u.created_at ASC, u.id ASC';
 
@@ -344,33 +335,29 @@ class NotificationModel
             : [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':now' => $now];
         $s1 = $this->buildSearchClause($search, $params, 'n', '_b1');
         $f1 = $this->buildHistoryFilters($filters, $params, 'n', '_b1');
-        $s2 = $s3 = $s4 = $f2 = $f3 = $f4 = '';
+        $s2 = $s3 = $f2 = $f3 = '';
         if (!$isAdmin) {
             $s2 = $this->buildSearchClause($search, $params, 'n', '_b2');
             $f2 = $this->buildHistoryFilters($filters, $params, 'n', '_b2');
             $s3 = $this->buildSearchClause($search, $params, 'n', '_b3');
             $f3 = $this->buildHistoryFilters($filters, $params, 'n', '_b3');
-            $s4 = $this->buildSearchClause($search, $params, 'n', '_b4');
-            $f4 = $this->buildHistoryFilters($filters, $params, 'n', '_b4');
         }
         $order = "ORDER BY n.created_at DESC, n.id DESC LIMIT {$cap}";
 
         $union = $isAdmin
             ? "(SELECT n.* FROM notifications n WHERE 1=1{$s1}{$f1} {$order})"
-            : "(SELECT n.* FROM notifications n WHERE n.is_public = 1{$s1}{$f1} {$order})
-                   UNION
-                   (SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$s2}{$f2} {$order})
+            : "(SELECT n.* FROM notifications n WHERE n.target_all_users = 1{$s1}{$f1} {$order})
                    UNION
                    (SELECT n.* FROM notifications n
                       JOIN notification_badges nb ON nb.notification_id = n.id
                       JOIN category_access     ca ON ca.category_id = nb.category_id AND ca.user_id = :uid1
-                    WHERE 1=1{$s3}{$f3} {$order})
+                    WHERE 1=1{$s2}{$f2} {$order})
                    UNION
                    (SELECT n.* FROM notifications n
                       JOIN notification_badges nb ON nb.notification_id = n.id
                       JOIN tools        t  ON t.category_id = nb.category_id
                       JOIN tool_access  ta ON ta.tool_id = t.id AND ta.user_id = :uid3
-                    WHERE 1=1{$s4}{$f4} {$order})";
+                    WHERE 1=1{$s3}{$f3} {$order})";
 
         return DB::run(
             "SELECT u.*,
@@ -587,14 +574,13 @@ class NotificationModel
     public function create(array $data): int
     {
         DB::run(
-            'INSERT INTO notifications (title, body, image_path, thumbnail_path, is_public, target_all_users, expires_at)
-             VALUES (:title, :body, :image_path, :thumbnail_path, :is_public, :target_all_users, :expires_at)',
+            'INSERT INTO notifications (title, body, image_path, thumbnail_path, target_all_users, expires_at)
+             VALUES (:title, :body, :image_path, :thumbnail_path, :target_all_users, :expires_at)',
             [
                 ':title'            => $data['title']            ?? '',
                 ':body'             => $data['body']             ?? null,
                 ':image_path'       => $data['image_path']       ?? null,
                 ':thumbnail_path'   => $data['thumbnail_path']   ?? null,
-                ':is_public'        => (int) ($data['is_public']        ?? 0),
                 ':target_all_users' => (int) ($data['target_all_users'] ?? 0),
                 ':expires_at'       => (int) ($data['expires_at']       ?? 0),
             ]
@@ -619,7 +605,7 @@ class NotificationModel
                 'UPDATE notifications
                  SET title = :title, body = :body, image_path = :image_path,
                      thumbnail_path = :thumbnail_path,
-                     is_public = :is_public, target_all_users = :target_all_users,
+                     target_all_users = :target_all_users,
                      expires_at = :expires_at,
                      updated_at = CURRENT_TIMESTAMP
                  WHERE id = :id',
@@ -628,7 +614,6 @@ class NotificationModel
                     ':body'             => $data['body']             ?? null,
                     ':image_path'       => $data['image_path'],
                     ':thumbnail_path'   => $data['thumbnail_path']   ?? null,
-                    ':is_public'        => (int) ($data['is_public']        ?? 0),
                     ':target_all_users' => (int) ($data['target_all_users'] ?? 0),
                     ':expires_at'       => (int) ($data['expires_at']       ?? 0),
                     ':id'               => $id,
@@ -638,14 +623,13 @@ class NotificationModel
             DB::run(
                 'UPDATE notifications
                  SET title = :title, body = :body,
-                     is_public = :is_public, target_all_users = :target_all_users,
+                     target_all_users = :target_all_users,
                      expires_at = :expires_at,
                      updated_at = CURRENT_TIMESTAMP
                  WHERE id = :id',
                 [
                     ':title'            => $data['title']            ?? '',
                     ':body'             => $data['body']             ?? null,
-                    ':is_public'        => (int) ($data['is_public']        ?? 0),
                     ':target_all_users' => (int) ($data['target_all_users'] ?? 0),
                     ':expires_at'       => (int) ($data['expires_at']       ?? 0),
                     ':id'               => $id,
@@ -713,7 +697,6 @@ class NotificationModel
             'body'             => $row['body']            ?? '',
             'image_path'       => $row['image_path']      ?? null,
             'thumbnail_path'   => $row['thumbnail_path']  ?? null,
-            'is_public'        => (bool) $row['is_public'],
             'target_all_users' => (bool) $row['target_all_users'],
             'expires_at'       => (int)  $row['expires_at'],
             'created_at'       => $row['created_at'],

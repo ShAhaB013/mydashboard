@@ -10,7 +10,7 @@ Assert::group('63_notifications_old_record_reachability');
 $oldTitle = Fixtures::uniq('ancient');
 $threeYearsAgo = date('Y-m-d H:i:s', time() - 3 * 365 * 24 * 3600);
 $oldId = Fixtures::createNotification([
-    'title' => $oldTitle, 'is_public' => 1, 'target_all_users' => 1,
+    'title' => $oldTitle, 'target_all_users' => 1,
     'created_at' => $threeYearsAgo,
 ]);
 
@@ -18,7 +18,7 @@ $oldId = Fixtures::createNotification([
 $fillerIds = [];
 for ($i = 0; $i < 105; $i++) {
     $fillerIds[] = Fixtures::createNotification([
-        'title' => Fixtures::uniq('filler' . $i), 'is_public' => 1, 'target_all_users' => 1,
+        'title' => Fixtures::uniq('filler' . $i), 'target_all_users' => 1,
     ]);
 }
 

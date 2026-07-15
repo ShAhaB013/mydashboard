@@ -62,25 +62,23 @@ while ($inserted < $total) {
         $idx = $inserted + $i;
         $ts = $now - random_int(0, $twoYears);
         $createdAt = date('Y-m-d H:i:s', $ts);
-        $isPublic = random_int(1, 100) <= 60 ? 1 : 0;      // ~60% public
-        $targetAll = ($isPublic === 0 && random_int(1, 100) <= 50) ? 1 : 0; // half of the rest are target_all
+        $targetAll = random_int(1, 100) <= 60 ? 1 : 0;      // ~60% target all users
         $title = PREFIX . $idx;
 
-        $rows[] = "(:t{$i}, :b{$i}, :ip{$i}, :ta{$i}, :ca{$i}, :ua{$i})";
+        $rows[] = "(:t{$i}, :b{$i}, :ta{$i}, :ca{$i}, :ua{$i})";
         $params[":t{$i}"]  = $title;
         $params[":b{$i}"]  = 'scale body ' . $idx;
-        $params[":ip{$i}"] = $isPublic;
         $params[":ta{$i}"] = $targetAll;
         $params[":ca{$i}"] = $createdAt;
         $params[":ua{$i}"] = $createdAt;
     }
-    $sql = 'INSERT INTO notifications (title, body, is_public, target_all_users, created_at, updated_at) VALUES ' . implode(',', $rows);
+    $sql = 'INSERT INTO notifications (title, body, target_all_users, created_at, updated_at) VALUES ' . implode(',', $rows);
     DB::run($sql, $params);
 
     $lastId = (int) DB::get()->lastInsertId();
     $firstId = $lastId - $n + 1;
     for ($id = $firstId; $id <= $lastId; $id++) {
-        // ~10% of all rows (regardless of is_public/target_all) also get the synthetic badge
+        // ~10% of all rows (regardless of target_all) also get the synthetic badge
         // so the badge-matched UNION branch has meaningful data too.
         if (random_int(1, 10) === 1) $badgeCandidateIds[] = $id;
         // ~40% are marked read for the synthetic user (a realistic read/unread ratio)

@@ -674,7 +674,6 @@ const NM = {
     const pills = [];
     if (n.is_expired) pills.push(`<span class="pill pill-expired">منقضی‌شده</span>`);
     else              pills.push(`<span class="pill pill-active">فعال</span>`);
-    if (n.is_public)        pills.push(`<span class="pill pill-public">عمومی</span>`);
     if (n.target_all_users) pills.push(`<span class="pill pill-all">همه کاربران</span>`);
     (n.badges || []).forEach(b => pills.push(`<span class="pill pill-badge">${this._esc(b)}</span>`));
     // publish and expiry date/time — labeled and side by side
@@ -774,7 +773,6 @@ const NM = {
     if (window.ThemedDatePicker) ThemedDatePicker.refresh(document.getElementById('nf-expires-date'));
     document.getElementById('nf-expires-time').value = '00:00';
     if (window.ThemedTimePicker) ThemedTimePicker.refresh(document.getElementById('nf-expires-time'));
-    document.getElementById('nf-public').checked     = false;
     document.getElementById('nf-all-users').checked  = false;
     document.querySelectorAll('.badge-check-cb').forEach(cb => cb.checked = false);
     this._showExpiryDisplay(0);
@@ -784,7 +782,6 @@ const NM = {
     this._existingImage = null;
     this._existingThumb = null;
     this._resetFileUI();
-    this.onPublicChange(document.getElementById('nf-public'));
   },
 
   openAdd() {
@@ -808,7 +805,6 @@ const NM = {
     document.getElementById('nf-title').value       = n.title   || '';
     this._updateTitleCounter();
     RTE.setHTML(n.body || '');
-    document.getElementById('nf-public').checked    = !!n.is_public;
     document.getElementById('nf-all-users').checked = !!n.target_all_users;
 
     (n.badges || []).forEach(b => {
@@ -832,7 +828,6 @@ const NM = {
       this._showExistingImage(n.image_path, n.thumbnail_path);
     }
 
-    this.onPublicChange(document.getElementById('nf-public'));
     this._openModal('notifFormModal');
     this._dirty = false;
     setTimeout(() => document.getElementById('nf-title').focus(), 100);
@@ -926,14 +921,6 @@ const NM = {
       label.appendChild(document.createTextNode(badge));
       grid.appendChild(label);
     });
-  },
-
-  onPublicChange(cb) {
-    const hide = cb.checked;
-    document.getElementById('targetAllRow').style.opacity = hide ? '.4' : '';
-    document.getElementById('badgesRow').style.opacity    = hide ? '.4' : '';
-    document.getElementById('nf-all-users').disabled      = hide;
-    document.querySelectorAll('.badge-check-cb').forEach(c => c.disabled = hide);
   },
 
   // ── image upload (single file, with a live progress bar) ────────
@@ -1095,9 +1082,7 @@ const NM = {
   async save() {
     const title       = document.getElementById('nf-title').value.trim();
     const body        = RTE.getHTML();
-    const isPublicChk = document.getElementById('nf-public').checked;
     const allUsersChk = document.getElementById('nf-all-users').checked;
-    const isPublic    = isPublicChk ? '1' : '0';
     const allUsers    = allUsersChk ? '1' : '0';
     const badges      = [...document.querySelectorAll('.badge-check-cb:checked')].map(c => c.value);
 
@@ -1118,8 +1103,8 @@ const NM = {
     if (RTE.plainLength() > RTE.MAX_CHARS) {
       return this._failField('nf-body', `متن اعلان نباید بیشتر از ${RTE.MAX_CHARS.toLocaleString('en-GB')} کاراکتر باشد`);
     }
-    if (!isPublicChk && !allUsersChk && !badges.length) {
-      return this._failField('nf-public', 'مخاطبان اعلان را مشخص کنید');
+    if (!allUsersChk && !badges.length) {
+      return this._failField('nf-all-users', 'مخاطبان اعلان را مشخص کنید');
     }
     if (!expiresDate) {
       return this._failField('nf-expires-date', 'تاریخ و ساعت انقضا را مشخص کنید');
@@ -1142,7 +1127,7 @@ const NM = {
     btn.disabled = true;
 
     const payload = { title, body, image_path: imagePath, thumbnail_path: thumbPath,
-                      is_public: isPublic, target_all_users: allUsers,
+                      target_all_users: allUsers,
                       expires_at: expires, badges };
     const action  = this._editId ? 'update_notification' : 'create_notification';
     if (this._editId) payload.id = this._editId;
@@ -1158,7 +1143,7 @@ const NM = {
       if (wasCreate) this._page = 1;
       await this.load();
     } else {
-      const fieldId = { title: 'nf-title', body: 'nf-body', expires_at: 'nf-expires-date' }[res.field];
+      const fieldId = { title: 'nf-title', body: 'nf-body', expires_at: 'nf-expires-date', target_all_users: 'nf-all-users' }[res.field];
       if (fieldId) this._failField(fieldId, res.msg || 'خطا در ذخیره');
       else Toast.show(res.msg || 'خطا در ذخیره', 'error');
     }
@@ -1371,7 +1356,6 @@ if (window.Actions) {
     nmCloseForm:      () => NM.closeForm(),
     nmFileSelect:     (el) => NM.handleFileSelect(el.files[0]),
     nmRemoveImage:    () => NM.removeImage(),
-    nmPublicChange:   (el) => NM.onPublicChange(el),
     nmExpiryInput:    () => NM.onExpiryInput(),
     nmSave:           () => NM.save(),
     nmCloseConfirm:   () => NM.cancelConfirm(),

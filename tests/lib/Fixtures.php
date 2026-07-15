@@ -72,14 +72,13 @@ class Fixtures
             'body'              => 'fixture body',
             'image_path'        => null,
             'thumbnail_path'    => null,
-            'is_public'         => 1,
             'target_all_users'  => 1,
             'expires_at'        => 0,
         ], $overrides);
 
         // created_at/updated_at are optional (DB default = CURRENT_TIMESTAMP); they're only added
         // to the query when explicitly passed, so existing callers keep working unchanged.
-        $cols = ['title', 'body', 'image_path', 'thumbnail_path', 'is_public', 'target_all_users', 'expires_at'];
+        $cols = ['title', 'body', 'image_path', 'thumbnail_path', 'target_all_users', 'expires_at'];
         foreach (['created_at', 'updated_at'] as $c) {
             if (array_key_exists($c, $overrides)) $cols[] = $c;
         }

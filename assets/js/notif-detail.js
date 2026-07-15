@@ -5,7 +5,7 @@
    Shared between the header bell dropdown (index.php) and the
    notifications page (notifications.php) — one markup, one
    implementation. Callers pass a notification object with the
-   API field names (image_path/thumbnail_path/is_public/badges/
+   API field names (image_path/thumbnail_path/target_all_users/badges/
    is_edited/is_expired/expires_at/created_at) and are responsible
    for marking it as read (after calling NotifDetail.open, so the
    "edited" pill still reflects the pre-read state).
@@ -178,9 +178,9 @@ const NotifDetail = {
       meta.appendChild(expRow);
     }
 
-    // pills (public + badges + edited/expired flags)
+    // pills (all-users + badges + edited/expired flags)
     const pills = [];
-    if (n.is_public)  pills.push({ text: 'عمومی', cls: 'npill-public' });
+    if (n.target_all_users) pills.push({ text: 'همه کاربران', cls: 'npill-all' });
     (n.badges || []).forEach(b => pills.push({ text: b, cls: 'npill-badge' }));
     if (wasEdited)    pills.push({ text: 'ویرایش شده', cls: 'npill-edited' });
     if (n.is_expired) pills.push({ text: 'منقضی‌شده', cls: 'npill-expired' });

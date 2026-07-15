@@ -13,7 +13,7 @@ $base = time() - 1000;
 for ($i = 0; $i < 40; $i++) {
     $ids[] = Fixtures::createNotification([
         'title' => Fixtures::uniq('ks' . $i),
-        'is_public' => 1, 'target_all_users' => 1,
+        'target_all_users' => 1,
         'created_at' => date('Y-m-d H:i:s', $base + intdiv($i, 3)), // every 3 rows share the same created_at
     ]);
 }

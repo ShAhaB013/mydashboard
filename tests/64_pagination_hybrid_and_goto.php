@@ -20,7 +20,7 @@ Assert::test('لیست کاربران ادمین: page خارج از بازه (0
 Assert::test('لیست اعلان‌های ادمین: page=1 دقیقا با نتیجه‌ی اول یک پیمایش کامل یکی است', function () use ($BASE, $ACC) {
     $ids = [];
     for ($i = 0; $i < 12; $i++) {
-        $ids[] = Fixtures::createNotification(['title' => Fixtures::uniq('goto' . $i), 'is_public' => 1, 'target_all_users' => 1]);
+        $ids[] = Fixtures::createNotification(['title' => Fixtures::uniq('goto' . $i), 'target_all_users' => 1]);
         usleep(500);
     }
     $http = admin_http($BASE, $ACC);

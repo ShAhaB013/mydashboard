@@ -247,16 +247,6 @@
       <div class="field">
         <label>مخاطبان <span class="req">*</span></label>
         <div class="audience-box">
-          <div class="audience-row">
-            <div class="audience-row-label">
-              <strong>نمایش عمومی</strong>
-              <span>برای همه کاربران، بدون محدودیت دسته‌بندی</span>
-            </div>
-            <label class="toggle-sw">
-              <input type="checkbox" id="nf-public" data-change="nmPublicChange">
-              <span class="toggle-sw-track"></span>
-            </label>
-          </div>
           <div class="audience-row" id="targetAllRow">
             <div class="audience-row-label">
               <strong>همه کاربران</strong>

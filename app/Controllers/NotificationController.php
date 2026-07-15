@@ -294,10 +294,9 @@ class NotificationController
         $body      = $this->request->input('body');
         $imagePath = $this->request->input('image_path');
         $thumbPath = $this->request->input('thumbnail_path');
-        $isPublic  = (int) $this->request->input('is_public');
         $targetAll = (int) $this->request->input('target_all_users');
         $expiresRaw = $this->request->input('expires_at');
-        $badges    = $this->request->inputArray('badges');
+        $badges    = array_values(array_filter(array_map('strval', $this->request->inputArray('badges'))));
 
         if (empty($title)) {
             Response::error('عنوان اعلان الزامی است', 'title'); return null;
@@ -334,15 +333,18 @@ class NotificationController
             Response::error('مسیر تصویر بند انگشتی نامعتبر است'); return null;
         }
 
+        if (!$targetAll && empty($badges)) {
+            Response::error('مخاطبان اعلان را مشخص کنید', 'target_all_users'); return null;
+        }
+
         return [
             'title'            => $title,
             'body'             => $body,
             'image_path'       => $imagePath !== '' ? $imagePath : null,
             'thumbnail_path'   => $thumbPath !== '' ? $thumbPath : null,
-            'is_public'        => $isPublic,
             'target_all_users' => $targetAll,
             'expires_at'       => $expiresAt,
-            'badges'           => array_values(array_filter(array_map('strval', $badges))),
+            'badges'           => $badges,
         ];
     }
 

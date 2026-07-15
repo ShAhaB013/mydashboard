@@ -6,7 +6,7 @@ $BASE = $cfg['test']['base_url'];
 
 Assert::group('22_notifications_feed_public');
 
-$notifId = Fixtures::createNotification(['title' => Fixtures::uniq('feed'), 'is_public' => 1, 'target_all_users' => 1]);
+$notifId = Fixtures::createNotification(['title' => Fixtures::uniq('feed'), 'target_all_users' => 1]);
 
 Assert::test('notifications بدون لاگین → 401', function () use ($BASE) {
     $http = new HttpClient($BASE);

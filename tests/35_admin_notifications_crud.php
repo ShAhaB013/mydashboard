@@ -16,7 +16,7 @@ Assert::test('create_notification بدون title → رد می‌شود', functi
 Assert::test('create_notification معتبر → ردیف واقعا در DB ساخته می‌شود', function () use ($BASE, $ACC) {
     $http = admin_http($BASE, $ACC);
     $title = Fixtures::uniq('notif');
-    $res = $http->postJson('/admin.php?api=create_notification', ['title' => $title, 'body' => 'متن تست', 'is_public' => 1, 'target_all_users' => 1]);
+    $res = $http->postJson('/admin.php?api=create_notification', ['title' => $title, 'body' => 'متن تست', 'target_all_users' => 1]);
     Assert::jsonOk($res, 'create_notification معتبر باید موفق باشد');
     $row = DB::run('SELECT id FROM notifications WHERE title=:t', [':t' => $title])->fetch();
     Assert::true($row !== false, 'اعلان باید در DB ساخته شده باشد');
@@ -77,7 +77,7 @@ Assert::test('XSS: sanitizeBody یک payload بدخیم را قبل از ذخی�
     ];
     foreach ($payloads as $i => [$payload, $expectSaved]) {
         $title = Fixtures::uniq('xss' . $i);
-        $res = $http->postJson('/admin.php?api=create_notification', ['title' => $title, 'body' => $payload, 'is_public' => 1, 'target_all_users' => 1]);
+        $res = $http->postJson('/admin.php?api=create_notification', ['title' => $title, 'body' => $payload, 'target_all_users' => 1]);
 
         if (!$expectSaved) {
             Assert::jsonFail($res, "payload شماره {$i}: بعد از پاک‌سازی خالی می‌شود، پس باید رد شود (نه ساخته شود)");

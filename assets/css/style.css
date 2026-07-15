@@ -2484,7 +2484,7 @@ body.tool-modal-open .card-corner-deco * {
 .npill-unread  { background: var(--color-accent-bg); color: var(--color-accent); border: 1px solid var(--color-accent-border); }
 .npill-edited  { background: rgba(6,182,212,.08); color: #0891b2; border: 1px solid rgba(6,182,212,.25); }
 .npill-expired { background: rgba(239,68,68,.08); color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
-.npill-public  { background: rgba(14,164,114,.08); color: #0ea472; border: 1px solid rgba(14,164,114,.2); }
+.npill-all     { background: rgba(14,164,114,.08); color: #0ea472; border: 1px solid rgba(14,164,114,.2); }
 .npill-badge   { background: rgba(139,92,246,.08); color: #8b5cf6; border: 1px solid rgba(139,92,246,.2); }
 .npill-img     { background: rgba(245,158,11,.08); color: #d97706; border: 1px solid rgba(245,158,11,.2); }
 
