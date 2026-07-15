@@ -3217,6 +3217,16 @@ body.tool-modal-open .card-corner-deco * {
   position: relative; overflow: hidden;
   background: var(--color-bg-primary); border: 1.5px solid var(--card-border, var(--color-border));
   border-radius: var(--radius-lg); padding: 16px 16px 18px;
+  /* Real cards get these from the base .card rule; this preview isn't a .card, so without
+     its own default, --card-color is undefined when no custom color is picked — the deco
+     SVGs style themselves with fill/stroke:var(--card-color) (no fallback, since real cards
+     never need one), so stroke-only shapes (fill:none) silently render as stroke:none and
+     vanish entirely instead of just showing the wrong color. Custom color selection still
+     overrides this via applyAccentColor()'s inline style, which wins over this rule. */
+  --card-color:   var(--color-accent);
+  --card-color-l: var(--color-accent-light);
+  --card-bg:      var(--color-accent-bg);
+  --card-border:  var(--color-accent-border);
 }
 .tm-preview::before {
   content: ''; position: absolute; inset: 0 0 auto 0; height: 3px;

@@ -509,6 +509,29 @@ function makeSVG(key, size = 24) {
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" focusable="false">${inner}</svg>`;
 }
 
+/* Some card decos (cacti, radarPing, ipmanagment, ipband, servermonitor, hostmonitor)
+   use internal ids referenced by <mpath href="#id"> (SMIL "move along this path").
+   Every tool sharing that deco clones the same node, so without renaming, every clone
+   after the first has a duplicate id — the browser resolves href="#id" to the FIRST
+   matching id in the whole document, so the animateMotion on every later card follows
+   the first card's path instead of its own, which reads as a broken/incomplete deco. */
+let decoIdSeq = 0;
+function uniquifyDecoIds(svgEl) {
+  const idEls = svgEl.querySelectorAll('[id]');
+  if (!idEls.length) return;
+  const suffix = '-c' + (++decoIdSeq);
+  const map = new Map();
+  idEls.forEach(el => { const oldId = el.id; el.id = oldId + suffix; map.set(oldId, el.id); });
+  svgEl.querySelectorAll('[href], [xlink\\:href]').forEach(el => {
+    for (const attr of ['href', 'xlink:href']) {
+      const val = el.getAttribute(attr);
+      if (val && val.charAt(0) === '#' && map.has(val.slice(1))) {
+        el.setAttribute(attr, '#' + map.get(val.slice(1)));
+      }
+    }
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════
    Filter chips
    ═══════════════════════════════════════════════════════════ */
@@ -535,6 +558,37 @@ function setFilter(f) {
   renderTools(searchInput.value);
 }
 
+/* ── SMIL pause helper ──
+   `animation-play-state: paused` (used everywhere else to stop deco animation) only
+   affects CSS @keyframes — several decos (radarPing, ipmanagment, cacti, ipband,
+   servermonitor, hostmonitor, ssl, pfx, bitninja, loganalyzer) instead use native SVG
+   SMIL (<animate>/<animateTransform>/<animateMotion>), which keeps running regardless
+   of that CSS rule and needs the SVG root's own pauseAnimations()/unpauseAnimations(). */
+function pauseSMIL(scope) {
+  scope.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (_) {} });
+}
+function unpauseSMIL(scope) {
+  scope.querySelectorAll('svg').forEach(s => { try { s.unpauseAnimations(); } catch (_) {} });
+}
+/* Same as unpauseSMIL, but respects other modes that keep animation paused on purpose:
+   - reorder mode (dragging cards) pauses everything itself and manages its own resume
+     (on exit); a scroll mid-drag (the edge auto-scroll) must not undo that.
+   - "calm mode" (30+ cards, deco only animates on hover/focus — see .grid--calm in
+     style.css) a card whose CSS state is still paused must stay paused, or scroll/
+     visibility resuming it would fight the CSS rule and run the SMIL invisibly
+     (wasting CPU) or visibly out of sync. */
+function resumeSMIL(scope) {
+  if (grid.classList.contains('reordering')) return;
+  const calm = grid.classList.contains('grid--calm');
+  scope.querySelectorAll('svg').forEach(s => {
+    if (calm) {
+      const card = s.closest('.card');
+      if (card && !card.matches(':hover') && !card.contains(document.activeElement)) return;
+    }
+    try { s.unpauseAnimations(); } catch (_) {}
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════
    Card visibility observer — pause off-screen card animation
    ═══════════════════════════════════════════════════════════ */
@@ -549,11 +603,13 @@ function setFilter(f) {
     if (!scrolling && !raf) {
       raf = requestAnimationFrame(() => {
         raf = 0; scrolling = true; root.classList.add('is-scrolling');
+        pauseSMIL(grid);
       });
     }
     clearTimeout(off);
     off = setTimeout(() => {
       scrolling = false; root.classList.remove('is-scrolling');
+      resumeSMIL(grid);
     }, 150);
   }
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -565,7 +621,11 @@ function getCardVisibilityObserver() {
   if (typeof IntersectionObserver === 'undefined') return null;
   cardVisibilityObserver = new IntersectionObserver(entries => {
     for (const entry of entries) {
-      entry.target.classList.toggle('card--offscreen', !entry.isIntersecting);
+      const goingOffscreen = !entry.isIntersecting;
+      entry.target.classList.toggle('card--offscreen', goingOffscreen);
+      // is-scrolling already paused everything; avoid unpausing offscreen cards mid-scroll
+      if (goingOffscreen) pauseSMIL(entry.target);
+      else if (!document.documentElement.classList.contains('is-scrolling')) resumeSMIL(entry.target);
     }
   }, { rootMargin: '300px 0px', threshold: 0 });
   return cardVisibilityObserver;
@@ -704,13 +764,34 @@ function createCard(tool) {
   const decoWrap = document.createElement('div');
   decoWrap.className = 'card-deco-wrap';
   const decoNode = SVG_CACHE.decoNodes[tool.deco] || SVG_CACHE.decoNodes[DECO_FALLBACK];
-  decoWrap.appendChild(decoNode.cloneNode(true));
+  const decoClone = decoNode.cloneNode(true);
+  uniquifyDecoIds(decoClone);
+  decoWrap.appendChild(decoClone);
 
   const arrow = document.createElement('div');
   arrow.className = 'card-arrow';
   arrow.appendChild(SVG_CACHE.arrowSVG.cloneNode(true));
 
   card.append(cornerWrap, iconEl, badge, title, desc, decoWrap, arrow);
+
+  // calm mode (30+ cards): deco SMIL only runs on hover/focus, mirroring the CSS rule
+  // that keeps CSS @keyframes decos paused otherwise — animation-play-state has no
+  // effect on SMIL, so it needs these explicit pause/unpauseAnimations() calls too.
+  if (grid.classList.contains('grid--calm')) {
+    pauseSMIL(card);
+    // hover/drag during reorder mode must NOT wake it back up — dragging a card
+    // over others fires mouseenter/mouseleave on them just like a real hover
+    const wake  = () => {
+      if (!document.documentElement.classList.contains('is-scrolling') && !grid.classList.contains('reordering')) {
+        unpauseSMIL(card);
+      }
+    };
+    const sleep = () => pauseSMIL(card);
+    card.addEventListener('mouseenter', wake);
+    card.addEventListener('mouseleave', sleep);
+    card.addEventListener('focusin',    wake);
+    card.addEventListener('focusout',   sleep);
+  }
 
   const safePath = sanitizePath(tool.path);
   if (safePath) {
