@@ -384,6 +384,7 @@ const NM = {
   async load(page = this._page) {
     if (this._loading) return;
     this._loading = true;
+    this._setPagLoading(true);
     this._page    = Math.max(1, page);
     this._renderSkeleton();
 
@@ -397,7 +398,7 @@ const NM = {
     });
 
     this._loading = false;
-    if (!res.ok) { Toast.show(res.msg || 'خطا در بارگذاری', 'error'); return; }
+    if (!res.ok) { this._setPagLoading(false); Toast.show(res.msg || 'خطا در بارگذاری', 'error'); return; }
 
     this._notifications = res.notifications || [];
     const pg = res.pagination || {};
@@ -419,6 +420,7 @@ const NM = {
   async loadCursor(cursor, dir) {
     if (this._loading || !cursor) return;
     this._loading = true;
+    this._setPagLoading(true);
     this._renderSkeleton();
 
     // cursor nav always moves exactly one page, so the page number can be
@@ -436,7 +438,7 @@ const NM = {
     });
 
     this._loading = false;
-    if (!res.ok) { Toast.show(res.msg || 'خطا در بارگذاری', 'error'); return; }
+    if (!res.ok) { this._setPagLoading(false); Toast.show(res.msg || 'خطا در بارگذاری', 'error'); return; }
 
     this._notifications = res.notifications || [];
     const pg = res.pagination || {};
@@ -479,10 +481,18 @@ const NM = {
     this._renderPagination();
   },
 
+  // marks the pagination controls as busy/inert while a page or cursor fetch is in
+  // flight, so a click during that window is visibly ignored instead of silently
+  // dropped by the _loading guard (which otherwise reads as pagination "randomly" jumping)
+  _setPagLoading(on) {
+    document.getElementById('notifPagination')?.classList.toggle('pagination-loading', on);
+  },
+
   // ── Pagination (server-side, hybrid cursor+OFFSET) ────────
   // Adjacent Prev/Next arrows use the cursor (fast at any depth); the page number and
   // "go to page" use page=N (OFFSET) — per the project's hybrid design decision.
   _renderPagination() {
+    this._setPagLoading(false);
     const pag  = document.getElementById('notifPagination');
     const info = document.getElementById('notifPageInfo');
     const total     = this._total;
@@ -569,8 +579,8 @@ const NM = {
 
   goToPage(p) {
     p = Math.min(Math.max(1, p), this._pageCount);
-    if (p === this._page) return;
-    this.load(p).then(() => {
+    if (p === this._page) return Promise.resolve();
+    return this.load(p).then(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   },

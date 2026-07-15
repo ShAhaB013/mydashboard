@@ -382,6 +382,10 @@ foreach ($items as $item) {
 
       </div>
 
+      <div class="pagination-info">
+        نمایش <?= number_format(($page - 1) * $perPage + 1) ?> تا <?= number_format($rowIndex) ?> از <?= number_format($total) ?> اعلان
+      </div>
+
       <!-- Pagination: adjacent Prev/Next arrows use the cursor (keyset, fast at any
            depth); page numbers and "go to page" use page=N (OFFSET). -->
       <?php if ($pages > 1):
