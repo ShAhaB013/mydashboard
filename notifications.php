@@ -350,7 +350,7 @@ foreach ($items as $item) {
                 <?php if ($isEdited):       ?><span class="npill npill-edited">ویرایش شده</span>
                 <?php elseif (!$isRead):    ?><span class="npill npill-unread">جدید</span><?php endif; ?>
                 <?php if ($isExpired):  ?><span class="npill npill-expired">منقضی</span><?php endif; ?>
-                <?php if ($item['target_all_users']): ?><span class="npill npill-all">همه کاربران</span><?php endif; ?>
+                <?php if ($item['target_all_users']): ?><span class="npill npill-all">عمومی</span><?php endif; ?>
                 <?php if ($hasImage):   ?><span class="npill npill-img"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>تصویر</span><?php endif; ?>
                 <?php foreach ($badges as $b): ?>
                   <span class="npill npill-badge"><?= htmlspecialchars($b) ?></span>

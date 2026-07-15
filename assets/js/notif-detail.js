@@ -180,7 +180,7 @@ const NotifDetail = {
 
     // pills (all-users + badges + edited/expired flags)
     const pills = [];
-    if (n.target_all_users) pills.push({ text: 'همه کاربران', cls: 'npill-all' });
+    if (n.target_all_users) pills.push({ text: 'عمومی', cls: 'npill-all' });
     (n.badges || []).forEach(b => pills.push({ text: b, cls: 'npill-badge' }));
     if (wasEdited)    pills.push({ text: 'ویرایش شده', cls: 'npill-edited' });
     if (n.is_expired) pills.push({ text: 'منقضی‌شده', cls: 'npill-expired' });
