@@ -352,7 +352,6 @@
       </button>
     </div>
     <div class="modal-body readers-modal-body">
-      <p class="readers-count" id="notifReadersCount"></p>
       <div id="notifReadersList" class="readers-list"></div>
     </div>
     <div class="modal-foot">

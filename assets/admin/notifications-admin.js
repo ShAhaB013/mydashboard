@@ -1231,7 +1231,6 @@ const NM = {
 
   async openReaders(id, title) {
     document.getElementById('notifReadersTitle').textContent = `مشاهده‌کنندگان «${this._esc(title)}»`;
-    document.getElementById('notifReadersCount').textContent = '';
     document.getElementById('notifReadersList').innerHTML    = this._SKELETON_TABLE_ROW.repeat(3);
     this._readersId      = id;
     this._readersOffset  = 0;
@@ -1283,9 +1282,7 @@ const NM = {
     const rowsHtml = readers.map(r => this._readerRow(r)).join('');
 
     if (isFirstPage) {
-      document.getElementById('notifReadersCount').textContent =
-        res.total ? `${res.total.toLocaleString('en-GB')} نفر این اعلان را خوانده‌اند` : 'هنوز هیچ کاربری این اعلان را نخوانده است';
-      list.innerHTML = rowsHtml;
+      list.innerHTML = rowsHtml || '<div class="readers-empty">هنوز هیچ کاربری این اعلان را نخوانده است</div>';
     } else {
       list.insertAdjacentHTML('beforeend', rowsHtml);
     }
