@@ -350,7 +350,9 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn, .access-tool-label,
 .pagination-btn, .pagination-goto-spin,
 .deco-opt, .nm-adv-toggle, .section-box-head, .modal-close,
-.user-adv-toggle, .user-search-clear, .toast-close {
+.user-adv-toggle, .user-search-clear, .toast-close,
+.log-chip, .log-table-row, .log-table-del, .log-detail-trace-btn,
+.log-adv-toggle, .log-sort-btn {
   position:relative; overflow:hidden;
 }
 .ripple {

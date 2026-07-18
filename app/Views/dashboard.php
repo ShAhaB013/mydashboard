@@ -108,6 +108,19 @@
       <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
 
+    <a href="/admin?page=logs" class="admin-tile">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/>
+        </svg>
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">گزارش خطاها</span>
+        <span class="admin-tile-count">مشاهده، حذف و پاک‌سازی لاگ‌های سیستم</span>
+      </span>
+      <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+
     <button type="button" class="admin-tile" data-act="togglePanel" data-panel="iconsBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

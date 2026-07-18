@@ -17,6 +17,7 @@ class Router
     private SettingsController     $settingsCtrl;
     private SessionController      $sessionCtrl;
     private CategoryController     $categoryCtrl;
+    private LogController          $logCtrl;
 
     private const ROUTES = [
         // ── tools ────────────────────────────────────────────
@@ -60,8 +61,9 @@ class Router
         'notification_readers'        => [NotificationController::class, 'readers'],
 
         // ── email/SMTP settings ──────────────────────────────
-        'save_settings' => [SettingsController::class, 'save'],
-        'test_email'    => [SettingsController::class, 'sendTest'],
+        'save_settings'    => [SettingsController::class, 'save'],
+        'test_email'       => [SettingsController::class, 'sendTest'],
+        'save_debug_mode'  => [SettingsController::class, 'saveDebugMode'],
 
         // ── users' active sessions ───────────────────────────
         'list_sessions'           => [SessionController::class, 'list'],
@@ -74,6 +76,11 @@ class Router
         'list_categories'   => [CategoryController::class, 'list'],
         'rename_category'   => [CategoryController::class, 'rename'],
         'delete_category'   => [CategoryController::class, 'delete'],
+
+        // ── error logs ───────────────────────────────────────
+        'list_logs'   => [LogController::class, 'list'],
+        'delete_log'  => [LogController::class, 'delete'],
+        'clear_logs'  => [LogController::class, 'clear'],
     ];
 
     public function __construct(
@@ -86,7 +93,8 @@ class Router
         NotificationController $notifCtrl,
         SettingsController     $settingsCtrl,
         SessionController      $sessionCtrl,
-        CategoryController     $categoryCtrl
+        CategoryController     $categoryCtrl,
+        LogController          $logCtrl
     ) {
         $this->request      = $request;
         $this->toolCtrl     = $toolCtrl;
@@ -98,6 +106,7 @@ class Router
         $this->settingsCtrl = $settingsCtrl;
         $this->sessionCtrl  = $sessionCtrl;
         $this->categoryCtrl = $categoryCtrl;
+        $this->logCtrl      = $logCtrl;
     }
 
     public function dispatch(): void
@@ -126,6 +135,7 @@ class Router
             SettingsController::class     => $this->settingsCtrl,
             SessionController::class      => $this->sessionCtrl,
             CategoryController::class     => $this->categoryCtrl,
+            LogController::class          => $this->logCtrl,
             default => (function () {
                 Response::error('کنترلر یافت نشد');
                 exit;

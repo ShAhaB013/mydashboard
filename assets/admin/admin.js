@@ -1863,7 +1863,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const SEL = '.hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn,'
     + ' .pagination-btn, .pagination-goto-spin,'
     + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close,'
-    + ' .user-adv-toggle, .user-search-clear, .toast-close, .pass-gen';
+    + ' .user-adv-toggle, .user-search-clear, .toast-close, .pass-gen,'
+    + ' .log-chip, .log-table-row, .log-table-del, .log-detail-trace-btn,'
+    + ' .log-adv-toggle, .log-sort-btn';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;

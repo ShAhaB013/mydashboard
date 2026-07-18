@@ -13,15 +13,15 @@ $config = require __DIR__ . '/bootstrap.php';
 // ── Project version (single source of truth) ─────────────
 require_once __DIR__ . '/version.php';
 
-// Global error boundary for the whole admin panel (API + pages):
-// any uncaught Throwable is logged server-side and a clean response
-// (JSON for API, plain text for pages) is returned — instead of
-// leaking a stack trace to the user.
-try {
-
 $request = new Request();
 
 $isApi = (bool) $request->query('api');
+
+// Global error boundary for the whole admin panel (API + pages):
+// any uncaught Throwable/warning is logged (Logger, DB-backed) and a clean
+// response (JSON for API, plain text for pages) is returned — instead of
+// leaking a stack trace to the user.
+ErrorHandler::register($isApi);
 
 // ── Logout ─────────────────────────────────────────────────
 // POST + valid CSRF token only (prevents CSRF-logout via GET like <img src=?logout>).
@@ -75,6 +75,7 @@ $userModel         = new UserModel();
 $accessModel       = new AccessModel();
 $notificationModel = new NotificationModel();
 $categoryModel     = new CategoryModel();
+$logModel          = new LogModel();
 
 // ── API routing ────────────────────────────────────────────
 if ($isApi) {
@@ -101,6 +102,7 @@ if ($isApi) {
     $settingsCtrl = new SettingsController($request);
     $sessionCtrl  = new SessionController($request);
     $categoryCtrl = new CategoryController($categoryModel, $request);
+    $logCtrl      = new LogController($logModel, $request);
 
     $router = new Router(
         $request,
@@ -112,7 +114,8 @@ if ($isApi) {
         $notifCtrl,
         $settingsCtrl,
         $sessionCtrl,
-        $categoryCtrl
+        $categoryCtrl,
+        $logCtrl
     );
     $router->dispatch();
     exit;
@@ -152,6 +155,14 @@ if ($page === 'categories') {
     exit;
 }
 
+if ($page === 'logs') {
+    // List is loaded via AJAX (list_logs) — server only builds initial page data.
+    $debugMode = SettingsModel::get('debug_mode', '0');
+    $csrfToken = $_SESSION['csrf_token'] ?? '';
+    require __DIR__ . '/app/Views/logs_view.php';
+    exit;
+}
+
 // ── Prepare data for the main dashboard ───────────────────
 // Tools list is paginated client-side (admin.js), but the users/icons/
 // decos/access sections need the full data, so everything is passed.
@@ -171,14 +182,3 @@ $decosJson  = json_encode($decosData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
 $csrfToken  = $_SESSION['csrf_token'] ?? '';
 
 require __DIR__ . '/app/Views/dashboard.php';
-
-} catch (Throwable $e) {
-    error_log('[admin] ' . $e);
-    if (!headers_sent()) http_response_code(500);
-    if (!empty($_GET['api'])) {
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'msg' => 'خطای داخلی سرور رخ داد'], JSON_UNESCAPED_UNICODE);
-    } else {
-        echo 'خطای داخلی سرور رخ داد';
-    }
-}

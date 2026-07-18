@@ -76,6 +76,14 @@ class SettingsController
         Response::ok();
     }
 
+    /** Save just the debug-mode toggle (called from the log viewer page) */
+    public function saveDebugMode(): void
+    {
+        $debugMode = $this->request->input('debug_mode') ? '1' : '0';
+        SettingsModel::setMany(['debug_mode' => $debugMode]);
+        Response::ok(['debug_mode' => $debugMode]);
+    }
+
     /** Send a test email with the current settings */
     public function sendTest(): void
     {

@@ -21,6 +21,7 @@ class SettingsModel
         'smtp_from_name'  => 'داشبورد ابزارها',
         'resend_cooldown' => '30',    // seconds — allowed interval between resending the code
         'code_ttl'        => '600',   // seconds — how long the OTP code stays valid
+        'debug_mode'      => '0',     // '1' -> ErrorHandler includes file/line/trace in error responses
     ];
 
     /** In-request cache so we don't hit the DB repeatedly */

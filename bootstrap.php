@@ -37,6 +37,12 @@ spl_autoload_register(function (string $class): void {
             'ResendThrottle'         => $core . 'ResendThrottle.php',
             'Crypto'                 => $core . 'Crypto.php',
             'Cursor'                 => $core . 'Cursor.php',
+            'Logger'                 => $core . 'Logger.php',
+            'ErrorHandler'           => $core . 'ErrorHandler.php',
+            'AppException'           => $core . 'Exceptions/AppException.php',
+            'ValidationException'    => $core . 'Exceptions/ValidationException.php',
+            'NotFoundException'      => $core . 'Exceptions/NotFoundException.php',
+            'DbException'            => $core . 'Exceptions/DbException.php',
             // ── Models ────────────────────────────────────
             'ToolModel'              => $mdl . 'ToolModel.php',
             'IconModel'              => $mdl . 'IconModel.php',
@@ -48,6 +54,7 @@ spl_autoload_register(function (string $class): void {
             'NotificationModel'      => $mdl . 'NotificationModel.php',
             'CategoryModel'          => $mdl . 'CategoryModel.php',
             'SessionModel'           => $mdl . 'SessionModel.php',
+            'LogModel'               => $mdl . 'LogModel.php',
             // ── Controllers (admin panel) ──────────────────
             'ToolController'         => $ctl . 'ToolController.php',
             'IconController'         => $ctl . 'IconController.php',
@@ -58,6 +65,7 @@ spl_autoload_register(function (string $class): void {
             'SessionController'      => $ctl . 'SessionController.php',
             'SettingsController'     => $ctl . 'SettingsController.php',
             'CategoryController'     => $ctl . 'CategoryController.php',
+            'LogController'          => $ctl . 'LogController.php',
             // ── Controllers (public — api.php) ────────────
             'AppController'          => $ctl . 'AppController.php',
             'AuthController'         => $ctl . 'AuthController.php',
