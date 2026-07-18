@@ -72,7 +72,14 @@
          parallel repaint; only the View Transition performs the cross-fade. */
       root.classList.add('theme-instant');
       const vt = document.startViewTransition(() => swap(theme));
-      vt.finished.finally(() => root.classList.remove('theme-instant'));
+      /* .ready / .updateCallbackDone / .finished all reject (InvalidStateError
+         or AbortError) when a newer transition supersedes this one — e.g. a
+         fast double-click, or a cross-tab sync landing mid-flight. Expected,
+         not a bug, so swallow all three instead of letting them surface as
+         unhandled rejections. */
+      vt.ready.catch(() => {});
+      vt.updateCallbackDone.catch(() => {});
+      vt.finished.catch(() => {}).finally(() => root.classList.remove('theme-instant'));
       void broadcast;
       return;
     }
