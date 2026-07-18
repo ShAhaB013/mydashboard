@@ -26,7 +26,6 @@ class Fixtures
             'icon_key'    => 'star',
             'deco'        => 'generic',
             'accent_color'=> '#123456',
-            'is_public'   => 0,
             'sort_order'  => 9999,
         ], $overrides);
 
@@ -35,8 +34,8 @@ class Fixtures
         $data['category_id'] = $categoryId;
 
         DB::run(
-            'INSERT INTO tools (title, description, path, category_id, icon_key, deco, accent_color, is_public, sort_order)
-             VALUES (:title,:description,:path,:category_id,:icon_key,:deco,:accent_color,:is_public,:sort_order)',
+            'INSERT INTO tools (title, description, path, category_id, icon_key, deco, accent_color, sort_order)
+             VALUES (:title,:description,:path,:category_id,:icon_key,:deco,:accent_color,:sort_order)',
             $data
         );
         return (int) DB::get()->lastInsertId();

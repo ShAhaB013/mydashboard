@@ -18,8 +18,7 @@ class ToolModel
              LEFT JOIN tool_access ta ON ta.tool_id = t.id AND ta.user_id = :uid
              LEFT JOIN category_access ca ON ca.category_id = t.category_id AND ca.user_id = :uid2
              WHERE
-                 t.is_public = 1
-                 OR ta.user_id IS NOT NULL
+                 ta.user_id IS NOT NULL
                  OR ca.user_id IS NOT NULL
              ORDER BY t.sort_order ASC',
             [':uid' => $userId, ':uid2' => $userId]
@@ -115,8 +114,8 @@ class ToolModel
         $categoryId = (new CategoryModel())->findOrCreateByName((string) ($data['badge'] ?? ''));
 
         DB::run(
-            'INSERT INTO tools (title, description, path, category_id, icon_key, deco, accent_color, is_public, sort_order)
-             VALUES (:title, :description, :path, :category_id, :icon_key, :deco, :accent_color, :is_public, :sort_order)',
+            'INSERT INTO tools (title, description, path, category_id, icon_key, deco, accent_color, sort_order)
+             VALUES (:title, :description, :path, :category_id, :icon_key, :deco, :accent_color, :sort_order)',
             [
                 ':title'        => $data['title']       ?? '',
                 ':description'  => $data['description'] ?? '',
@@ -125,7 +124,6 @@ class ToolModel
                 ':icon_key'     => $data['iconKey']     ?? 'star',
                 ':deco'         => $data['deco']        ?? 'generic',
                 ':accent_color' => $data['accentColor'] ?? '',
-                ':is_public'    => (int) ($data['is_public'] ?? 0),
                 ':sort_order'   => $maxOrder + 1,
             ]
         );
@@ -223,30 +221,9 @@ class ToolModel
     }
 
     /**
-     * Toggles a tool's is_public flag. When flipping to public, any existing tool_access
-     * grants for it are purged — a public tool is already visible to everyone, so a stale
-     * tool_access row would otherwise keep silently expanding just that user's notification
-     * reach (NotificationModel's tool_access UNION branch has no is_public check of its own)
-     * with no way for an admin to see or suspect it in the UI.
-     */
-    public function togglePublic(int $id): bool
-    {
-        DB::run(
-            'UPDATE tools SET is_public = 1 - is_public WHERE id = :id',
-            [':id' => $id]
-        );
-        $isPublic = (int) DB::run('SELECT is_public FROM tools WHERE id = :id', [':id' => $id])->fetchColumn();
-        if ($isPublic === 1) {
-            $this->refreshRecipientsForToolAccess($id); // capture affected users BEFORE the purge below
-            DB::run('DELETE FROM tool_access WHERE tool_id = :id', [':id' => $id]);
-        }
-        return true;
-    }
-
-    /**
      * Recomputes notification visibility for every user with tool_access to this tool —
-     * called BEFORE any change that alters or removes that access (tool deleted, made
-     * public, or re-categorized), since it reads tool_access itself to find who's affected.
+     * called BEFORE any change that alters or removes that access (tool deleted or
+     * re-categorized), since it reads tool_access itself to find who's affected.
      * A tool's category assignment (and who holds tool_access to it) determines which
      * notifications those users can reach via NotificationModel's tool-access path; see
      * refreshRecipientsForUser() there for the full per-user recompute.
@@ -339,7 +316,6 @@ class ToolModel
             'badge'     => $t['badge']    ?? '',
             'iconKey'   => $t['icon_key'] ?? 'star',
             'deco'      => $t['deco']     ?? 'generic',
-            'is_public' => (bool) ($t['is_public'] ?? false),
         ], $rows);
     }
 
@@ -355,7 +331,6 @@ class ToolModel
             'iconKey'      => $t['icon_key']     ?? 'star',
             'deco'         => $t['deco']         ?? 'generic',
             'accentColor'  => $t['accent_color'] ?? '',
-            'is_public'    => (bool) ($t['is_public'] ?? false),
             'id'           => (int) $t['id'],
         ], $rows);
     }

@@ -1276,7 +1276,7 @@ function startRealtime() {
 /* ═══════════════════════════════════════════════════════════
    Inline tool management for admins (right on this dashboard)
    Active only when an admin is logged in and CSRF is available.
-   Writes go to admin.php?api=add|edit|delete|toggle_public (role is checked from the DB).
+   Writes go to admin.php?api=add|edit|delete (role is checked from the DB).
    ═══════════════════════════════════════════════════════════ */
 const AdminTools = {
   get enabled() { return !!(typeof Auth !== 'undefined' && Auth.isAdmin && window.CSRF_TOKEN); },
@@ -1289,9 +1289,6 @@ const AdminTools = {
   _ic: {
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
     del:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
-    pub:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
-    prv:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-    lockSm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   },
 
@@ -1307,17 +1304,9 @@ const AdminTools = {
   decorateCard(card, tool) {
     card.classList.add('card--admin');
     card.dataset.toolId = tool.id;
-    if (!tool.is_public) card.classList.add('card--private');
 
     const bar = document.createElement('div');
     bar.className = 'card-admin-bar';
-
-    const tgl = document.createElement('button');
-    tgl.type = 'button';
-    tgl.className = 'cab-btn cab-toggle' + (tool.is_public ? ' is-public' : '');
-    tgl.title = tool.is_public ? 'عمومی — کلیک: خصوصی شود' : 'خصوصی — کلیک: عمومی شود';
-    tgl.innerHTML = tool.is_public ? this._ic.pub : this._ic.prv;
-    tgl.addEventListener('click', (e) => { e.stopPropagation(); this.toggle(tool.id, card, tgl); });
 
     const ed = document.createElement('button');
     ed.type = 'button'; ed.className = 'cab-btn cab-edit'; ed.title = 'ویرایش';
@@ -1329,15 +1318,8 @@ const AdminTools = {
     dl.innerHTML = this._ic.del;
     dl.addEventListener('click', (e) => { e.stopPropagation(); this.askDelete(tool.id, tool.title); });
 
-    bar.append(tgl, ed, dl);
+    bar.append(ed, dl);
     card.appendChild(bar);
-
-    if (!tool.is_public) {
-      const tag = document.createElement('span');
-      tag.className = 'card-private-tag';
-      tag.innerHTML = this._ic.lockSm + '<span>خصوصی</span>';
-      card.appendChild(tag);
-    }
   },
 
   makeAddTile() {
@@ -1732,23 +1714,6 @@ const AdminTools = {
     } else {
       Toast.show((data && data.msg) || 'خطا در ذخیره', 'error');
     }
-  },
-
-  async toggle(id, card, btn) {
-    btn.disabled = true;
-    const data = await this.call('toggle_public', { id });
-    btn.disabled = false;
-    if (!data || !data.ok) return;
-    const nowPublic = !btn.classList.contains('is-public'); // toggle_public flips the value in the DB
-    const t = allToolsList.find(x => x.id === id); if (t) t.is_public = nowPublic;
-    btn.classList.toggle('is-public', nowPublic);
-    btn.innerHTML = nowPublic ? this._ic.pub : this._ic.prv;
-    btn.removeAttribute('title');
-    btn.setAttribute('data-tip', nowPublic ? 'عمومی — کلیک: خصوصی شود' : 'خصوصی — کلیک: عمومی شود');
-    card.classList.toggle('card--private', !nowPublic);
-    let tag = card.querySelector('.card-private-tag');
-    if (!nowPublic && !tag) { tag = document.createElement('span'); tag.className = 'card-private-tag'; tag.innerHTML = this._ic.lockSm + '<span>خصوصی</span>'; card.appendChild(tag); }
-    if (nowPublic && tag) tag.remove();
   },
 
   askDelete(id, title) {

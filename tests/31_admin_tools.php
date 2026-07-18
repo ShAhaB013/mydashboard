@@ -53,15 +53,6 @@ Assert::test('edit معتبر → مقادیر DB واقعا آپدیت می‌�
     Assert::eq($newTitle, $row['title'] ?? null, 'عنوان در DB باید آپدیت شده باشد');
 });
 
-Assert::test('toggle_public → وضعیت واقعا در DB تغییر می‌کند', function () use ($BASE, $ACC) {
-    $http = admin_http($BASE, $ACC);
-    $id = Fixtures::createTool(['is_public' => 0]);
-    $res = $http->postJson('/admin.php?api=toggle_public', ['id' => $id]);
-    Assert::jsonOk($res, 'toggle_public باید موفق باشد');
-    $row = DB::run('SELECT is_public FROM tools WHERE id=:id', [':id' => $id])->fetch();
-    Assert::eq('1', (string) $row['is_public'], 'is_public باید به 1 تغییر کند');
-});
-
 Assert::test('delete → ردیف واقعا از DB حذف می‌شود', function () use ($BASE, $ACC) {
     $http = admin_http($BASE, $ACC);
     $id = Fixtures::createTool();

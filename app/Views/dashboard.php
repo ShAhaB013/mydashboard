@@ -292,7 +292,7 @@
 <script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
   window.CSRF_TOKEN = CSRF_TOKEN; // needed to send the X-CSRF-Token header in admin.js
-  // "Lite" version of all tools (id/title/badge/iconKey/deco/is_public) — for
+  // "Lite" version of all tools (id/title/badge/iconKey/deco) — for
   // sorting, the access modal, and icon/deco counts. The full card list is
   // paginated server-side (ToolsView → list_tools). TOOLS_RAW is the same lite array.
   const tools      = <?= $toolsLite ?>;

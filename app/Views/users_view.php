@@ -468,7 +468,7 @@
 <script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
   window.CSRF_TOKEN = CSRF_TOKEN; // needed to send the X-CSRF-Token header in admin.js
-  // The access modal needs "all tools" → lite version (id/title/badge/is_public)
+  // The access modal needs "all tools" → lite version (id/title/badge)
   const TOOLS_RAW  = <?= $toolsLite ?>;
   const tools      = TOOLS_RAW;
   window.tools     = tools;

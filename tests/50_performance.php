@@ -80,7 +80,9 @@ Assert::test('ETag: تغییر داده باعث تغییر ETag و بازگشت
     $etag1 = $res1['headers']['etag'] ?? null;
     if ($etag1 === null) { Assert::warn('ETag روی tools ست نشده — رد شد'); return; }
 
-    $id = Fixtures::createTool(['is_public' => 1]);
+    $id = Fixtures::createTool();
+    $userRow = Fixtures::findUserByUsername($ACC['user']['username']);
+    DB::run('INSERT INTO tool_access (user_id, tool_id) VALUES (:uid, :tid)', [':uid' => $userRow['id'], ':tid' => $id]);
     $res2 = $http->get('/api.php?action=tools', ['If-None-Match: ' . $etag1]);
     Assert::statusEq($res2, 200, 'بعد از تغییر داده، If-None-Match قدیمی نباید 304 بگیرد');
     DB::run('DELETE FROM tools WHERE id=:id', [':id' => $id]);

@@ -101,21 +101,6 @@ class ToolController
             : Response::error('ذخیره ترتیب ناموفق بود (لیست کامل نیست)');
     }
 
-    /** Toggle the tool's public/private status */
-    public function togglePublic(): void
-    {
-        $id = $this->request->inputInt('id');
-
-        if ($id <= 0) {
-            Response::error('شناسه ابزار نامعتبر است');
-            return;
-        }
-
-        $this->model->togglePublic($id)
-            ? Response::ok()
-            : Response::error('خطا در تغییر وضعیت');
-    }
-
     // ── Private Helpers ──────────────────────────────────────
 
     private function extractToolData(): array

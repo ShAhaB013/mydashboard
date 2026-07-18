@@ -821,18 +821,16 @@ const AccessManager = {
     }
 
     TOOLS_RAW.forEach(tool => {
-      const isPublic   = !!tool.is_public;
       const inBadge    = selectedBadges.includes(tool.badge || '');
-      const isChecked  = selectedToolIds.includes(tool.id) || isPublic || inBadge;
-      const isDisabled = isPublic || inBadge;
+      const isChecked  = selectedToolIds.includes(tool.id) || inBadge;
+      const isDisabled = inBadge;
 
       const row = document.createElement('div');
       row.className = 'access-tool-row';
       row.dataset.badge = tool.badge || '';
 
       let statusBadge = '';
-      if (isPublic)    statusBadge = '<span class="access-status-badge public"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>عمومی</span>';
-      else if (inBadge) statusBadge = '<span class="access-status-badge from-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته</span>';
+      if (inBadge) statusBadge = '<span class="access-status-badge from-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته</span>';
 
       row.innerHTML = `
         <label class="access-tool-label ${isDisabled ? 'disabled' : ''}">
@@ -860,24 +858,21 @@ const AccessManager = {
       const inBadge  = badge && selectedBadges.includes(badge);
       const cb       = row.querySelector('.access-tool-cb');
       const label    = row.querySelector('.access-tool-label');
-      const isPublic = cb.disabled && row.querySelector('.access-status-badge.public');
 
-      if (!isPublic) {
-        cb.disabled = !!inBadge;
-        if (inBadge) cb.checked = true;
-        label.classList.toggle('disabled', !!inBadge);
+      cb.disabled = !!inBadge;
+      if (inBadge) cb.checked = true;
+      label.classList.toggle('disabled', !!inBadge);
 
-        let statusBadge = row.querySelector('.access-status-badge');
-        if (inBadge) {
-          if (!statusBadge) {
-            statusBadge = document.createElement('span');
-            row.querySelector('.access-tool-label').appendChild(statusBadge);
-          }
-          statusBadge.className   = 'access-status-badge from-badge';
-          statusBadge.innerHTML   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته';
-        } else {
-          statusBadge?.remove();
+      let statusBadge = row.querySelector('.access-status-badge');
+      if (inBadge) {
+        if (!statusBadge) {
+          statusBadge = document.createElement('span');
+          row.querySelector('.access-tool-label').appendChild(statusBadge);
         }
+        statusBadge.className   = 'access-status-badge from-badge';
+        statusBadge.innerHTML   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته';
+      } else {
+        statusBadge?.remove();
       }
     });
   },

@@ -25,7 +25,6 @@ class Router
         'edit'          => [ToolController::class,         'edit'],
         'delete'        => [ToolController::class,         'delete'],
         'reorder'       => [ToolController::class,         'reorder'],
-        'toggle_public' => [ToolController::class,         'togglePublic'],
 
         // ── icons ────────────────────────────────────────────
         'save_icon'     => [IconController::class,         'save'],
