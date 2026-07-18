@@ -311,8 +311,8 @@ header, main { position: relative; z-index: 1; }
    so overflow would clip it) and tool cards (.card), which intentionally have
    no ripple. Shared with admin.css. */
 .hdr-btn, .user-menu-btn, .chip, .auth-btn, .user-menu-item,
-.notif-drop-item, .login-submit-btn, .profile-submit-btn, .login-tab,
-.pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-row, .notif-search-btn,
+.login-submit-btn, .profile-submit-btn, .login-tab,
+.pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-drop-view-btn, .notif-search-btn,
 .notif-adv-toggle, .notif-adv-apply,
 .notif-drop-view-all, .nd-view-all-link, .header-search-close, .clear-button,
 .nd-close-btn, .nd-close-action,

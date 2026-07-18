@@ -349,7 +349,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 /* ── Ripple effect (click wave, Telegram style) — all interactive items except cards — shared with style.css ── */
 .hdr-btn, .btn, .btn-icon, .cselect-option, .pg-btn, .access-tool-label,
 .pagination-btn, .pagination-goto-spin,
-.deco-opt, .nm-adv-toggle, .notif-row, .section-box-head, .modal-close,
+.deco-opt, .nm-adv-toggle, .section-box-head, .modal-close,
 .user-adv-toggle, .user-search-clear, .toast-close {
   position:relative; overflow:hidden;
 }

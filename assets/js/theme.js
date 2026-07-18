@@ -149,8 +149,8 @@
   // Note: .theme-toggle intentionally has no ripple — the button rotation +
   // icon morph + theme fade all run at once, and adding a ripple caused conflicts and lag.
   const SEL = '.hdr-btn, .user-menu-btn, .btn, .btn-icon, .chip,'
-    + ' .auth-btn, .user-menu-item, .notif-drop-item, .login-submit-btn,'
-    + ' .profile-submit-btn, .login-tab, .pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-row,'
+    + ' .auth-btn, .user-menu-item, .login-submit-btn,'
+    + ' .profile-submit-btn, .login-tab, .pagination-btn, .pagination-goto-spin, .notif-view-btn, .notif-drop-view-btn,'
     + ' .notif-search-btn, .notif-adv-toggle, .notif-adv-apply, .cselect-option,'
     + ' .pg-btn, .access-tool-label, .deco-opt, .nm-adv-toggle, .section-box-head,'
     + ' .notif-drop-view-all, .nd-view-all-link, .header-search-close, .clear-button,'

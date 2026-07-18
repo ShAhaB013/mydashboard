@@ -337,8 +337,6 @@ foreach ($items as $item) {
             role="listitem"
             data-id="<?= (int) $item['id'] ?>"
             aria-label="<?= htmlspecialchars($item['title']) ?>"
-            data-act="npOpen"
-            style="cursor:pointer;"
           >
             <div class="notif-row-bar" aria-hidden="true"></div>
 
@@ -373,7 +371,7 @@ foreach ($items as $item) {
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
-                مشاهده
+                <span class="notif-view-btn-label">مشاهده</span>
               </button>
             </div>
 

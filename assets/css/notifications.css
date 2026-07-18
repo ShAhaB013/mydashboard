@@ -361,7 +361,8 @@
       .notif-view-btn { font-size: 11px; padding: 0 10px; }
     }
     @media (max-width: 400px) {
-      .notif-row { grid-template-columns: 4px 30px 1fr; }
-      .notif-row-action { display: none; }
-      .notif-row { cursor: pointer; }
+      .notif-row { grid-template-columns: 4px 30px 1fr auto; }
+      .notif-row-action { padding: 0 10px; }
+      .notif-view-btn { padding: 0; width: 32px; justify-content: center; }
+      .notif-view-btn-label { display: none; }
     }

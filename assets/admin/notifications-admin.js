@@ -1479,7 +1479,7 @@ document.addEventListener('DOMContentLoaded', () => { RTE.init(); NM._initDirty(
 
 // ── ripple (click wave) effect — this page doesn't load admin.js, so the handler is duplicated here ──
 (function () {
-  const SEL = '.btn, .hdr-btn, .btn-icon, .notif-row, .nm-adv-toggle,'
+  const SEL = '.btn, .hdr-btn, .btn-icon, .nm-adv-toggle,'
     + ' .cselect-option, .pg-btn, .nm-pag-btn, .pagination-btn, .pagination-goto-spin,'
     + ' .modal-close, .notif-search-clear, .toast-close';
   document.addEventListener('pointerdown', function (e) {
