@@ -687,7 +687,7 @@ const NM = {
     if (n.target_all_users) pills.push(`<span class="pill pill-all">همه کاربران</span>`);
     (n.badges || []).forEach(b => pills.push(`<span class="pill pill-badge">${this._esc(b)}</span>`));
     // publish and expiry date/time — labeled and side by side
-    const _fmtDT = ms => new Date(ms).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+    const _fmtDT = ms => DateFmt.dateTime(ms);
     pills.push(`<span class="pill pill-created" title="تاریخ و ساعت انتشار">انتشار: ${_fmtDT(n.created_at)}</span>`);
     if (n.expires_at) {
       pills.push(`<span class="pill pill-expiry" title="تاریخ و ساعت انقضا">انقضا: ${_fmtDT(n.expires_at * 1000)}</span>`);
@@ -749,9 +749,7 @@ const NM = {
     const txt  = document.getElementById('expiryDisplayText');
     if (ts) {
       const d = new Date(ts * 1000);
-      const date = d.toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' });
-      const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-      txt.textContent = `${date} — ساعت ${time}`;
+      txt.textContent = `${DateFmt.date(d)} — ساعت ${DateFmt.time(d)}`;
       wrap.classList.add('show');
     } else {
       wrap.classList.remove('show');
@@ -1316,7 +1314,7 @@ const NM = {
   },
 
   _readerRow(r) {
-    const when    = new Date(r.read_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+    const when    = DateFmt.dateTime(r.read_at);
     const name    = (r.display_name || r.username || '؟').trim();
     const initial = name.charAt(0).toUpperCase();
     return `

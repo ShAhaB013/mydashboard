@@ -39,3 +39,25 @@ window.Actions = (function () {
     register: function (map) { Object.assign(reg, map); return this; },
   };
 })();
+
+// ── Shared date display format: YYYY/MM/DD (and YYYY/MM/DD H:i for date+time) ──
+// Mirrors gregorian_datetime()'s date('Y/m/d H:i') on the PHP side.
+window.DateFmt = {
+  date(input) {
+    const d = input instanceof Date ? input : new Date(input);
+    const y   = d.getFullYear();
+    const m   = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}/${m}/${day}`;
+  },
+  time(input) {
+    const d = input instanceof Date ? input : new Date(input);
+    const h   = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${h}:${min}`;
+  },
+  dateTime(input) {
+    const d = input instanceof Date ? input : new Date(input);
+    return `${this.date(d)} ${this.time(d)}`;
+  },
+};

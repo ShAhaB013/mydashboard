@@ -164,7 +164,7 @@ const NotifDetail = {
     const created = new Date(n.created_at);
     const dateRow = this._metaRow(
       '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-      created.toLocaleString('en-GB')
+      DateFmt.dateTime(created)
     );
     meta.appendChild(dateRow);
 
@@ -172,7 +172,7 @@ const NotifDetail = {
       const exp = new Date(n.expires_at * 1000);
       const expRow = this._metaRow(
         '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-        (n.is_expired ? 'منقضی شد: ' : 'انقضا: ') + exp.toLocaleString('en-GB')
+        (n.is_expired ? 'منقضی شد: ' : 'انقضا: ') + DateFmt.dateTime(exp)
       );
       if (n.is_expired) expRow.classList.add('expired-row');
       meta.appendChild(expRow);

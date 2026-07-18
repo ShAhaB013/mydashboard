@@ -464,12 +464,7 @@ const NotifPanel = {
       };
 
       const viewBtn = item.querySelector('.notif-drop-view-btn');
-      viewBtn.addEventListener('click', e => { e.stopPropagation(); openDetail(); });
-      item.addEventListener('click', openDetail);
-      item.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(); }
-      });
-      item.setAttribute('tabindex', '0');
+      viewBtn.addEventListener('click', openDetail);
 
       frag.appendChild(item);
     });
@@ -532,7 +527,7 @@ const NotifPanel = {
     if (diff <  3600) return `${Math.floor(diff / 60)} دقیقه پیش`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} ساعت پیش`;
     if (diff < 2592000) return `${Math.floor(diff / 86400)} روز پیش`;
-    return new Date(dateStr).toLocaleDateString('en-GB');
+    return DateFmt.date(dateStr);
   },
 };
 

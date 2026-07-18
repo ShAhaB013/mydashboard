@@ -1302,7 +1302,7 @@ const SecurityManager = {
 
   _row(r) {
     const scopeLabel = r.scope === 'admin' ? 'پنل مدیریت' : 'ورود کاربر';
-    const last = r.last_attempt ? new Date(r.last_attempt * 1000).toLocaleString('en-GB') : '—';
+    const last = r.last_attempt ? DateFmt.dateTime(r.last_attempt * 1000) : '—';
     const status = r.is_blocked
       ? `<span class="blk-badge blk-blocked">بلاک · ${this._remain(r.remaining)} باقی‌مانده</span>`
       : `<span class="blk-badge blk-watch">در حال پایش</span>`;
@@ -1443,7 +1443,7 @@ const SessionsManager = {
   },
 
   _row(s, showName) {
-    const when  = s.last_seen ? new Date(s.last_seen * 1000).toLocaleString('en-GB') : '—';
+    const when  = s.last_seen ? DateFmt.dateTime(s.last_seen * 1000) : '—';
     const ip    = esc(s.ip || '—');
     const agent = esc(s.agent || 'نامشخص');
     let remaining = '';
