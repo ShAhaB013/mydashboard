@@ -16,6 +16,7 @@ const LogsManager = {
   _total:       0,
   _pageCount:   1,
   _levelCounts: { error: 0, warning: 0, info: 0, debug: 0 },
+  _totalLogs:   0,
   _loading:     false,
   _searchTimer: null,
 
@@ -47,6 +48,7 @@ const LogsManager = {
 
     this._logs = res.logs || [];
     this._levelCounts = res.level_counts || this._levelCounts;
+    this._totalLogs = res.total_logs ?? this._totalLogs;
     const pg = res.pagination || {};
     this._total     = pg.total      ?? this._logs.length;
     this._pageCount = pg.page_count ?? 1;
@@ -58,6 +60,38 @@ const LogsManager = {
 
     this._renderChips();
     this._render();
+    this._syncEmptyState();
+  },
+
+  // ── while there are zero logs in the whole system, freeze every control ──
+  _syncEmptyState() {
+    const empty = this._totalLogs === 0;
+
+    document.querySelectorAll('#logChips .log-chip').forEach(btn => {
+      btn.disabled = empty;
+      btn.setAttribute('aria-disabled', empty ? 'true' : 'false');
+    });
+
+    const searchInput = document.getElementById('logSearchInput');
+    if (searchInput) searchInput.disabled = empty;
+    const searchClear = document.getElementById('logSearchClear');
+    if (searchClear) searchClear.disabled = empty;
+
+    const advToggle = document.getElementById('logAdvToggle');
+    if (advToggle) {
+      advToggle.disabled = empty;
+      advToggle.setAttribute('aria-disabled', empty ? 'true' : 'false');
+      if (empty) {
+        document.getElementById('logAdvPanel')?.classList.remove('open');
+        advToggle.classList.remove('active');
+        advToggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    ['log-df', 'log-dt', 'logApplyBtn', 'logResetBtn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = empty;
+    });
   },
 
   // ── level filter chips (with live counts) ─────────────────

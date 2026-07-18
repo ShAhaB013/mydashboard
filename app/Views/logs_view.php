@@ -56,6 +56,7 @@
     }
     .log-chip:hover { filter:brightness(1.08); }
     .log-chip:active { transform:scale(.96); }
+    .log-chip:disabled { opacity:.5; cursor:not-allowed; filter:none; transform:none; }
     .log-chip .log-chip-count { font-variant-numeric:tabular-nums; opacity:.85; }
     .log-chip.active { color:#fff; border-color:transparent; }
     .log-chip.active::before { background:#fff; }
@@ -81,6 +82,7 @@
       transition:border-color var(--t), box-shadow var(--t);
     }
     .log-search input:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--accent-bg); }
+    .log-search input:disabled { opacity:.5; cursor:not-allowed; }
     .log-search-clear {
       position:absolute; top:50%; left:8px; transform:translateY(-50%);
       width:22px; height:22px; border-radius:50%; border:none;
@@ -104,6 +106,7 @@
     .log-adv-toggle svg { width:15px; height:15px; flex-shrink:0; }
     .log-adv-toggle:hover { border-color:var(--accent); color:var(--accent); }
     .log-adv-toggle.active, .log-adv-toggle.has-filters { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+    .log-adv-toggle:disabled { opacity:.5; cursor:not-allowed; }
     .log-adv-panel {
       display:none; flex-wrap:wrap; gap:14px; align-items:flex-end;
       margin-bottom:14px; padding:16px 18px;

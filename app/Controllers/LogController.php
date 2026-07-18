@@ -38,6 +38,7 @@ class LogController
         Response::ok([
             'logs'         => array_map([LogModel::class, 'toFrontend'], $rows),
             'level_counts' => $this->model->countByLevel($search, $dateFrom, $dateTo),
+            'total_logs'   => $this->model->countAll(),
             'pagination'   => [
                 'page'       => $page,
                 'per_page'   => $perPage,
