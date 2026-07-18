@@ -109,7 +109,7 @@ class ToolController
             'title'       => $this->request->input('title'),
             'description' => $this->request->input('description'),
             'path'        => $this->request->input('path'),
-            'badge'       => $this->request->input('badge'),
+            'badge'       => trim((string) $this->request->input('badge')),
             'iconKey'     => $this->request->input('iconKey', 'star'),
             'deco'        => $this->request->input('deco', 'generic'),
             'accentColor' => $this->request->input('accentColor'),
@@ -125,6 +125,12 @@ class ToolController
 
         if (!Validator::isValidPath($data['path'])) {
             Response::error('مسیر نامعتبر است', 'path');
+            return false;
+        }
+
+        $badgeErr = Validator::categoryName($data['badge']);
+        if ($badgeErr !== '') {
+            Response::error($badgeErr, 'badge');
             return false;
         }
 

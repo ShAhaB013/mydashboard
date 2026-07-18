@@ -78,6 +78,28 @@ class Validator
     }
 
     /**
+     * Validates a category name: required, at most 20 characters, letters only
+     * (Persian/English, no digits/spaces/hyphens) plus underscore. Single source
+     * of truth — shared between the tool editor (which creates categories via
+     * CategoryModel::findOrCreateByName) and the category management page (rename).
+     * @return string error message, or '' if valid.
+     */
+    public static function categoryName(string $name): string
+    {
+        if ($name === '') {
+            return 'نام دسته‌بندی الزامی است';
+        }
+        if (mb_strlen($name) > 20) {
+            return 'نام دسته‌بندی نباید بیشتر از ۲۰ کاراکتر باشد';
+        }
+        // Unicode letters (including Persian) + underscore only — no digits, spaces, or symbols.
+        if (!preg_match('/^[\p{L}_]+$/u', $name)) {
+            return 'نام دسته‌بندی فقط می‌تواند شامل حروف و underscore باشد';
+        }
+        return '';
+    }
+
+    /**
      * Validates an Iranian mobile number: 11 digits, starts with 09.
      * @return string error message, or '' if valid.
      */

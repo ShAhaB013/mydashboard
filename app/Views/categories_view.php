@@ -80,7 +80,11 @@
       <input type="hidden" id="catRenameId" value="">
       <div class="field">
         <label for="catRenameName">نام جدید <span class="req">*</span></label>
-        <input type="text" id="catRenameName" maxlength="50" data-keydown="catRenameKey">
+        <div class="field-input-wrap">
+          <input type="text" id="catRenameName" maxlength="20" data-keydown="catRenameKey">
+          <span class="field-counter-inline" id="catRenameCounter" dir="ltr"><span id="catRenameCount">0</span>/20</span>
+        </div>
+        <div class="field-hint">فقط حروف فارسی/انگلیسی و _ (underscore) مجاز است</div>
       </div>
     </div>
     <div class="modal-foot">

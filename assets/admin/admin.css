@@ -79,6 +79,19 @@ body {
 .field label { font-size:12px; font-weight:600; color:var(--text-2); letter-spacing:.4px; text-transform:uppercase; }
 .field .req { color:var(--danger); }
 .field .opt { color:var(--text-3, var(--text-2)); font-weight:500; text-transform:none; opacity:.75; }
+.field-hint { font-size:11px; color:var(--text-3); line-height:1.6; }
+.field-input-wrap { position:relative; display:flex; }
+.field-input-wrap input[type="text"] { flex:1; padding-left:48px; }
+/* Opaque pill (not just reserved padding): Latin/LTR text typed into this RTL-direction
+   box makes the browser's caret-follow autoscroll paint glyphs under the reserved gutter
+   (a bidi/RTL <input> scrolling quirk) — an opaque background guarantees the counter stays
+   legible on top no matter what text is scrolled underneath it. */
+.field-counter-inline {
+  position:absolute; left:8px; top:50%; transform:translateY(-50%);
+  font-size:11px; color:var(--text-3); pointer-events:none; unicode-bidi:isolate;
+  background:var(--bg-input); padding:2px 5px; border-radius:5px;
+}
+.field-counter-inline.over { color:var(--danger); font-weight:700; }
 
 input[type="text"],
 input[type="password"],

@@ -3043,6 +3043,26 @@ body.tool-modal-open .card-corner-deco * {
   border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg);
 }
 
+/* Live character counter shown inside the textbox itself (bottom/left corner for
+   textareas, vertically centered for single-line inputs) instead of below the field. */
+.tm-field-input-wrap { position: relative; }
+.tm-field-input-wrap input[type="text"], .tm-field-input-wrap textarea { padding-left: 50px; }
+/* Opaque pill (not just reserved padding): Latin/LTR text typed into this RTL-direction
+   box makes the browser's caret-follow autoscroll paint glyphs under the reserved gutter
+   (a bidi/RTL <input> scrolling quirk) — an opaque background guarantees the counter stays
+   legible on top no matter what text is scrolled underneath it. */
+.tm-field-counter-inline {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: var(--color-text-muted); pointer-events: none; unicode-bidi: isolate;
+  background: var(--color-bg-primary); padding: 2px 5px; border-radius: 5px;
+}
+.tm-field-counter-inline--textarea { top: auto; bottom: 8px; transform: none; }
+.tm-field-counter-inline.over { color: #ef4444; font-weight: 700; }
+.tm-combo-counter {
+  flex-shrink: 0; font-size: 11px; color: var(--color-text-muted); unicode-bidi: isolate; padding-inline-end: 2px;
+}
+.tm-combo-counter.over { color: #ef4444; font-weight: 700; }
+
 /* Generic combobox (category/background deco): a searchable text box + dropdown.
    The panel matches the structure of other project dropdowns (user-menu-dropdown/notif-dropdown):
    fade + scale, same shadow. Category accepts both selecting from existing values and

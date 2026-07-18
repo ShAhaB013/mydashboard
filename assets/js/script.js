@@ -1340,6 +1340,9 @@ const AdminTools = {
     // live preview while typing
     ['tmTitle', 'tmDesc', 'tmBadge'].forEach(id =>
       document.getElementById(id).addEventListener('input', () => this._updatePreview()));
+    // live character counters (shown inside each textbox)
+    ['tmTitle', 'tmDesc', 'tmBadge'].forEach(id =>
+      document.getElementById(id).addEventListener('input', () => this._updateFieldCounters()));
     // color: presets + custom color
     document.getElementById('tmColorPresets').addEventListener('click', (e) => {
       const p = e.target.closest('.tm-preset');
@@ -1432,6 +1435,21 @@ const AdminTools = {
       b.classList.toggle('active', (b.dataset.color || '') === (color || '')));
     if (color) document.getElementById('tmColor').value = color;
     this._updatePreview();
+  },
+
+  // live character counters shown inside each textbox (title/description/category)
+  _updateFieldCounters() {
+    [['tmTitle', 'tmTitleCount', 'tmTitleCounter', 120],
+     ['tmDesc',  'tmDescCount',  'tmDescCounter',  300],
+     ['tmBadge', 'tmBadgeCount', 'tmBadgeCounter', 20]].forEach(([inputId, countId, wrapId, max]) => {
+      const input = document.getElementById(inputId);
+      const cEl   = document.getElementById(countId);
+      const wrap  = document.getElementById(wrapId);
+      if (!input) return;
+      const len = input.value.length;
+      if (cEl)  cEl.textContent = len.toLocaleString('en-US');
+      if (wrap) wrap.classList.toggle('over', len >= max);
+    });
   },
 
   // live preview of the card inside the modal
@@ -1659,6 +1677,7 @@ const AdminTools = {
     this._updateBadgeList();
     this._buildPickers('star', 'generic');
     this._setColor('');
+    this._updateFieldCounters();
     this._show();
     this._dirty = false;
     setTimeout(() => document.getElementById('tmTitle').focus(), 50);
@@ -1677,22 +1696,36 @@ const AdminTools = {
     this._updateBadgeList();
     this._buildPickers(tool.iconKey || 'star', tool.deco || 'generic');
     this._setColor(tool.accentColor || '');
+    this._updateFieldCounters();
     this._show();
     this._dirty = false;
     setTimeout(() => document.getElementById('tmTitle').focus(), 50);
+  },
+
+  // marks the field + focuses it; always returns false so callers can `return this._failField(...)` directly.
+  _failField(id, msg) {
+    Toast.show(msg, 'error');
+    const el = document.getElementById(id);
+    if (el) el.focus();
+    return false;
   },
 
   async save() {
     const id    = document.getElementById('tmId').value.trim();
     const title = document.getElementById('tmTitle').value.trim();
     const path  = document.getElementById('tmPath').value.trim();
-    if (!title) { Toast.show('عنوان الزامی است', 'error'); return; }
-    if (!path)  { Toast.show('آدرس / مسیر الزامی است', 'error'); return; }
+    const badge = document.getElementById('tmBadge').value.trim();
+    if (!title) return this._failField('tmTitle', 'عنوان الزامی است');
+    if (!path)  return this._failField('tmPath', 'آدرس / مسیر الزامی است');
+    if (!badge) return this._failField('tmBadge', 'انتخاب دسته‌بندی الزامی است');
+    if (badge.length > 20 || !/^[\p{L}_]+$/u.test(badge)) {
+      return this._failField('tmBadge', 'نام دسته‌بندی فقط می‌تواند شامل حروف و underscore باشد (حداکثر ۲۰ کاراکتر)');
+    }
     const payload = {
       title,
       description: document.getElementById('tmDesc').value.trim(),
       path,
-      badge:   document.getElementById('tmBadge').value.trim(),
+      badge,
       iconKey: this._sel.icon || 'star',
       deco:    this._sel.deco || 'generic',
       accentColor: this._sel.color || '',
@@ -1707,7 +1740,10 @@ const AdminTools = {
       await this.reload();
       Toast.show(id ? `${title} ویرایش شد` : `${title} ایجاد شد`, 'success', id ? 'ویرایش موفق' : 'افزودن موفق');
     } else {
-      Toast.show((data && data.msg) || 'خطا در ذخیره', 'error');
+      const FIELD_INPUT = { title: 'tmTitle', path: 'tmPath', badge: 'tmBadge' };
+      const field = data && data.field && FIELD_INPUT[data.field];
+      if (field) this._failField(field, (data && data.msg) || 'خطا در ذخیره');
+      else Toast.show((data && data.msg) || 'خطا در ذخیره', 'error');
     }
   },
 

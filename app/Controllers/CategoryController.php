@@ -30,12 +30,10 @@ class CategoryController
             Response::error('دسته‌بندی نامعتبر است');
             return;
         }
-        if ($name === '') {
-            Response::error('نام دسته‌بندی الزامی است', 'name');
-            return;
-        }
-        if (mb_strlen($name) > 50) {
-            Response::error('نام دسته‌بندی نباید بیشتر از ۵۰ کاراکتر باشد', 'name');
+
+        $err = Validator::categoryName($name);
+        if ($err !== '') {
+            Response::error($err, 'name');
             return;
         }
 

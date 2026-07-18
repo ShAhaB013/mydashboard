@@ -1597,6 +1597,7 @@ const CategoriesManager = {
   openRename(id, name) {
     document.getElementById('catRenameId').value = id;
     document.getElementById('catRenameName').value = name;
+    this._updateRenameCounter();
     Modal.open('categoryRenameModal');
     setTimeout(() => document.getElementById('catRenameName').focus(), 100);
   },
@@ -1607,10 +1608,30 @@ const CategoriesManager = {
     if (e.key === 'Enter') { e.preventDefault(); this.saveRename(); }
   },
 
+  // live character counter for the category name field (max 20)
+  _updateRenameCounter() {
+    const input = document.getElementById('catRenameName');
+    const cEl   = document.getElementById('catRenameCount');
+    const wrap  = document.getElementById('catRenameCounter');
+    if (!input) return;
+    const len = input.value.length;
+    if (cEl)  cEl.textContent = len.toLocaleString('en-US');
+    if (wrap) wrap.classList.toggle('over', len >= 20);
+  },
+  _initRenameCounter() {
+    const input = document.getElementById('catRenameName');
+    if (!input || input.__counterBound) return;
+    input.__counterBound = true;
+    input.addEventListener('input', () => this._updateRenameCounter());
+  },
+
   async saveRename() {
     const id   = parseInt(document.getElementById('catRenameId').value, 10);
     const name = document.getElementById('catRenameName').value.trim();
     if (!name) return FieldErr.set('catRenameName', 'نام دسته‌بندی الزامی است');
+    if (!/^[\p{L}_]+$/u.test(name)) {
+      return FieldErr.set('catRenameName', 'نام دسته‌بندی فقط می‌تواند شامل حروف و underscore باشد');
+    }
 
     const res = await Api.call('rename_category', { id, name });
     if (res.ok) {
@@ -1819,6 +1840,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // category management page
   if (document.getElementById('categoryList')) {
     CategoriesManager.load();
+    CategoriesManager._initRenameCounter();
   }
 
   // test email (settings page): the send button stays disabled until the email format is valid

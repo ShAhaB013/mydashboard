@@ -334,21 +334,28 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
         <input type="hidden" id="tmId" value="">
         <div class="tm-field">
           <label for="tmTitle">عنوان <span class="req">*</span></label>
-          <input type="text" id="tmTitle" maxlength="120" placeholder="نام ابزار">
+          <div class="tm-field-input-wrap">
+            <input type="text" id="tmTitle" maxlength="120" placeholder="نام ابزار">
+            <span class="tm-field-counter-inline" id="tmTitleCounter" dir="ltr"><span id="tmTitleCount">0</span>/120</span>
+          </div>
         </div>
         <div class="tm-field">
           <label for="tmDesc">توضیح</label>
-          <textarea id="tmDesc" rows="2" maxlength="300" placeholder="توضیح کوتاه"></textarea>
+          <div class="tm-field-input-wrap">
+            <textarea id="tmDesc" rows="2" maxlength="300" placeholder="توضیح کوتاه"></textarea>
+            <span class="tm-field-counter-inline tm-field-counter-inline--textarea" id="tmDescCounter" dir="ltr"><span id="tmDescCount">0</span>/300</span>
+          </div>
         </div>
         <div class="tm-field">
           <label for="tmPath">آدرس / مسیر <span class="req">*</span></label>
           <input type="text" id="tmPath" dir="ltr" placeholder="tools/foo/ یا https://...">
         </div>
         <div class="tm-field">
-          <label for="tmBadge">دسته‌بندی</label>
+          <label for="tmBadge">دسته‌بندی <span class="req">*</span></label>
           <div class="tm-combo" id="tmBadgeSelect">
             <div class="tm-combo-box">
-              <input type="text" id="tmBadge" class="tm-combo-input" maxlength="40" placeholder="مثلا عمومی یا دسته جدید" autocomplete="off">
+              <input type="text" id="tmBadge" class="tm-combo-input" maxlength="20" placeholder="مثلا عمومی یا دسته جدید" autocomplete="off">
+              <span class="tm-combo-counter" id="tmBadgeCounter" dir="ltr"><span id="tmBadgeCount">0</span>/20</span>
               <button type="button" class="tm-combo-toggle" id="tmBadgeToggle" aria-label="نمایش دسته‌های موجود" aria-haspopup="listbox" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
               </button>
