@@ -80,18 +80,28 @@ body {
 .field .req { color:var(--danger); }
 .field .opt { color:var(--text-3, var(--text-2)); font-weight:500; text-transform:none; opacity:.75; }
 .field-hint { font-size:11px; color:var(--text-3); line-height:1.6; }
-.field-input-wrap { position:relative; display:flex; }
-.field-input-wrap input[type="text"] { flex:1; padding-left:48px; }
-/* Opaque pill (not just reserved padding): Latin/LTR text typed into this RTL-direction
-   box makes the browser's caret-follow autoscroll paint glyphs under the reserved gutter
-   (a bidi/RTL <input> scrolling quirk) — an opaque background guarantees the counter stays
-   legible on top no matter what text is scrolled underneath it. */
-.field-counter-inline {
-  position:absolute; left:8px; top:50%; transform:translateY(-50%);
-  font-size:11px; color:var(--text-3); pointer-events:none; unicode-bidi:isolate;
-  background:var(--bg-input); padding:2px 5px; border-radius:5px;
+/* The counter is a real flex sibling next to the input — not an overlay on top of it —
+   so it never fights the input's own text/caret/selection rendering (an absolutely
+   positioned overlay kept getting painted over by those native layers in edge cases:
+   long-text autoscroll, then full-text selection). The bordered look moves to the
+   wrapper; the input itself becomes borderless/transparent so the pair reads as one box. */
+.field-input-wrap {
+  display:flex; align-items:center; gap:4px; padding-inline-end:12px;
+  border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-input);
+  transition:border-color var(--t), box-shadow var(--t);
 }
-.field-counter-inline.over { color:var(--danger); font-weight:700; }
+.field-input-wrap:focus-within { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(var(--accent-rgb),.10), 0 0 9px rgba(var(--accent-rgb),.12); }
+.field-input-wrap input[type="text"],
+.field-input-wrap input[type="tel"],
+.field-input-wrap input[type="email"] {
+  flex:1; min-width:0; border:none; background:none; box-shadow:none; padding:10px 14px;
+}
+.field-input-wrap input[type="text"]:focus,
+.field-input-wrap input[type="tel"]:focus,
+.field-input-wrap input[type="email"]:focus { box-shadow:none; }
+.field-counter-inline {
+  flex-shrink:0; font-size:11px; color:var(--text-3); unicode-bidi:isolate;
+}
 
 input[type="text"],
 input[type="password"],
@@ -109,7 +119,9 @@ input::placeholder { color:var(--text-3); }
 /* ── Field error state (key admin forms) ── */
 .field.has-error > input,
 .field.has-error > select,
-.field.has-error .pass-wrap input {
+.field.has-error .pass-wrap input,
+.field.has-error .field-input-wrap,
+.field.has-error .pass-input-wrap {
   border-color:var(--danger);
   box-shadow:0 0 0 2px rgba(var(--danger-rgb),.12), 0 0 9px rgba(var(--danger-rgb),.14);
 }
@@ -230,10 +242,28 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 
 /* ── Password: show/hide + strength bar (synced with the profile page) ── */
 .pass-wrap { position:relative; }
-.pass-wrap input { padding-left:40px; }
-.pass-wrap.has-gen input { padding-left:68px; }
+.pass-wrap input { padding-right:40px; }
+.pass-wrap.has-gen input { padding-right:68px; }
+/* Character counter: a flex sibling of the input inside its own wrapper — not an
+   overlay on top of it (same reason as .field-input-wrap: an overlay loses to the
+   input's own native text/caret/selection rendering in edge cases). The toggle/gen
+   icon buttons stay absolutely positioned on the right as before; the counter lives
+   on the opposite (left) side of this inner wrapper, so the two never compete. */
+.pass-input-wrap {
+  display:flex; align-items:center;
+  border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-input);
+  transition:border-color var(--t), box-shadow var(--t);
+}
+.pass-input-wrap:focus-within { border-color:var(--border-focus); box-shadow:0 0 0 2px rgba(var(--accent-rgb),.10), 0 0 9px rgba(var(--accent-rgb),.12); }
+.pass-input-wrap input[type="password"],
+.pass-input-wrap input[type="text"] {
+  flex:1; min-width:0; border:none; background:none; box-shadow:none;
+}
+.pass-input-wrap input[type="password"]:focus,
+.pass-input-wrap input[type="text"]:focus { box-shadow:none; }
+.pass-input-wrap .field-counter-inline { flex-shrink:0; padding-inline-start:10px; }
 .pass-toggle {
-  position:absolute; left:8px; top:50%; transform:translateY(-50%);
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
   background:none; border:none; cursor:pointer; color:var(--text-3);
   display:flex; align-items:center; justify-content:center; padding:5px; border-radius:var(--radius-xs);
   transition:color var(--t);
@@ -241,9 +271,9 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .pass-toggle:hover { color:var(--accent); }
 .pass-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .pass-toggle svg { width:16px; height:16px; pointer-events:none; }
-/* Random password generator button (next to the eye toggle, field's left side) */
+/* Random password generator button (next to the eye toggle, field's right side) */
 .pass-gen {
-  position:absolute; overflow:hidden; left:36px; top:50%; transform:translateY(-50%);
+  position:absolute; overflow:hidden; right:36px; top:50%; transform:translateY(-50%);
   background:none; border:none; cursor:pointer; color:var(--text-3);
   display:flex; align-items:center; justify-content:center; padding:5px; border-radius:var(--radius-xs);
   transition:color var(--t), transform .25s ease;

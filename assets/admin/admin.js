@@ -124,6 +124,22 @@ const FieldErr = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// Counter — live character counter shown inside a .field-input-wrap (a flex sibling
+// next to the input, never an overlay on top of it — see feedback_char_counter_pattern).
+// ═══════════════════════════════════════════════════════════
+const Counter = {
+  update(inputId, max) {
+    const input = document.getElementById(inputId);
+    const cEl   = document.getElementById(inputId + 'Count');
+    const wrap  = document.getElementById(inputId + 'Counter');
+    if (!input) return;
+    const len = input.value.length;
+    if (cEl)  cEl.textContent = len.toLocaleString('en-US');
+    if (wrap) wrap.classList.toggle('over', len >= max);
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
 // Modal
 // ═══════════════════════════════════════════════════════════
 const Modal = {
@@ -235,6 +251,10 @@ const UserManager = {
     if (!m) return;
     m.addEventListener('input', () => { this._dirty = true; });
     m.addEventListener('change', () => { this._dirty = true; });
+    document.getElementById('editFullName')?.addEventListener('input', () => Counter.update('editFullName', 60));
+    document.getElementById('editUsername')?.addEventListener('input', () => Counter.update('editUsername', 60));
+    document.getElementById('editPhone')?.addEventListener('input', () => Counter.update('editPhone', 11));
+    document.getElementById('editEmail')?.addEventListener('input', () => Counter.update('editEmail', 190));
     this._wiredDirty = true;
   },
   _isAdd: false,
@@ -596,7 +616,7 @@ const UserManager = {
     if (el && !el.__pwWired) {
       el.__pwWired = true;
       el.addEventListener('focus', () => updatePassRules(el.value));
-      el.addEventListener('input', () => updatePassRules(el.value));
+      el.addEventListener('input', () => { updatePassRules(el.value); Counter.update('editUserPassword', 64); });
     }
   },
   openAdd() {
@@ -615,6 +635,11 @@ const UserManager = {
     this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = 'user'; CustomSelect.refresh(roleSel); }
+    Counter.update('editFullName', 60);
+    Counter.update('editUsername', 60);
+    Counter.update('editPhone', 11);
+    Counter.update('editEmail', 190);
+    Counter.update('editUserPassword', 64);
     Modal.open('userModal');
     this._dirty = false;
     setTimeout(() => document.getElementById('editFullName').focus(), 100);
@@ -635,6 +660,11 @@ const UserManager = {
     this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = (role === 'admin') ? 'admin' : 'user'; CustomSelect.refresh(roleSel); }
+    Counter.update('editFullName', 60);
+    Counter.update('editUsername', 60);
+    Counter.update('editPhone', 11);
+    Counter.update('editEmail', 190);
+    Counter.update('editUserPassword', 64);
     Modal.open('userModal');
     this._dirty = false;
     setTimeout(() => document.getElementById('editFullName').focus(), 100);
@@ -1051,6 +1081,7 @@ const IconEditor = {
       ICONS_DATA[key] = path;
       document.getElementById('newIconKey').value  = '';
       document.getElementById('newIconPath').value = '';
+      Counter.update('newIconKey', 40);
       this.buildGrid();
       IconPicker.build();
       Toast.show('آیکون اضافه شد', 'success', 'افزودن موفق');
@@ -1170,6 +1201,7 @@ const DecoEditor = {
       DECOS_DATA[key] = svg;
       document.getElementById('newDecoKey').value = '';
       document.getElementById('newDecoSVG').value = '';
+      Counter.update('newDecoKey', 40);
       this.buildGrid();
       DecoPicker.build();
       Toast.show('انیمیشن اضافه شد', 'success', 'افزودن موفق');
@@ -1275,7 +1307,10 @@ function togglePass(inputId, btn) {
 const PW_POLICY_MSG = 'رمز عبور باید بین ۱۰ تا ۶۴ کاراکتر و شامل حروف کوچک و بزرگ انگلیسی، عدد و نماد باشد.';
 function pwMeetsPolicy(val) { return PasswordPolicy.meets(val); }
 function updatePassRules(val) { PasswordPolicy.updateChecklist('editPassRules', val); }
-function genUserPassword(el) { PasswordPolicy.generate(el.dataset.target, null, 'editPassRules'); }
+function genUserPassword(el) {
+  PasswordPolicy.generate(el.dataset.target, null, 'editPassRules');
+  Counter.update(el.dataset.target, 64);
+}
 
 // ═══════════════════════════════════════════════════════════
 // SecurityManager — login blocks (rate limit): view log and clear blocks
@@ -1828,6 +1863,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // icon/deco management (tool management has moved to the main dashboard)
   if (document.getElementById('iconAssetGrid'))  IconEditor.buildGrid();
   if (document.getElementById('decoAssetGrid'))  DecoEditor.buildGrid();
+  document.getElementById('newIconKey')?.addEventListener('input', () => Counter.update('newIconKey', 40));
+  document.getElementById('newDecoKey')?.addEventListener('input', () => Counter.update('newDecoKey', 40));
   Theme.init();
   CustomSelect.enhanceAll();   // upgrade all native <select>s into theme-matching dropdowns
 

@@ -341,9 +341,9 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
         </div>
         <div class="tm-field">
           <label for="tmDesc">توضیح</label>
-          <div class="tm-field-input-wrap">
+          <div class="tm-field-input-wrap tm-field-input-wrap--textarea">
             <textarea id="tmDesc" rows="2" maxlength="300" placeholder="توضیح کوتاه"></textarea>
-            <span class="tm-field-counter-inline tm-field-counter-inline--textarea" id="tmDescCounter" dir="ltr"><span id="tmDescCount">0</span>/300</span>
+            <span class="tm-field-counter-inline" id="tmDescCounter" dir="ltr"><span id="tmDescCount">0</span>/300</span>
           </div>
         </div>
         <div class="tm-field">

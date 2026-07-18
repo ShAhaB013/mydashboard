@@ -2866,6 +2866,13 @@ body.tool-modal-open .card-corner-deco * {
 }
 .field-status svg { width: 100%; height: 100%; display: block; }
 
+/* Live character counter: a flex sibling inside .field-box, never an overlay on top
+   of .field-input (an overlay repeatedly lost to the input's own native text/caret/
+   selection rendering — see .tm-field-input-wrap above for the same lesson). Only
+   fields that actually show a counter get the extra trailing padding. */
+.field-box--counted { padding-inline-end: 12px; }
+.field-counter-inline { flex-shrink: 0; font-size: 11px; color: var(--color-text-muted); unicode-bidi: isolate; }
+
 /* Message below the field */
 .field-msg {
   display: none; align-items: center; gap: 5px;
@@ -3043,25 +3050,37 @@ body.tool-modal-open .card-corner-deco * {
   border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg);
 }
 
-/* Live character counter shown inside the textbox itself (bottom/left corner for
-   textareas, vertically centered for single-line inputs) instead of below the field. */
-.tm-field-input-wrap { position: relative; }
-.tm-field-input-wrap input[type="text"], .tm-field-input-wrap textarea { padding-left: 50px; }
-/* Opaque pill (not just reserved padding): Latin/LTR text typed into this RTL-direction
-   box makes the browser's caret-follow autoscroll paint glyphs under the reserved gutter
-   (a bidi/RTL <input> scrolling quirk) — an opaque background guarantees the counter stays
-   legible on top no matter what text is scrolled underneath it. */
-.tm-field-counter-inline {
-  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
-  font-size: 11px; color: var(--color-text-muted); pointer-events: none; unicode-bidi: isolate;
-  background: var(--color-bg-primary); padding: 2px 5px; border-radius: 5px;
+/* The counter is a real flex sibling next to the input/textarea — not an overlay on
+   top of it — so it never fights the field's own text/caret/selection rendering (an
+   absolutely positioned overlay kept getting painted over by those native layers in
+   edge cases: long-text autoscroll, then full-text selection). The bordered look moves
+   to the wrapper; the input/textarea itself becomes borderless/transparent so the pair
+   reads as one box, with the counter as a small trailing chip (or footer row, for the
+   multi-line textarea variant) inside it. */
+.tm-field-input-wrap {
+  display: flex; align-items: center; gap: 4px; padding-inline-end: 12px;
+  border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
+  background: var(--color-bg-primary);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
-.tm-field-counter-inline--textarea { top: auto; bottom: 8px; transform: none; }
-.tm-field-counter-inline.over { color: #ef4444; font-weight: 700; }
+.tm-field-input-wrap:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-bg); }
+.tm-field-input-wrap input[type="text"] {
+  flex: 1; min-width: 0; border: none; background: none; box-shadow: none; padding: 9px 12px;
+}
+.tm-field-input-wrap input[type="text"]:focus { box-shadow: none; }
+.tm-field-input-wrap--textarea { flex-direction: column; align-items: stretch; padding-inline-end: 0; }
+.tm-field-input-wrap--textarea textarea {
+  border: none; background: none; box-shadow: none; resize: none;
+  min-height: 52px; line-height: 1.6; padding: 9px 12px 2px;
+}
+.tm-field-input-wrap--textarea textarea:focus { box-shadow: none; }
+.tm-field-counter-inline {
+  flex-shrink: 0; font-size: 11px; color: var(--color-text-muted); unicode-bidi: isolate;
+}
+.tm-field-input-wrap--textarea .tm-field-counter-inline { align-self: flex-end; padding: 0 12px 6px; }
 .tm-combo-counter {
   flex-shrink: 0; font-size: 11px; color: var(--color-text-muted); unicode-bidi: isolate; padding-inline-end: 2px;
 }
-.tm-combo-counter.over { color: #ef4444; font-weight: 700; }
 
 /* Generic combobox (category/background deco): a searchable text box + dropdown.
    The panel matches the structure of other project dropdowns (user-menu-dropdown/notif-dropdown):

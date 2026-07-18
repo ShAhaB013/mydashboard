@@ -186,7 +186,10 @@
         <div class="add-asset-row">
           <div class="field">
             <label>نام (key) <span class="req">*</span></label>
-            <input type="text" id="newIconKey" placeholder="مثال: compress" maxlength="40">
+            <div class="field-input-wrap">
+              <input type="text" id="newIconKey" placeholder="مثال: compress" maxlength="40">
+              <span class="field-counter-inline" id="newIconKeyCounter" dir="ltr"><span id="newIconKeyCount">0</span>/40</span>
+            </div>
           </div>
           <div class="field">
             <label>SVG Path <span class="req">*</span></label>
@@ -250,7 +253,10 @@
         <div class="add-asset-row">
           <div class="field">
             <label>نام (key) <span class="req">*</span></label>
-            <input type="text" id="newDecoKey" placeholder="مثال: waves" maxlength="40">
+            <div class="field-input-wrap">
+              <input type="text" id="newDecoKey" placeholder="مثال: waves" maxlength="40">
+              <span class="field-counter-inline" id="newDecoKeyCounter" dir="ltr"><span id="newDecoKeyCount">0</span>/40</span>
+            </div>
           </div>
           <div class="field">
             <label>SVG کامل <span class="req">*</span></label>

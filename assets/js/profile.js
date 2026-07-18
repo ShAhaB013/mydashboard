@@ -41,6 +41,8 @@
           const ln = document.getElementById('lastName');
           if (fn) fn.value = originalFirstName;
           if (ln) ln.value = originalLastName;
+          updateCounter('firstName', 60);
+          updateCounter('lastName', 60);
         }
         const head = document.getElementById('profileCardHead');
         if (head) head.classList.remove('is-loading');
@@ -77,10 +79,12 @@
       PasswordPolicy.generate(el.dataset.target, el.dataset.confirm, 'passRules');
       const p = document.getElementById(el.dataset.target);
       if (p && window.Field) Field.set(p, 'success', 'رمز مناسب است');
+      updateCounter(el.dataset.target, 64);
       // The generated password is also copied into the confirm field, so it must turn green too
       // (otherwise it would stay red from the earlier "mismatch" error).
       const c = el.dataset.confirm && document.getElementById(el.dataset.confirm);
       if (c && window.Field) Field.set(c, 'success', 'یکسان است');
+      if (el.dataset.confirm) updateCounter(el.dataset.confirm, 64);
     }
 
     /* Validation error only below the field itself (not Toast) */
@@ -121,6 +125,9 @@
           document.getElementById('currentPassword').value = '';
           document.getElementById('newPassword').value     = '';
           document.getElementById('confirmPassword').value = '';
+          updateCounter('currentPassword', 64);
+          updateCounter('newPassword', 64);
+          updateCounter('confirmPassword', 64);
           const rulesPanel = document.getElementById('passRules');
           if (rulesPanel) rulesPanel.hidden = true;
           if (window.Field) { Field.clear('currentPassword'); Field.clear('newPassword'); Field.clear('confirmPassword'); }
@@ -195,6 +202,17 @@
       `;
     }
 
+    // live character counters (shown inside each textbox)
+    function updateCounter(inputId, max) {
+      const input = document.getElementById(inputId);
+      const cEl   = document.getElementById(inputId + 'Count');
+      const wrap  = document.getElementById(inputId + 'Counter');
+      if (!input) return;
+      const len = input.value.length;
+      if (cEl)  cEl.textContent = len.toLocaleString('en-US');
+      if (wrap) wrap.classList.toggle('over', len >= max);
+    }
+
     (function () {
       const fn = document.getElementById('firstName');
       const ln = document.getElementById('lastName');
@@ -204,8 +222,10 @@
         nameFieldsDirty = true;
         if (window.Field) Field.set(el, document.activeElement === el ? 'focus' : 'idle');
       };
-      if (fn) fn.addEventListener('input', () => markDirty(fn));
-      if (ln) ln.addEventListener('input', () => markDirty(ln));
+      if (fn) fn.addEventListener('input', () => { markDirty(fn); updateCounter('firstName', 60); });
+      if (ln) ln.addEventListener('input', () => { markDirty(ln); updateCounter('lastName', 60); });
+      updateCounter('firstName', 60);
+      updateCounter('lastName', 60);
     })();
 
     /* ── Tabs ── */
@@ -265,7 +285,7 @@
       const curPass = $('currentPassword'), newPass = $('newPassword'), confPass = $('confirmPassword');
 
       // Any typing in "current password" clears its previous error (this field has no live validation).
-      if (curPass) curPass.addEventListener('input', () => setFocusIdle(curPass));
+      if (curPass) curPass.addEventListener('input', () => { setFocusIdle(curPass); updateCounter('currentPassword', 64); });
 
       const syncConfirm = (onBlur) => {
         if (!confPass) return;
@@ -281,6 +301,7 @@
         newPass.addEventListener('input', () => {
           const v = newPass.value;
           updatePassRules(v);
+          updateCounter('newPassword', 64);
           if (!v) setFocusIdle(newPass);
           else if (pwMeetsPolicy(v)) Field.set(newPass, 'success', 'رمز مناسب است');
           else setFocusIdle(newPass);   // while typing is incomplete, clear the previous error
@@ -293,7 +314,7 @@
         });
       }
       if (confPass) {
-        confPass.addEventListener('input', () => syncConfirm(false));
+        confPass.addEventListener('input', () => { syncConfirm(false); updateCounter('confirmPassword', 64); });
         confPass.addEventListener('blur',  () => syncConfirm(true));
       }
     }

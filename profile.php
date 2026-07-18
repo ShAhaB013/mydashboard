@@ -119,16 +119,18 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
         <div class="field" data-state="idle">
           <label class="field-label" for="firstName">نام</label>
-          <div class="field-box">
+          <div class="field-box field-box--counted">
             <input type="text" id="firstName" class="field-input" placeholder="نام" maxlength="60" autocomplete="given-name">
+            <span class="field-counter-inline" id="firstNameCounter" dir="ltr"><span id="firstNameCount">0</span>/60</span>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
         <div class="field" data-state="idle">
           <label class="field-label" for="lastName">نام‌خانوادگی</label>
-          <div class="field-box">
+          <div class="field-box field-box--counted">
             <input type="text" id="lastName" class="field-input" placeholder="نام‌خانوادگی" maxlength="60" autocomplete="family-name">
+            <span class="field-counter-inline" id="lastNameCounter" dir="ltr"><span id="lastNameCount">0</span>/60</span>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
@@ -157,22 +159,23 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
         <div class="field" data-state="idle">
           <label class="field-label" for="currentPassword">رمز عبور فعلی</label>
-          <div class="field-box" dir="ltr">
+          <div class="field-box field-box--counted" dir="ltr">
             <input type="password" id="currentPassword" class="field-input" placeholder="رمز عبور فعلی"
-                   autocomplete="current-password" maxlength="128">
+                   autocomplete="current-password" maxlength="64">
             <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="currentPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
+            <span class="field-counter-inline" id="currentPasswordCounter" dir="ltr"><span id="currentPasswordCount">0</span>/64</span>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>
 
         <div class="field" data-state="idle">
           <label class="field-label" for="newPassword">رمز عبور جدید</label>
-          <div class="field-box" dir="ltr">
+          <div class="field-box field-box--counted" dir="ltr">
             <input type="password" id="newPassword" class="field-input" placeholder="رمز عبور جدید"
                    autocomplete="new-password" maxlength="64">
             <button type="button" class="login-pass-gen" aria-label="تولید رمز تصادفی" title="تولید رمز تصادفی" data-act="genPassword" data-target="newPassword" data-confirm="confirmPassword">
@@ -184,6 +187,7 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
+            <span class="field-counter-inline" id="newPasswordCounter" dir="ltr"><span id="newPasswordCount">0</span>/64</span>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
           <!-- Live password rules checklist (updates on focus/typing) -->
@@ -201,15 +205,16 @@ $v_pwpolicy   = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
         <div class="field" data-state="idle">
           <label class="field-label" for="confirmPassword">تکرار رمز عبور جدید</label>
-          <div class="field-box" dir="ltr">
+          <div class="field-box field-box--counted" dir="ltr">
             <input type="password" id="confirmPassword" class="field-input" placeholder="تکرار رمز عبور جدید"
-                   autocomplete="new-password" maxlength="128">
+                   autocomplete="new-password" maxlength="64">
             <button type="button" class="profile-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="confirmPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
+            <span class="field-counter-inline" id="confirmPasswordCounter" dir="ltr"><span id="confirmPasswordCount">0</span>/64</span>
           </div>
           <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
         </div>

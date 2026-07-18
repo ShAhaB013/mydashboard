@@ -263,19 +263,31 @@
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="field">
           <label>نام و نام خانوادگی <span class="req">*</span></label>
-          <input type="text" id="editFullName" placeholder="مثال: علی محمدی" maxlength="60">
+          <div class="field-input-wrap">
+            <input type="text" id="editFullName" placeholder="مثال: علی محمدی" maxlength="60">
+            <span class="field-counter-inline" id="editFullNameCounter" dir="ltr"><span id="editFullNameCount">0</span>/60</span>
+          </div>
         </div>
         <div class="field">
           <label>نام‌کاربری <span class="req">*</span></label>
-          <input type="text" id="editUsername" placeholder="مثال: ali_mohammadi" maxlength="60" dir="ltr" style="direction:ltr;text-align:left">
+          <div class="field-input-wrap">
+            <input type="text" id="editUsername" placeholder="مثال: ali_mohammadi" maxlength="60" dir="ltr" style="direction:ltr;text-align:left">
+            <span class="field-counter-inline" id="editUsernameCounter" dir="ltr"><span id="editUsernameCount">0</span>/60</span>
+          </div>
         </div>
         <div class="field">
           <label>شماره موبایل <span class="opt">(اختیاری)</span></label>
-          <input type="tel" id="editPhone" placeholder="09123456789" maxlength="11" dir="ltr" style="direction:ltr;text-align:left">
+          <div class="field-input-wrap">
+            <input type="tel" id="editPhone" placeholder="09123456789" maxlength="11" dir="ltr" style="direction:ltr;text-align:left">
+            <span class="field-counter-inline" id="editPhoneCounter" dir="ltr"><span id="editPhoneCount">0</span>/11</span>
+          </div>
         </div>
         <div class="field">
           <label>ایمیل <span class="req">*</span></label>
-          <input type="email" id="editEmail" placeholder="example@mail.com" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
+          <div class="field-input-wrap">
+            <input type="email" id="editEmail" placeholder="example@mail.com" maxlength="190" dir="ltr" style="direction:ltr;text-align:left">
+            <span class="field-counter-inline" id="editEmailCounter" dir="ltr"><span id="editEmailCount">0</span>/190</span>
+          </div>
         </div>
         <div class="field">
           <label>سطح دسترسی</label>
@@ -287,7 +299,10 @@
         <div class="field">
           <label id="editPassLabel">رمز عبور <span class="req">*</span></label>
           <div class="pass-wrap has-gen">
-            <input type="password" id="editUserPassword" placeholder="رمز عبور" autocomplete="new-password" maxlength="64">
+            <div class="pass-input-wrap">
+              <input type="password" id="editUserPassword" placeholder="رمز عبور" autocomplete="new-password" maxlength="64" dir="ltr" style="direction:ltr;text-align:left">
+              <span class="field-counter-inline" id="editUserPasswordCounter" dir="ltr"><span id="editUserPasswordCount">0</span>/64</span>
+            </div>
             <button type="button" class="pass-gen" aria-label="تولید رمز تصادفی" title="تولید رمز تصادفی" data-act="genUserPassword" data-target="editUserPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-5.14-1.32a.5.5 0 0 1 0-.97L8.5 10.44A2 2 0 0 0 9.94 9l1.32-5.14a.5.5 0 0 1 .97 0L13.56 9A2 2 0 0 0 15 10.44l5.14 1.32a.5.5 0 0 1 0 .97L15 14.06a2 2 0 0 0-1.44 1.44l-1.32 5.14a.5.5 0 0 1-.97 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></svg>
             </button>

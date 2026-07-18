@@ -44,6 +44,21 @@
       if (el) el.addEventListener('input', () => clearFieldError(id));
     });
 
+    // live character counter (shown inside each textbox)
+    function updateCounter(inputId, max) {
+      const input = document.getElementById(inputId);
+      const cEl   = document.getElementById(inputId + 'Count');
+      const wrap  = document.getElementById(inputId + 'Counter');
+      if (!input) return;
+      const len = input.value.length;
+      if (cEl)  cEl.textContent = len.toLocaleString('en-US');
+      if (wrap) wrap.classList.toggle('over', len >= max);
+    }
+    ['fpPassword', 'fpConfirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => updateCounter(id, 64));
+    });
+
     /* ── Live password-rules checklist (step 3 of forgot-password) ── */
     (function () {
       const fpPassword = document.getElementById('fpPassword');
@@ -77,10 +92,12 @@
       PasswordPolicy.generate(passId, confirmId, 'fpPassRules');
       const p = document.getElementById(passId);
       if (p && window.Field) Field.set(p, 'success', 'رمز مناسب است');
+      updateCounter(passId, 64);
       // The generated password is also copied into the confirm field, so it must turn green too
       // (otherwise it would stay red from the earlier "mismatch" error).
       const c = confirmId && document.getElementById(confirmId);
       if (c && window.Field) Field.set(c, 'success', 'یکسان است');
+      if (confirmId) updateCounter(confirmId, 64);
     }
 
     /* ══ Login form submission ══ */

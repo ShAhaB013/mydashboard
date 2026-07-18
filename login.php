@@ -111,7 +111,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </span>
             <input type="password" id="loginPassword" name="password" class="field-input" placeholder="رمز عبور"
-                   autocomplete="current-password" dir="ltr" maxlength="128">
+                   autocomplete="current-password" dir="ltr" maxlength="64">
             <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="loginPassword">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -175,15 +175,16 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="reg-code-hint">کد تایید شد. رمز جدید خود را تعیین کنید.</p>
           <div class="field" data-state="idle">
             <label class="field-label" for="fpPassword">رمز عبور جدید</label>
-            <div class="field-box">
+            <div class="field-box field-box--counted">
               <input type="password" id="fpPassword" name="password" class="field-input" placeholder="رمز عبور جدید"
-                     autocomplete="new-password" dir="ltr" maxlength="128">
+                     autocomplete="new-password" dir="ltr" maxlength="64">
               <button type="button" class="login-pass-gen" aria-label="تولید رمز تصادفی" title="تولید رمز تصادفی" data-act="genPassword" data-target="fpPassword" data-confirm="fpConfirm">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-5.14-1.32a.5.5 0 0 1 0-.97L8.5 10.44A2 2 0 0 0 9.94 9l1.32-5.14a.5.5 0 0 1 .97 0L13.56 9A2 2 0 0 0 15 10.44l5.14 1.32a.5.5 0 0 1 0 .97L15 14.06a2 2 0 0 0-1.44 1.44l-1.32 5.14a.5.5 0 0 1-.97 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></svg>
               </button>
               <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="fpPassword">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
+              <span class="field-counter-inline" id="fpPasswordCounter" dir="ltr"><span id="fpPasswordCount">0</span>/64</span>
             </div>
             <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
             <!-- Live password rules checklist (updates on focus/typing) -->
@@ -200,12 +201,13 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           </div>
           <div class="field" data-state="idle">
             <label class="field-label" for="fpConfirm">تکرار رمز عبور</label>
-            <div class="field-box">
+            <div class="field-box field-box--counted">
               <input type="password" id="fpConfirm" name="confirm_password" class="field-input" placeholder="تکرار رمز عبور"
-                     autocomplete="new-password" dir="ltr" maxlength="128">
+                     autocomplete="new-password" dir="ltr" maxlength="64">
               <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="fpConfirm">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
+              <span class="field-counter-inline" id="fpConfirmCounter" dir="ltr"><span id="fpConfirmCount">0</span>/64</span>
             </div>
             <p class="field-msg" aria-live="polite"><span class="field-msg-icon" aria-hidden="true"></span><span class="field-msg-text"></span></p>
           </div>
