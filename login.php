@@ -175,7 +175,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           <p class="reg-code-hint">کد تایید شد. رمز جدید خود را تعیین کنید.</p>
           <div class="field" data-state="idle">
             <label class="field-label" for="fpPassword">رمز عبور جدید</label>
-            <div class="field-box field-box--counted">
+            <div class="field-box field-box--counted" dir="ltr">
               <input type="password" id="fpPassword" name="password" class="field-input" placeholder="رمز عبور جدید"
                      autocomplete="new-password" dir="ltr" maxlength="64">
               <button type="button" class="login-pass-gen" aria-label="تولید رمز تصادفی" title="تولید رمز تصادفی" data-act="genPassword" data-target="fpPassword" data-confirm="fpConfirm">
@@ -201,7 +201,7 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
           </div>
           <div class="field" data-state="idle">
             <label class="field-label" for="fpConfirm">تکرار رمز عبور</label>
-            <div class="field-box field-box--counted">
+            <div class="field-box field-box--counted" dir="ltr">
               <input type="password" id="fpConfirm" name="confirm_password" class="field-input" placeholder="تکرار رمز عبور"
                      autocomplete="new-password" dir="ltr" maxlength="64">
               <button type="button" class="login-pass-toggle" aria-label="نمایش/مخفی کردن رمز" data-act="togglePass" data-target="fpConfirm">
