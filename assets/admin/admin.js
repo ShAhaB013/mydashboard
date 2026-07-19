@@ -1604,13 +1604,12 @@ const CategoriesManager = {
     const orphan = c.tool_count === 0;
     const toolChip = `<span class="cat-count${orphan ? ' cat-count-warn' : ''}">${c.tool_count} ابزار</span>`;
     const accessChip = c.access_count > 0 ? `<span class="cat-count">${c.access_count} دسترسی کاربر</span>` : '';
-    const notifChip  = c.notification_count > 0 ? `<span class="cat-count">${c.notification_count} اعلان</span>` : '';
     const deleteTitle = orphan ? 'حذف دسته‌بندی' : 'برای حذف، ابتدا دسته‌بندی ابزارهای این دسته را تغییر دهید';
     return `
       <div class="blk-row">
         <div class="blk-info">
           <div class="blk-ip">${esc(c.name)}</div>
-          <div class="blk-meta">${toolChip}${accessChip}${notifChip}</div>
+          <div class="blk-meta">${toolChip}${accessChip}</div>
         </div>
         <div class="blk-side">
           <button class="btn btn-secondary btn-icon btn-sm" title="تغییر نام" data-act="catOpenRename" data-id="${c.id}" data-name="${esc(c.name)}">
