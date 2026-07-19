@@ -387,6 +387,12 @@ const LogsManager = {
     request:         'درخواست',
     user_id:         'شناسه کاربر',
     ip:              'آدرس IP',
+    category:        'دسته',
+    sqlstate:        'کد SQLSTATE',
+    driver_code:     'کد خطای درایور',
+    driver_message:  'پیام درایور',
+    sql:             'کوئری',
+    recovered:       'وضعیت ثبت',
   },
 
   openDetail(id) {
@@ -401,7 +407,15 @@ const LogsManager = {
 
     const ctx  = log.context || {};
     const meta = [];
+    if (ctx.category) meta.push(['category', ctx.category === 'database' ? 'پایگاه‌داده' : ctx.category]);
     if (ctx.file) meta.push(['file', ctx.file + (ctx.line ? ':' + ctx.line : '')]);
+    if (ctx.sqlstate) meta.push(['sqlstate', ctx.sqlstate]);
+    if (ctx.driver_code) meta.push(['driver_code', ctx.driver_code]);
+    if (ctx.driver_message) meta.push(['driver_message', ctx.driver_message]);
+    if (ctx.sql) meta.push(['sql', ctx.sql]);
+    if (ctx.recovered_from_fallback) {
+      meta.push(['recovered', 'با تاخیر ثبت شد — به‌دلیل قطعی موقت پایگاه‌داده' + (ctx.fallback_reason ? ' (' + ctx.fallback_reason + ')' : '')]);
+    }
     if (ctx.request_method || ctx.request_uri) meta.push(['request', [ctx.request_method, ctx.request_uri].filter(Boolean).join(' ')]);
     if (ctx.user_id) meta.push(['user_id', '#' + ctx.user_id]);
     if (ctx.ip) meta.push(['ip', ctx.ip]);

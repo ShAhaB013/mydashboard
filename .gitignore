@@ -24,6 +24,7 @@ secret*
 uploads/
 *.log
 sessions/
+/data/db-failures.json
 
 # ─── Local tooling artifacts ───────────────────────────────────
 # کل پوشه‌ی .claude ابزار محلی agent است و نباید در ریپو باشد

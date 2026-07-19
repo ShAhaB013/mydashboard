@@ -77,7 +77,11 @@ class AuthController
                     'DELETE FROM sessions WHERE user_id = :uid AND user_agent = :ua',
                     [':uid' => $uid, ':ua' => $ua]
                 );
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+                // Best-effort cleanup — login still proceeds either way, but a real
+                // DB problem here shouldn't vanish without a trace.
+                Logger::warning('پاکسازی نشست‌های قبلی هنگام ورود ناموفق بود: ' . $e->getMessage());
+            }
 
             session_regenerate_id(true);
             $_SESSION['user_id']      = $uid;
@@ -250,7 +254,11 @@ class AuthController
                 'DELETE FROM sessions WHERE user_id = :uid AND user_agent = :ua',
                 [':uid' => $uid, ':ua' => $ua]
             );
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            // Best-effort cleanup — password reset still proceeds either way, but a
+            // real DB problem here shouldn't vanish without a trace.
+            Logger::warning('پاکسازی نشست‌های قبلی هنگام بازیابی رمز عبور ناموفق بود: ' . $e->getMessage());
+        }
 
         session_regenerate_id(true);
         $_SESSION['user_id']      = $uid;

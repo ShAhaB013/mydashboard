@@ -82,6 +82,17 @@ $config = require dirname(__DIR__) . '/config.php';
 try {
     DB::connect($config['db']);
 } catch (Throwable $e) {
+    // The DB itself is unreachable here, so Logger's own DB-backed write will
+    // fail too — it falls back to the same fallback-file mechanism used for
+    // any other DB failure, instead of this being the one outage that leaves
+    // zero trace anywhere.
+    Logger::error($e->getMessage(), [
+        'file'     => $e->getFile(),
+        'line'     => $e->getLine(),
+        'category' => 'database',
+        'fatal'    => true,
+    ]);
+
     http_response_code(503);
     if (defined('APP_API') && APP_API) {
         header('Content-Type: application/json; charset=utf-8');

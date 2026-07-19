@@ -44,12 +44,36 @@ class ErrorHandler
 
     private static function handle(Throwable $e, bool $isApi): void
     {
-        Logger::error($e->getMessage(), [
-            'file'  => $e->getFile(),
-            'line'  => $e->getLine(),
+        $file = $e->getFile();
+        $line = $e->getLine();
+
+        $context = [
+            'file'  => $file,
+            'line'  => $line,
             'trace' => $e->getTraceAsString(),
             'class' => get_class($e),
-        ]);
+        ];
+
+        // DbException carries the pieces a generic Throwable can't: the real
+        // caller (not DB.php, which is where the exception is technically
+        // constructed) and PDO's raw SQLSTATE/driver error, instead of only
+        // the flattened message string — makes DB failures precisely
+        // identifiable and searchable in the log viewer.
+        if ($e instanceof DbException) {
+            $context['category'] = 'database';
+            if ($e->callerFile() !== null) {
+                $file = $e->callerFile();
+                $line = $e->callerLine() ?? 0;
+                $context['file'] = $file;
+                $context['line'] = $line;
+            }
+            if ($e->sqlstate()      !== null) $context['sqlstate']       = $e->sqlstate();
+            if ($e->driverCode()    !== null) $context['driver_code']    = $e->driverCode();
+            if ($e->driverMessage() !== null) $context['driver_message'] = $e->driverMessage();
+            $context['sql'] = $e->sql();
+        }
+
+        Logger::error($e->getMessage(), $context);
 
         $status  = $e instanceof AppException ? $e->httpStatus() : 500;
         $visible = ($e instanceof AppException && $e->isUserFacing()) ? $e->getMessage() : self::GENERIC_MESSAGE;
@@ -59,7 +83,7 @@ class ErrorHandler
         self::respond(
             $isApi,
             $visible,
-            self::debugPayload($e->getMessage(), $e->getFile(), $e->getLine(), explode("\n", $e->getTraceAsString())),
+            self::debugPayload($e->getMessage(), $file, $line, explode("\n", $e->getTraceAsString())),
             $e instanceof AppException ? $e->field() : null
         );
     }

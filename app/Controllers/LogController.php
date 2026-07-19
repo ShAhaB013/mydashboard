@@ -18,6 +18,12 @@ class LogController
 
     public function list(): void
     {
+        // Opportunistically drain any entries stranded in the fallback file by a
+        // past DB outage (Logger::log() also does this on its own next successful
+        // write, but if nothing has logged since recovery, opening this page is
+        // what surfaces them instead of leaving them invisible in the file).
+        Logger::flushFallback();
+
         $page     = max(1, $this->request->inputInt('page', 1));
         $perPage  = max(1, min(100, $this->request->inputInt('per_page', 20)));
         $level    = $this->request->input('level');

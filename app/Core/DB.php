@@ -35,8 +35,12 @@ class DB
 
     public static function run(string $sql, array $params = []): PDOStatement
     {
-        $stmt = self::get()->prepare($sql);
-        $stmt->execute($params);
-        return $stmt;
+        try {
+            $stmt = self::get()->prepare($sql);
+            $stmt->execute($params);
+            return $stmt;
+        } catch (\PDOException $e) {
+            throw DbException::fromPdo($e, $sql);
+        }
     }
 }
