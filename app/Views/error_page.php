@@ -222,9 +222,11 @@ declare(strict_types=1);
       <?php foreach (['a', 'b', 'c'] as $i => $slot): ?>
       <div class="err-pendulum err-pendulum--<?= $slot ?>">
         <div class="err-circle err-circle--<?= $slot ?>">
-          <span class="err-label err-label--top"><?= ErrorPage::esc($labels[$i][0] ?? '') ?></span>
+          <!-- dir=rtl on the labels: the cradle is dir=ltr (for digit order), which
+               would misplace punctuation in the Persian text (e.g. "اوه!") -->
+          <span class="err-label err-label--top" dir="rtl"><?= ErrorPage::esc($labels[$i][0] ?? '') ?></span>
           <span class="err-digit"><?= ErrorPage::esc($digits[$i] ?? '') ?></span>
-          <span class="err-label err-label--bottom"><?= ErrorPage::esc($labels[$i][1] ?? '') ?></span>
+          <span class="err-label err-label--bottom" dir="rtl"><?= ErrorPage::esc($labels[$i][1] ?? '') ?></span>
         </div>
       </div>
       <?php endforeach; ?>
