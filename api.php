@@ -16,9 +16,9 @@ define('APP_API', true);
 
 $config = require __DIR__ . '/bootstrap.php';
 
-// Global error boundary: any uncaught Throwable/warning, instead of leaking
-// a stack trace, is logged (Logger, DB-backed) and returned as a clean JSON 500.
-ErrorHandler::register(true);
+// Global error boundary is registered centrally in bootstrap.php (before
+// config.php is even loaded, using the APP_API constant defined above), so
+// every Throwable/warning from here on is already logged as JSON.
 
 // ── CSRF validation (method-based — resilient to drift) ──
 // Every POST request from a logged-in user requires a valid X-CSRF-Token header.

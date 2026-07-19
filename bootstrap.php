@@ -1,7 +1,9 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// bootstrap.php — shared setup for entry points (admin.php / api.php / notifications.php)
+// bootstrap.php — shared setup for every entry point (admin.php / api.php /
+// index.php / login.php / notifications.php / profile.php)
 //   • one single autoload map (single source; add new classes only here)
+//   • global error boundary (see below — registered before anything else runs)
 //   • load config
 //   • connect DB
 //   • start session (same user realm: dash_user)
@@ -74,6 +76,17 @@ spl_autoload_register(function (string $class): void {
     }
     if (isset($map[$class])) require_once $map[$class];
 });
+
+// ── Global error boundary — registered as early as autoload allows ──
+// Previously each entry point registered this itself (admin.php/api.php did;
+// index.php/login.php/notifications.php/profile.php never did, so an error
+// on those pages vanished with zero log entry), and always *after* requiring
+// this file — too late to catch a broken bootstrap step, like config.php
+// itself failing to load. Registering it here, before config.php is even
+// read, means every entry point is covered and every failure mode below is
+// caught and logged (Logger falls back to a file if the DB isn't up yet).
+$isApiRequest = (defined('APP_API') && APP_API) || !empty($_GET['api']);
+ErrorHandler::register($isApiRequest);
 
 // ── Config (one level above webroot) ─────────────────────
 $config = require dirname(__DIR__) . '/config.php';

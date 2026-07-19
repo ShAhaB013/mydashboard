@@ -17,11 +17,9 @@ $request = new Request();
 
 $isApi = (bool) $request->query('api');
 
-// Global error boundary for the whole admin panel (API + pages):
-// any uncaught Throwable/warning is logged (Logger, DB-backed) and a clean
-// response (JSON for API, plain text for pages) is returned — instead of
-// leaking a stack trace to the user.
-ErrorHandler::register($isApi);
+// Global error boundary is registered centrally in bootstrap.php (before
+// config.php is even loaded), so every Throwable/warning from here on is
+// already logged and given a clean response — nothing to do here.
 
 // ── Logout ─────────────────────────────────────────────────
 // POST + valid CSRF token only (prevents CSRF-logout via GET like <img src=?logout>).
