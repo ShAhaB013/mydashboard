@@ -223,6 +223,7 @@
         else { note.hidden = true; note.textContent = ''; }
         showFpStep(2);
         runCooldown(fpResendBtn, fpResendTime, data.retry_after || nextCooldown(fpResendBtn, true));
+        showToast('کد بازیابی به ایمیل شما ارسال شد؛ اگر آن را در صندوق ورودی نمی‌بینید، پوشه اسپم را بررسی کنید', 'success', 'ایمیل ارسال شد');
       } catch (e) {
         setLoading(fpSubmitBtn, false, 'ارسال کد');
         showToast('خطا در ارتباط با سرور', 'error');
@@ -326,7 +327,7 @@
           if (data.dev_code) { note.hidden = false; note.textContent = 'کد تست (محیط محلی): ' + data.dev_code; }
           if (data.retry_after) runCooldown(fpResendBtn, fpResendTime, data.retry_after);
           else runCooldown(fpResendBtn, fpResendTime, nextCooldown(fpResendBtn, false));
-          showToast('کد جدید ارسال شد', 'success', 'ارسال موفق');
+          showToast('کد جدید ارسال شد؛ در صورت نیاز پوشه اسپم را هم بررسی کنید', 'success', 'ارسال موفق');
         } else if (data.retry_after) {
           if (data.resend_cooldown) RESEND_COOLDOWN = data.resend_cooldown;
           runCooldown(fpResendBtn, fpResendTime, data.retry_after);
