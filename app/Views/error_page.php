@@ -178,8 +178,8 @@ declare(strict_types=1);
     .err-title { font-family: 'HeadingFont', 'DashboardFont', sans-serif; font-size: 21px; font-weight: 700; color: var(--color-text-primary); }
     .err-desc  { font-size: 14px; color: var(--color-text-secondary); line-height: 1.8; margin-top: -14px; }
 
-    /* Same pattern as the project's pill buttons (.auth-btn): card background +
-       1.5px border + pill radius, accent colors on hover */
+    /* Same pattern as the project's bordered buttons: card background +
+       1.5px border + unified 10px radius, accent colors on hover */
     .err-home-btn {
       display: inline-flex; align-items: center; gap: 8px;
       height: 40px; padding: 0 20px;
@@ -187,7 +187,7 @@ declare(strict_types=1);
       color: var(--color-text-secondary); text-decoration: none;
       background: var(--color-bg-card);
       border: 1.5px solid var(--color-border);
-      border-radius: var(--radius-pill);
+      border-radius: var(--radius-lg);
       cursor: pointer; white-space: nowrap;
       transition: background var(--transition), color var(--transition),
                   border-color var(--transition), transform var(--transition-bounce);
