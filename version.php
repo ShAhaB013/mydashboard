@@ -10,12 +10,12 @@ declare(strict_types=1);
    ═══════════════════════════════════════════════════════════ */
 
 if (!defined('APP_VERSION')) {
-    define('APP_VERSION', '1.1.0');
+    define('APP_VERSION', '1.2.0');
 }
 
 /* Build date — optional, for display/debugging only */
 if (!defined('APP_BUILD')) {
-    define('APP_BUILD', '2026-06');
+    define('APP_BUILD', '2026-07');
 }
 
 /**
