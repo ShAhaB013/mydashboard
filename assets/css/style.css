@@ -3331,6 +3331,7 @@ body.is-dragging *::after { animation-play-state: paused !important; }
   max-width: 240px; padding: 6px 11px;
   font-size: 12px; font-weight: 600; line-height: 1.6;
   color: #f8fafc; text-align: center; white-space: normal;
+  overflow-wrap: break-word; word-break: break-word;
   background: rgba(15, 23, 42, .95);
   border: 1px solid rgba(148, 163, 184, .18);
   border-radius: var(--radius-xs);
