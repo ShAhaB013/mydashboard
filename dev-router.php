@@ -22,7 +22,7 @@ $root = __DIR__;
 // POSTs and ?page= for pages). A 301 redirect would break these requests
 // (POST→GET, dropping the body, and losing the query string) causing a
 // "server communication error".
-if ($path === 'api.php' || $path === 'admin.php') {
+if ($path === 'api.php' || $path === 'admin.php' || $path === 'error.php') {
     return false; // let php -S run this file itself
 }
 
@@ -56,5 +56,9 @@ if (is_file($root . '/' . $path . '.php')) {
     return true;
 }
 
-// Otherwise let php -S decide (404 or static file)
-return false;
+// No match anywhere → themed 404 (php -S ignores .htaccess/ErrorDocument,
+// so this mirrors it locally: matches the host's /error.php?code=404).
+http_response_code(404);
+require $root . '/app/Core/ErrorPage.php';
+ErrorPage::render(404);
+return true;

@@ -3,6 +3,12 @@ Header set X-Robots-Tag "noindex, nofollow"
 # Prevent directory listing
 Options -Indexes
 
+# ─── Themed error pages (see error.php) ───────────────────────
+ErrorDocument 403 /error.php?code=403
+ErrorDocument 404 /error.php?code=404
+ErrorDocument 500 /error.php?code=500
+ErrorDocument 503 /error.php?code=503
+
 
 # ─── Clean URLs (without .php extension) ──────────────────────────────
 # Standard approach: external 301 to strip .php (avoids duplicate content)
@@ -28,11 +34,12 @@ Options -Indexes
   RewriteCond %{THE_REQUEST} \s/+index\.php[?\s] [NC]
   RewriteRule ^ / [R=301,L]
 
-  # foo.php → /foo  (except api.php and admin.php)
+  # foo.php → /foo  (except api.php, admin.php and error.php)
   # admin.php and api.php are called programmatically with ?api= / ?action=
   # (JSON POSTs). A 301 redirect would break them (POST→GET + body dropped)
   # causing "server connection error" in the panel; so both are excluded.
-  RewriteCond %{THE_REQUEST} !\s/+(api|admin)\.php [NC]
+  # error.php is excluded too since it's called with ?code= via ErrorDocument.
+  RewriteCond %{THE_REQUEST} !\s/+(api|admin|error)\.php [NC]
   RewriteCond %{THE_REQUEST} \s/+([^.\s?/]+)\.php[?\s] [NC]
   RewriteRule ^ /%1 [R=301,L,NE]
 

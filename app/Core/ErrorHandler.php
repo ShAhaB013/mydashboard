@@ -38,6 +38,7 @@ class ErrorHandler
             if (headers_sent()) return;
 
             Logger::error($err['message'], ['file' => $err['file'], 'line' => $err['line'], 'fatal' => true]);
+            http_response_code(500);
             self::respond($isApi, self::GENERIC_MESSAGE, self::debugPayload($err['message'], $err['file'], $err['line'], []));
         });
     }
@@ -112,11 +113,15 @@ class ErrorHandler
             return;
         }
 
-        if (empty($extra)) {
-            echo $message;
-            return;
+        $status = http_response_code();
+        $code = $status !== false ? $status : 500;
+
+        $debugDetail = null;
+        if (!empty($extra)) {
+            $d = $extra['debug'];
+            $debugDetail = "{$d['message']} in {$d['file']}:{$d['line']}\n" . implode("\n", $d['trace']);
         }
-        $d = $extra['debug'];
-        echo $message . "\n\n[debug] {$d['message']} in {$d['file']}:{$d['line']}\n" . implode("\n", $d['trace']);
+
+        ErrorPage::render($code, null, $message, $debugDetail);
     }
 }

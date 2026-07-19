@@ -41,6 +41,7 @@ spl_autoload_register(function (string $class): void {
             'Cursor'                 => $core . 'Cursor.php',
             'Logger'                 => $core . 'Logger.php',
             'ErrorHandler'           => $core . 'ErrorHandler.php',
+            'ErrorPage'              => $core . 'ErrorPage.php',
             'AppException'           => $core . 'Exceptions/AppException.php',
             'ValidationException'    => $core . 'Exceptions/ValidationException.php',
             'NotFoundException'      => $core . 'Exceptions/NotFoundException.php',

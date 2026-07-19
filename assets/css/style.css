@@ -321,7 +321,8 @@ header, main { position: relative; z-index: 1; }
 .profile-link-btn,
 .tm-close, .tm-foot .btn,
 .tm-combo-toggle, .tm-combo-option, .toast-msg-close,
-.reorder-toggle, .reorder-bar .btn, .cab-btn, .card-add-tile {
+.reorder-toggle, .reorder-bar .btn, .cab-btn, .card-add-tile,
+.err-home-btn {
   position: relative; overflow: hidden;
 }
 .ripple {
