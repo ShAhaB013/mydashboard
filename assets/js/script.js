@@ -1153,23 +1153,41 @@ async function loadData() {
    Optimized for high concurrency: all initial data (login state, assets,
    tools, notifications, count) is fetched in a "single" bootstrap request
    so only 1 connection opens instead of 5 network round trips.
-   If bootstrap isn't available (older server version), it falls back
-   to the multi-request approach.
+   If bootstrap isn't available (older server version → 4xx), it falls back
+   to the multi-request approach. Transient server errors (5xx / network)
+   retry the single bootstrap request instead of bursting legacy requests.
    ═══════════════════════════════════════════════════════════ */
 async function init() {
   showSkeleton();
   try {
     let data = null;
-    try {
-      const res = await fetch(`${API_URL}?action=bootstrap`, { cache: 'no-cache' });
-      if (res.ok) data = await res.json();
-    } catch { /* falling through to the fallback */ }
+    let legacyNeeded = false;
+
+    // Up to 2 attempts on the single bootstrap request. A 5xx here usually
+    // means the shared host is momentarily out of PHP workers — falling back
+    // to 5 parallel legacy requests would multiply the load at the worst
+    // moment, so on 5xx/network errors we retry this one request instead.
+    for (let attempt = 0; attempt < 2 && !data; attempt++) {
+      if (attempt) await new Promise(r => setTimeout(r, 1500));
+      try {
+        const res = await fetch(`${API_URL}?action=bootstrap`, { cache: 'no-cache' });
+        if (res.ok) {
+          data = await res.json();
+        } else if (res.status < 500) {
+          // 4xx: server doesn't know the bootstrap action (older version)
+          legacyNeeded = true;
+          break;
+        }
+      } catch { /* network error → one retry, then error state */ }
+    }
 
     if (data && data.ok) {
       applyBootstrap(data);
-    } else {
+    } else if (legacyNeeded) {
       await initLegacy();   // fallback: separate individual requests
       return;
+    } else {
+      throw new Error((data && data.msg) || 'bootstrap failed');
     }
   } catch (err) {
     console.error('خطا در لود اولیه:', err);
