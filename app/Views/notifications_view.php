@@ -267,27 +267,19 @@
         </div>
       </div>
 
-      <!-- Expiry date and time — two separate inputs for cross-browser compatibility -->
+      <!-- Expiry date and time — one unified date+time picker (single field, single popup) -->
       <div class="field">
         <label>
           تاریخ و ساعت انقضا
           <span class="req">*</span>
         </label>
-        <div style="display:flex;gap:8px;">
-          <input
-            type="date"
-            id="nf-expires-date"
-            class="datetime-ltr"
-            style="flex:1;"
-            data-input="nmExpiryInput">
-          <input
-            type="time"
-            id="nf-expires-time"
-            class="datetime-ltr"
-            style="width:130px;"
-            value="00:00"
-            data-input="nmExpiryInput">
-        </div>
+        <input
+          type="text"
+          id="nf-expires-at"
+          class="datetime-ltr"
+          data-tdp-kind="datetime"
+          data-input="nmExpiryInput"
+          readonly>
         <div class="expiry-display" id="expiryDisplay">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>

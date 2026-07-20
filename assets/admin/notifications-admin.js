@@ -731,16 +731,14 @@ const NM = {
 
   // ── date formatting helpers ───────────────────────────
   /**
-   * converts a Unix timestamp into separate date and time (in the browser's local time)
+   * converts a Unix timestamp into the unified date+time picker's value format
+   * (in the browser's local time): "YYYY-MM-DDTHH:MM"
    */
-  _tsToDateAndTime(ts) {
-    if (!ts) return { date: '', time: '00:00' };
+  _tsToDateTimeValue(ts) {
+    if (!ts) return '';
     const d   = new Date(ts * 1000);
     const pad = v => String(v).padStart(2, '0');
-    return {
-      date: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,
-      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-    };
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   },
 
   /** displays a readable date below the input */
@@ -757,13 +755,11 @@ const NM = {
     }
   },
 
-  /** fires when the user changes the expiry date or time */
+  /** fires when the user changes the expiry date/time */
   onExpiryInput() {
-    const date = document.getElementById('nf-expires-date').value;
-    const time = document.getElementById('nf-expires-time').value || '00:00';
-    if (date) {
-      // convert to a UTC timestamp for correct display
-      const localDt = new Date(`${date}T${time}:00`);
+    const value = document.getElementById('nf-expires-at').value;
+    if (value) {
+      const localDt = new Date(`${value}:00`);
       if (!isNaN(localDt.getTime())) {
         this._showExpiryDisplay(Math.floor(localDt.getTime() / 1000));
       }
@@ -777,10 +773,8 @@ const NM = {
     document.getElementById('nf-title').value        = '';
     this._updateTitleCounter();
     RTE.setHTML('');
-    document.getElementById('nf-expires-date').value = '';
-    if (window.ThemedDatePicker) ThemedDatePicker.refresh(document.getElementById('nf-expires-date'));
-    document.getElementById('nf-expires-time').value = '00:00';
-    if (window.ThemedTimePicker) ThemedTimePicker.refresh(document.getElementById('nf-expires-time'));
+    document.getElementById('nf-expires-at').value = '';
+    if (window.ThemedDateTimePicker) ThemedDateTimePicker.refresh(document.getElementById('nf-expires-at'));
     document.getElementById('nf-all-users').checked  = false;
     document.querySelectorAll('.badge-check-cb').forEach(cb => cb.checked = false);
     this._syncAudienceUI();
@@ -824,11 +818,8 @@ const NM = {
 
     // ── set the expiry date and time ────────────────────────
     if (n.expires_at) {
-      const { date, time } = this._tsToDateAndTime(n.expires_at);
-      document.getElementById('nf-expires-date').value = date;
-      if (window.ThemedDatePicker) ThemedDatePicker.refresh(document.getElementById('nf-expires-date'));
-      document.getElementById('nf-expires-time').value = time;
-      if (window.ThemedTimePicker) ThemedTimePicker.refresh(document.getElementById('nf-expires-time'));
+      document.getElementById('nf-expires-at').value = this._tsToDateTimeValue(n.expires_at);
+      if (window.ThemedDateTimePicker) ThemedDateTimePicker.refresh(document.getElementById('nf-expires-at'));
       this._showExpiryDisplay(n.expires_at);
     }
 
@@ -1107,13 +1098,12 @@ const NM = {
     // categories are disabled (and irrelevant) once "all users" is on — never submit them
     const badges      = allUsersChk ? [] : [...document.querySelectorAll('.badge-check-cb:checked')].map(c => c.value);
 
-    // combine date+time and convert to UTC for correct storage regardless of server timezone
-    const expiresDate = document.getElementById('nf-expires-date').value;
-    const expiresTime = document.getElementById('nf-expires-time').value || '00:00';
+    // convert the local date+time to UTC for correct storage regardless of server timezone
+    const expiresValue = document.getElementById('nf-expires-at').value;
     let expires = '';
     let expiresLocalDt = null;
-    if (expiresDate) {
-      expiresLocalDt = new Date(`${expiresDate}T${expiresTime}:00`);
+    if (expiresValue) {
+      expiresLocalDt = new Date(`${expiresValue}:00`);
       if (!isNaN(expiresLocalDt.getTime())) {
         expires = expiresLocalDt.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM" in UTC
       }
@@ -1127,11 +1117,11 @@ const NM = {
     if (!allUsersChk && !badges.length) {
       return this._failField('nf-all-users', 'مخاطبان اعلان را مشخص کنید');
     }
-    if (!expiresDate) {
-      return this._failField('nf-expires-date', 'تاریخ و ساعت انقضا را مشخص کنید');
+    if (!expiresValue) {
+      return this._failField('nf-expires-at', 'تاریخ و ساعت انقضا را مشخص کنید');
     }
     if (expiresLocalDt && expiresLocalDt.getTime() < Date.now()) {
-      return this._failField('nf-expires-date', 'تاریخ و ساعت انقضا نباید قبل از زمان حال باشد');
+      return this._failField('nf-expires-at', 'تاریخ و ساعت انقضا نباید قبل از زمان حال باشد');
     }
 
     let imagePath = '';
@@ -1164,7 +1154,7 @@ const NM = {
       if (wasCreate) this._page = 1;
       await this.load();
     } else {
-      const fieldId = { title: 'nf-title', body: 'nf-body', expires_at: 'nf-expires-date', target_all_users: 'nf-all-users' }[res.field];
+      const fieldId = { title: 'nf-title', body: 'nf-body', expires_at: 'nf-expires-at', target_all_users: 'nf-all-users' }[res.field];
       if (fieldId) this._failField(fieldId, res.msg || 'خطا در ذخیره');
       else Toast.show(res.msg || 'خطا در ذخیره', 'error');
     }
@@ -1174,7 +1164,7 @@ const NM = {
   _failField(fieldId, msg) {
     Toast.show(msg, 'error');
     const el = document.getElementById(fieldId);
-    if (el) el.focus();
+    if (el) { if (el._tdpFocus) el._tdpFocus(); else el.focus(); }
   },
 
   // ── Confirm dialog (generic: delete / close form) ─────────────

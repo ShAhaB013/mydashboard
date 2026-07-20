@@ -139,6 +139,7 @@
       else   { s.valueSpan.textContent = placeholder;             s.valueSpan.classList.add('is-empty'); }
     }
     input._tdpRefresh = syncLabel;
+    input._tdpFocus = function () { s.trigger.focus(); };
 
     function renderDays() {
       var sel = parseDate(input.value), t = new Date();
@@ -236,6 +237,7 @@
       else   { s.valueSpan.textContent = placeholder;       s.valueSpan.classList.add('is-empty'); }
     }
     input._tdpRefresh = syncLabel;
+    input._tdpFocus = function () { s.trigger.focus(); };
 
     function render() {
       var v = parseTime(input.value), sh = v ? v.h : -1, sm = v ? v.m : -1;
@@ -277,9 +279,154 @@
     syncLabel();
   }
 
+  // ───────────────────────── UNIFIED DATE + TIME PICKER ─────────────────────────
+  // A single control (single hidden input, single trigger, single popup) combining the
+  // calendar with an inline hour/minute picker, for fields where date and time form one
+  // value (e.g. an expiry moment) and shouldn't be two separate controls.
+  // Value format: "YYYY-MM-DDTHH:MM" (same shape as <input type="datetime-local">).
+  function parseDateTime(val) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(val || '');
+    if (!m) return null;
+    var h = +m[4], mi = +m[5];
+    if (h > 23 || mi > 59) return null;
+    return { y: +m[1], m: +m[2] - 1, d: +m[3], h: h, mi: mi };
+  }
+  var fmtDateTimeVal = function (y, m, d, h, mi) { return fmtDateVal(y, m, d) + 'T' + fmtTime(h, mi); };
+  var fmtDateTimeDsp = function (y, m, d, h, mi) { return fmtDateDsp(y, m, d) + '  ' + fmtTime(h, mi); };
+  var FOOT_DT = '<div class="tdp-foot tdp-foot-3"><button type="button" class="tdp-ok">تایید</button><button type="button" class="tdp-now">اکنون</button><button type="button" class="tdp-clear">پاک‌کردن</button></div>';
+
+  function enhanceDateTime(input) {
+    if (input.dataset.tdp) return;
+    input.dataset.tdp = '1';
+    var s = scaffold(input, CAL_SVG, 'tdp-pop tdp-dt-pop');
+    var placeholder = input.getAttribute('placeholder') || 'انتخاب تاریخ و ساعت';
+    var view = null, mode = 'days';
+
+    function syncLabel() {
+      var v = parseDateTime(input.value);
+      if (v) { s.valueSpan.textContent = fmtDateTimeDsp(v.y, v.m, v.d, v.h, v.mi); s.valueSpan.classList.remove('is-empty'); }
+      else   { s.valueSpan.textContent = placeholder;                            s.valueSpan.classList.add('is-empty'); }
+    }
+    input._tdpRefresh = syncLabel;
+    input._tdpFocus = function () { s.trigger.focus(); };
+
+    // current value, falling back to "now" so picking only a date (or only a time) has a sane default for the other half
+    function currentDT() {
+      var v = parseDateTime(input.value), t = new Date();
+      return v || { y: t.getFullYear(), m: t.getMonth(), d: t.getDate(), h: 0, mi: 0 };
+    }
+    function setValue(y, m, d, h, mi) { input.value = fmtDateTimeVal(y, m, d, h, mi); syncLabel(); fire(input); }
+
+    function timeRowHtml() {
+      var v = parseDateTime(input.value), sh = v ? v.h : -1, sm = v ? v.mi : -1;
+      var h = '<div class="tdp-dt-divider"></div><div class="tdp-dt-time"><div class="tdp-dt-time-label">' + CLK_SVG + '<span>ساعت</span></div><div class="ttp-cols tdp-dt-cols">';
+      h += '<div class="ttp-col" data-unit="h">';
+      for (var i = 0; i < 24; i++) h += '<button type="button" class="ttp-opt' + (i === sh ? ' is-sel' : '') + '" data-h="' + i + '">' + pad(i) + '</button>';
+      h += '</div><div class="ttp-col" data-unit="m">';
+      for (var j = 0; j < 60; j++) h += '<button type="button" class="ttp-opt' + (j === sm ? ' is-sel' : '') + '" data-m="' + j + '">' + pad(j) + '</button>';
+      h += '</div></div></div>';
+      return h;
+    }
+    function scrollTimeToSel() {
+      s.pop.querySelectorAll('.tdp-dt-cols .ttp-opt.is-sel').forEach(function (el) {
+        var col = el.parentNode;
+        col.scrollTop = el.offsetTop - col.offsetTop - 50;
+      });
+    }
+    function markTimeSel() {
+      var v = parseDateTime(input.value);
+      s.pop.querySelectorAll('.tdp-dt-cols [data-h]').forEach(function (el) { el.classList.toggle('is-sel', !!v && +el.dataset.h === v.h); });
+      s.pop.querySelectorAll('.tdp-dt-cols [data-m]').forEach(function (el) { el.classList.toggle('is-sel', !!v && +el.dataset.m === v.mi); });
+    }
+
+    function renderDays() {
+      var v = parseDateTime(input.value), t = new Date();
+      var ty = t.getFullYear(), tm = t.getMonth(), td = t.getDate();
+      var startWd = new Date(view.y, view.m, 1).getDay();
+      var days = new Date(view.y, view.m + 1, 0).getDate();
+      var h = headerDate(MONTHS[view.m] + ' ' + view.y, 'months') + '<div class="tdp-grid">';
+      for (var w = 0; w < 7; w++) h += '<span class="tdp-wd">' + WD[w] + '</span>';
+      for (var e = 0; e < startWd; e++) h += '<span class="tdp-day tdp-empty"></span>';
+      for (var d = 1; d <= days; d++) {
+        var isT = (view.y === ty && view.m === tm && d === td);
+        var isS = v && v.y === view.y && v.m === view.m && v.d === d;
+        h += '<button type="button" class="tdp-day' + (isT ? ' is-today' : '') + (isS ? ' is-sel' : '') + '" data-d="' + d + '">' + d + '</button>';
+      }
+      s.pop.innerHTML = h + '</div>' + timeRowHtml() + FOOT_DT;
+      scrollTimeToSel();
+    }
+    function renderMonths() {
+      var v = parseDateTime(input.value), t = new Date(), ty = t.getFullYear(), tm = t.getMonth();
+      var h = headerDate(String(view.y), 'years') + '<div class="tdp-grid tdp-grid-my">';
+      for (var i = 0; i < 12; i++) {
+        var isT = (view.y === ty && i === tm), isS = v && v.y === view.y && v.m === i;
+        h += '<button type="button" class="tdp-cell' + (isT ? ' is-today' : '') + (isS ? ' is-sel' : '') + '" data-month="' + i + '">' + MONTHS_SHORT[i] + '</button>';
+      }
+      s.pop.innerHTML = h + '</div>' + FOOT_DT;
+    }
+    function renderYears() {
+      var v = parseDateTime(input.value), ty = new Date().getFullYear();
+      var start = view.y - (((view.y % 12) + 12) % 12);
+      var h = headerDate(start + ' – ' + (start + 11), null) + '<div class="tdp-grid tdp-grid-my">';
+      for (var i = 0; i < 12; i++) {
+        var y = start + i, isT = (y === ty), isS = v && v.y === y;
+        h += '<button type="button" class="tdp-cell' + (isT ? ' is-today' : '') + (isS ? ' is-sel' : '') + '" data-year="' + y + '">' + y + '</button>';
+      }
+      s.pop.innerHTML = h + '</div>' + FOOT_DT;
+    }
+    function render() {
+      if (mode === 'months') renderMonths();
+      else if (mode === 'years') renderYears();
+      else renderDays();
+      if (s.wrap.classList.contains('open')) positionPopup(s.trigger, s.pop);
+    }
+    function nav(dir) {
+      if (mode === 'days') { view.m += dir; if (view.m < 0) { view.m = 11; view.y--; } if (view.m > 11) { view.m = 0; view.y++; } }
+      else if (mode === 'months') view.y += dir;
+      else view.y += dir * 12;
+      render();
+    }
+    function commitDate(y, m, d) { var cur = currentDT(); setValue(y, m, d, cur.h, cur.mi); }
+    function commitTime(h, mi)   { var cur = currentDT(); setValue(cur.y, cur.m, cur.d, h, mi); }
+
+    s.pop.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var nb = ev.target.closest('.tdp-nav'); if (nb) { nav(+nb.dataset.nav); return; }
+      var ti = ev.target.closest('.tdp-title[data-go]'); if (ti) { mode = ti.dataset.go; render(); return; }
+      var mo = ev.target.closest('[data-month]'); if (mo) { view.m = +mo.dataset.month; mode = 'days'; render(); return; }
+      var yr = ev.target.closest('[data-year]'); if (yr) { view.y = +yr.dataset.year; mode = 'months'; render(); return; }
+      var da = ev.target.closest('.tdp-day:not(.tdp-empty)'); if (da) { commitDate(view.y, view.m, +da.dataset.d); render(); return; }
+      var hb = ev.target.closest('.tdp-dt-cols [data-h]'); if (hb) { commitTime(+hb.dataset.h, currentDT().mi); markTimeSel(); return; }
+      var mb = ev.target.closest('.tdp-dt-cols [data-m]'); if (mb) { commitTime(currentDT().h, +mb.dataset.m); markTimeSel(); return; }
+      if (ev.target.closest('.tdp-now')) {
+        var n = new Date();
+        setValue(n.getFullYear(), n.getMonth(), n.getDate(), n.getHours(), n.getMinutes());
+        mode = 'days'; view = { y: n.getFullYear(), m: n.getMonth() }; render(); close(); return;
+      }
+      if (ev.target.closest('.tdp-clear')) { input.value = ''; syncLabel(); fire(input); close(); return; }
+      if (ev.target.closest('.tdp-ok')) { close(); return; }
+    });
+
+    function open() {
+      var v = parseDateTime(input.value), now = new Date();
+      view = v ? { y: v.y, m: v.m } : { y: now.getFullYear(), m: now.getMonth() };
+      mode = 'days'; closeOpen(); render();
+      s.wrap.classList.add('open'); s.pop.classList.add('open');
+      placeNow(s.trigger, s.pop); openInst = inst;
+    }
+    function close() { s.wrap.classList.remove('open'); s.pop.classList.remove('open'); if (openInst === inst) openInst = null; }
+    var inst = { close: close, reposition: function () { if (s.wrap.classList.contains('open')) positionPopup(s.trigger, s.pop); } };
+
+    s.trigger.addEventListener('click', function (ev) { ev.stopPropagation(); if (s.wrap.classList.contains('open')) close(); else open(); });
+    window.addEventListener('scroll', inst.reposition, true);
+    window.addEventListener('resize', inst.reposition);
+    syncLabel();
+  }
+
   // ───────────────────────── PUBLIC API ─────────────────────────
   function enhanceAllDates(root) { (root || document).querySelectorAll('input[type="date"]:not([data-tdp])').forEach(enhanceDate); }
   function enhanceAllTimes(root) { (root || document).querySelectorAll('input[type="time"]:not([data-tdp])').forEach(enhanceTime); }
+  function enhanceAllDateTimes(root) { (root || document).querySelectorAll('input[data-tdp-kind="datetime"]:not([data-tdp])').forEach(enhanceDateTime); }
   function refresh(input) { if (input && input._tdpRefresh) input._tdpRefresh(); }
 
   document.addEventListener('click', closeOpen);
@@ -287,8 +434,9 @@
 
   window.ThemedDatePicker = { enhanceAll: enhanceAllDates, enhance: enhanceDate, refresh: refresh };
   window.ThemedTimePicker = { enhanceAll: enhanceAllTimes, enhance: enhanceTime, refresh: refresh };
+  window.ThemedDateTimePicker = { enhanceAll: enhanceAllDateTimes, enhance: enhanceDateTime, refresh: refresh };
 
-  function initAll() { enhanceAllDates(); enhanceAllTimes(); }
+  function initAll() { enhanceAllDates(); enhanceAllTimes(); enhanceAllDateTimes(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAll);
   else initAll();
 })();
