@@ -54,7 +54,7 @@ class Mailer
         };
         $body    = "کد شما: {$code}\n\n"
                  . "این کد تا {$ttlMin} دقیقه معتبر است.\n"
-                 . "اگر شما این درخواست را نداده‌اید، این پیام را نادیده بگیرید.";
+                 . "اگر درخواست از سوی شما نبوده است، این ایمیل را نادیده بگیرید.";
         $html    = self::codeEmailHtml($code, $ttlMin, $subject, $intro);
         return self::send($to, $subject, $body, $html);
     }
@@ -116,9 +116,9 @@ class Mailer
             <td style="padding:16px 28px 28px;text-align:right;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="background-color:#fdf6ec;border-right:3px solid #d97706;border-radius:6px;padding:10px 14px;text-align:right;">
-                    <p style="{$font}margin:0;font-size:12px;line-height:2;color:#92600a;">
-                      اگر شما این درخواست را نداده‌اید، این ایمیل را نادیده بگیرید؛ حساب شما امن است و هیچ تغییری اعمال نمی‌شود.
+                  <td align="center" style="background-color:#f6f7f9;border:1px solid #e3e8ef;border-radius:10px;padding:10px 14px;">
+                    <p style="{$font}margin:0;font-size:12px;line-height:2;color:#6b7280;">
+                      اگر درخواست از سوی شما نبوده است، این ایمیل را نادیده بگیرید.
                     </p>
                   </td>
                 </tr>
