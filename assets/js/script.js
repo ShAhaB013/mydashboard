@@ -1430,7 +1430,11 @@ const AdminTools = {
     this._wired = true;
   },
 
-  // builds the visual icon/deco picker from assetsCache
+  // builds the visual icon/deco picker from assetsCache. Note: this only sets the
+  // selected value + the small always-visible preview — it does NOT render the
+  // dropdown option lists. Those are rebuilt lazily by _renderIconMenu()/_renderDecoMenu()
+  // right before each dropdown opens (toggle click / input focus / typing), so building
+  // them here too was pure duplicate work that stalled the modal's open transition.
   _buildPickers(iconKey, decoKey) {
     this._sel.icon = iconKey || 'star';
     this._sel.deco = decoKey || 'generic';
@@ -1439,12 +1443,10 @@ const AdminTools = {
 
     this._iconList = Object.keys(icons);
     this._syncIconPreview();
-    this._renderIconMenu();
 
     this._decoList = Object.keys(decos);
     const decoInput = document.getElementById('tmDeco');
     if (decoInput) decoInput.value = this._sel.deco;
-    this._renderDecoMenu();
   },
 
   _setColor(color) {
@@ -1537,10 +1539,10 @@ const AdminTools = {
     const toggle = document.getElementById('tmBadgeToggle');
     if (toggle) toggle.setAttribute('aria-expanded', 'true');
   },
-  // reads the existing categories from allToolsList and builds the menu (unfiltered).
+  // reads the existing categories from allToolsList. The menu itself is rendered
+  // lazily right before it opens (see _buildPickers comment above).
   _updateBadgeList() {
     this._badgeList = [...new Set((allToolsList || []).map(t => t.badge).filter(Boolean))].sort();
-    this._renderBadgeMenu();
   },
   // filters and renders the menu based on the box's current text.
   _renderBadgeMenu() {
