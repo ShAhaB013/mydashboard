@@ -27,7 +27,9 @@ const LogsManager = {
     if (this._loading) return;
     this._loading = true;
     this._page    = Math.max(1, page);
-    document.getElementById('logList').innerHTML = SKELETON_TABLE_ROW.repeat(6);
+    const list = document.getElementById('logList');
+    list.innerHTML = SKELETON_TABLE_ROW.repeat(6);
+    Skeleton.mark(list);
 
     const res = await Api.call('list_logs', {
       page:      this._page,
@@ -41,8 +43,9 @@ const LogsManager = {
     });
 
     this._loading = false;
+    await Skeleton.wait(list);
     if (!res.ok) {
-      document.getElementById('logList').innerHTML = `<div class="log-empty">${esc(res.msg || 'خطا در بارگذاری')}</div>`;
+      list.innerHTML = `<div class="log-empty">${esc(res.msg || 'خطا در بارگذاری')}</div>`;
       return;
     }
 

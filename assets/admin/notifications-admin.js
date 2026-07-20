@@ -379,6 +379,7 @@ const NM = {
         </div>
       </div>`;
     list.innerHTML = row.repeat(n);
+    Skeleton.mark(list);
   },
 
   async load(page = this._page) {
@@ -413,6 +414,7 @@ const NM = {
       return this.load(this._page - 1);
     }
 
+    await Skeleton.wait(document.getElementById('notifList'));
     this._render();
   },
 
@@ -448,6 +450,7 @@ const NM = {
     this._nextCursor   = pg.next_cursor ?? null;
     this._prevCursor    = pg.prev_cursor ?? null;
 
+    await Skeleton.wait(document.getElementById('notifList'));
     this._render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
@@ -1242,7 +1245,9 @@ const NM = {
 
   async openReaders(id, title) {
     document.getElementById('notifReadersTitle').textContent = `مشاهده‌کنندگان «${this._esc(title)}»`;
-    document.getElementById('notifReadersList').innerHTML    = this._SKELETON_TABLE_ROW.repeat(3);
+    const readersList = document.getElementById('notifReadersList');
+    readersList.innerHTML = this._SKELETON_TABLE_ROW.repeat(3);
+    Skeleton.mark(readersList);
     this._readersId      = id;
     this._readersOffset  = 0;
     this._readersHasMore = false;
@@ -1279,6 +1284,7 @@ const NM = {
 
     const res = await apiCall('notification_readers', { id: this._readersId, offset: this._readersOffset });
     if (reqSeq !== this._readersReqSeq) return; // the modal was closed/reopened while this was in flight
+    if (isFirstPage) await Skeleton.wait(list);
 
     const lastSkeleton = list.querySelector('.sk-table-row:last-child');
     if (!isFirstPage && lastSkeleton) lastSkeleton.remove();

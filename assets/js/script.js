@@ -1120,6 +1120,7 @@ function showSkeleton(n = 6) {
   cardVisibilityObserver?.disconnect();
   loadMoreObserver?.disconnect();
   grid.innerHTML = SKELETON_CARD.repeat(n);
+  Skeleton.mark(grid);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1140,9 +1141,11 @@ async function loadData() {
   } catch (err) {
     console.error('خطا در لود ابزارها:', err);
     allToolsList = [];
+    await Skeleton.wait(grid);
     showErrorState();
     return;
   }
+  await Skeleton.wait(grid);
   buildFilterChips();
   renderTools(searchInput.value);
 }
@@ -1193,10 +1196,12 @@ async function init() {
     console.error('خطا در لود اولیه:', err);
     Auth.setLoggedOut();
     allToolsList = [];
+    await Skeleton.wait(grid);
     showErrorState();
     return;
   }
 
+  await Skeleton.wait(grid);
   buildFilterChips();
   renderTools(searchInput.value);
 }
@@ -1267,10 +1272,12 @@ async function initLegacy() {
     console.error('خطا در لود اولیه (legacy):', err);
     Auth.setLoggedOut();
     allToolsList = [];
+    await Skeleton.wait(grid);
     showErrorState();
     return;
   }
 
+  await Skeleton.wait(grid);
   buildFilterChips();
   renderTools(searchInput.value);
 }

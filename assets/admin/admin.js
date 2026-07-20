@@ -275,6 +275,7 @@ const UserManager = {
     const list = document.getElementById('userList');
     if (!list) return;
     list.innerHTML = SKELETON_TABLE_ROW.repeat(n);
+    Skeleton.mark(list);
   },
 
   async load(page = this._page) {
@@ -305,6 +306,7 @@ const UserManager = {
       return this.load(this._page - 1);
     }
 
+    await Skeleton.wait(document.getElementById('userList'));
     this._render();
   },
 
@@ -796,8 +798,11 @@ const AccessManager = {
 
     document.getElementById('accessModalTitle').textContent = `تنظیم دسترسی — ${userName}`;
     document.getElementById('accessUserId').value = userId;
-    document.getElementById('accessBadgesGrid').innerHTML = SKELETON_BADGE_CHIP.repeat(4);
-    document.getElementById('accessToolsList').innerHTML  = SKELETON_TABLE_ROW.repeat(4);
+    const badgesGrid = document.getElementById('accessBadgesGrid');
+    const toolsList  = document.getElementById('accessToolsList');
+    badgesGrid.innerHTML = SKELETON_BADGE_CHIP.repeat(4);
+    toolsList.innerHTML  = SKELETON_TABLE_ROW.repeat(4);
+    Skeleton.mark(badgesGrid);
 
     Modal.open('accessModal');
     this._dirty = false;
@@ -813,6 +818,7 @@ const AccessManager = {
     }
 
     this._currentBadges = accessRes.badges || [];
+    await Skeleton.wait(badgesGrid);
     this._render(badgesRes.badges || [], accessRes.tool_ids || [], accessRes.badges || []);
   },
 
@@ -1321,7 +1327,9 @@ const SecurityManager = {
   async refresh() {
     const box = document.getElementById('blocksList');
     box.innerHTML = SKELETON_TABLE_ROW.repeat(3);
+    Skeleton.mark(box);
     const res = await Api.call('list_blocks', {});
+    await Skeleton.wait(box);
     if (!res.ok) { box.innerHTML = '<div class="blocks-empty">خطا در دریافت اطلاعات</div>'; return; }
     this.render(res.blocks || []);
   },
@@ -1434,6 +1442,7 @@ const SessionsManager = {
     let sentinel = null;
     if (isFirstPage) {
       box.innerHTML = SKELETON_TABLE_ROW.repeat(2);
+      Skeleton.mark(box);
       if (killBtn) killBtn.disabled = true;
     } else {
       sentinel = document.createElement('div');
@@ -1443,6 +1452,7 @@ const SessionsManager = {
 
     const res = await Api.call('list_sessions', { user_id: this._curUser, offset: this._sessOffset });
     if (reqSeq !== this._sessReqSeq) return; // modal closed/reopened while this was in flight
+    if (isFirstPage) await Skeleton.wait(box);
 
     const lastSkeleton = box.querySelector('.sk-table-row:last-child');
     if (!isFirstPage && lastSkeleton) lastSkeleton.remove();
@@ -1580,7 +1590,9 @@ const CategoriesManager = {
   async load() {
     const list = document.getElementById('categoryList');
     list.innerHTML = SKELETON_TABLE_ROW.repeat(3);
+    Skeleton.mark(list);
     const res = await Api.call('list_categories', {});
+    await Skeleton.wait(list);
     if (!res.ok) {
       list.innerHTML = `<div class="category-list-empty">${esc(res.msg || 'خطا در دریافت دسته‌بندی‌ها')}</div>`;
       return;

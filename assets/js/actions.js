@@ -61,3 +61,20 @@ window.DateFmt = {
     return `${this.date(d)} ${this.time(d)}`;
   },
 };
+
+// ── Skeleton loading: enforces a minimum visible duration so a fast
+// response doesn't just flash the skeleton for a frame before the real
+// content replaces it (jarring on a fast connection/cache hit).
+// Usage: Skeleton.mark(el) right after filling el with skeleton markup,
+// then `await Skeleton.wait(el)` right before swapping in real content.
+window.Skeleton = {
+  mark(el) { if (el) el.dataset.skStart = Date.now(); },
+  async wait(el, minMs = 400) {
+    if (!el) return;
+    const started = Number(el.dataset.skStart);
+    delete el.dataset.skStart;
+    if (!started) return;
+    const remaining = minMs - (Date.now() - started);
+    if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+  },
+};
