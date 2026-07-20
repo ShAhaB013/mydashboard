@@ -159,10 +159,10 @@ $v_pwpolicy = asset_v(__DIR__ . '/assets/js/password-policy.js');
 
         <!-- Step 2: verify code -->
         <div class="reg-step" data-step="2" hidden>
-          <p class="reg-code-hint">کد ۶ رقمی به <b id="fpEmailEcho" dir="ltr"></b> ارسال شد؛ آن را وارد کنید.</p>
+          <p class="reg-code-hint">کد به <b id="fpEmailEcho" dir="ltr"></b> ارسال شد، لطفا کد را وارد کنید.</p>
           <p class="reg-spam-hint">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-            <span>اگر ایمیل را در صندوق ورودی نمی‌بینید، پوشه اسپم (Spam) را هم بررسی کنید.</span>
+            <span>اگر ایمیل را در Inbox مشاهده نمی‌کنید پوشه (spam) را بررسی نمایید.</span>
           </p>
           <input type="text" id="fpCode" class="reg-code-input" inputmode="numeric" maxlength="6"
                  placeholder="------" autocomplete="one-time-code" dir="ltr" aria-label="کد بازیابی">
