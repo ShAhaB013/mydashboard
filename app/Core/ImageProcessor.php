@@ -117,11 +117,13 @@ class ImageProcessor
     /** Deletes both image versions from disk */
     public static function deleteFiles(string $uploadDir, string $imagePath, ?string $thumbPath = null): void
     {
-        $fullDisk = $uploadDir . '/' . basename($imagePath);
+        $fullDisk = $uploadDir . '/' . basename(str_replace('\\', '/', $imagePath));
         if (is_file($fullDisk)) @unlink($fullDisk);
 
-        $thumbBasename = $thumbPath ? basename($thumbPath) : basename($imagePath);
-        $thumbDisk     = $uploadDir . '/' . self::THUMB_DIR . '/' . $thumbBasename;
+        $thumbBasename = $thumbPath
+            ? basename(str_replace('\\', '/', $thumbPath))
+            : basename(str_replace('\\', '/', $imagePath));
+        $thumbDisk = $uploadDir . '/' . self::THUMB_DIR . '/' . $thumbBasename;
         if (is_file($thumbDisk)) @unlink($thumbDisk);
     }
 
