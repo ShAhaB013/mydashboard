@@ -119,13 +119,15 @@
     .profile-card-head.is-loading #profileDisplayName {
       display: inline-block;
       width: 140px;
-      height: 16px;
+      height: 20px;
+      line-height: 20px;
       border-radius: var(--radius-xs);
     }
     .profile-card-head.is-loading .profile-email {
       display: inline-block;
       width: 170px;
-      height: 13px;
+      height: 16px;
+      line-height: 16px;
       border-radius: var(--radius-xs);
     }
     .profile-card-head.is-loading .profile-avatar::after,
@@ -157,6 +159,7 @@
       pointer-events: none;
     }
     #tabPanel-name.is-loading .field-input::placeholder { color: transparent; }
+    #tabPanel-name.is-loading .field-counter-inline { color: transparent; user-select: none; }
     #tabPanel-name.is-loading .field-box { position: relative; overflow: hidden; }
     #tabPanel-name.is-loading .field-box::after {
       content: '';

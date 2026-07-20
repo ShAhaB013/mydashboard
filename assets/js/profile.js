@@ -48,6 +48,8 @@
         if (head) head.classList.remove('is-loading');
         const nameTab = document.getElementById('tabPanel-name');
         if (nameTab) nameTab.classList.remove('is-loading');
+        const nameSubmitBtn = document.getElementById('nameSubmitBtn');
+        if (nameSubmitBtn) nameSubmitBtn.disabled = false;
 
       } catch {
         window.location.href = 'index.php';
