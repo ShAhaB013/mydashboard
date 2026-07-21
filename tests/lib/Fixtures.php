@@ -16,6 +16,19 @@ class Fixtures
         return self::PREFIX . bin2hex(random_bytes(4)) . ($suffix !== '' ? '_' . $suffix : '');
     }
 
+    // Validator::categoryName() only allows letters + underscore (no digits, max 20 chars) —
+    // uniq()'s hex suffix fails that check when sent as a real 'badge'/category-name param.
+    public static function uniqCategory(string $suffix = ''): string
+    {
+        $alphabet = 'abcdefghijklmnopqrstuvwxyz';
+        $rand = '';
+        for ($i = 0; $i < 6; $i++) {
+            $rand .= $alphabet[random_int(0, 25)];
+        }
+        $name = self::PREFIX . $rand . ($suffix !== '' ? '_' . $suffix : '');
+        return mb_substr($name, 0, 20);
+    }
+
     public static function createTool(array $overrides = []): int
     {
         $data = array_merge([

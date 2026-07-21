@@ -44,7 +44,7 @@ Assert::test('کاربر تازه‌ساز، اعلان‌های target_all_user
 });
 
 Assert::test('اعطای category_access → دسترسی به اعلان‌های موجود آن دسته بلافاصله اضافه می‌شود (recipients)', function () use ($BASE, $ACC) {
-    $categoryName = Fixtures::uniq('cat');
+    $categoryName = Fixtures::uniqCategory('cat');
     Fixtures::createTool(['badge' => $categoryName]);
     $admin = admin_http($BASE, $ACC);
 
@@ -72,8 +72,8 @@ Assert::test('اعطای category_access → دسترسی به اعلان‌ها
 });
 
 Assert::test('تغییر دسته‌بندی یک ابزار → recipients کاربران دارای tool_access به آن ابزار بازمحاسبه می‌شود', function () use ($BASE, $ACC) {
-    $catA = Fixtures::uniq('catA');
-    $catB = Fixtures::uniq('catB');
+    $catA = Fixtures::uniqCategory('catA');
+    $catB = Fixtures::uniqCategory('catB');
     $toolId = Fixtures::createTool(['badge' => $catA]);
     // category_id/name resolution is a whitelist of "currently carried by some tool"
     // (CategoryModel::findIdByName) — catB needs a tool before create_notification can
@@ -118,7 +118,7 @@ Assert::test('تغییر دسته‌بندی یک ابزار → recipients کا
 });
 
 Assert::test('حذف یک دسته‌بندی (بدون ابزار متصل) → recipients اعلان‌هایی که آن را به‌عنوان badge داشتند بازمحاسبه می‌شود', function () use ($BASE, $ACC) {
-    $categoryName = Fixtures::uniq('catdel');
+    $categoryName = Fixtures::uniqCategory('catdel');
     $toolId = Fixtures::createTool(['badge' => $categoryName]);
     $categoryId = (int) DB::run('SELECT category_id FROM tools WHERE id=:id', [':id' => $toolId])->fetchColumn();
 

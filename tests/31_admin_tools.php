@@ -30,7 +30,7 @@ Assert::test('add معتبر → ok + یکپارچگی DB (ردیف واقعا �
     $http = admin_http($BASE, $ACC);
     $title = Fixtures::uniq('tool');
     $before = (int) DB::run("SELECT COUNT(*) c FROM tools WHERE title LIKE :p", [':p' => Fixtures::PREFIX . '%'])->fetchColumn();
-    $res = $http->postJson('/admin.php?api=add', ['title' => $title, 'path' => '/' . $title, 'iconKey' => 'star', 'deco' => 'generic']);
+    $res = $http->postJson('/admin.php?api=add', ['title' => $title, 'path' => '/' . $title, 'badge' => 'zztest', 'iconKey' => 'star', 'deco' => 'generic']);
     Assert::jsonOk($res, 'add معتبر باید موفق باشد');
     $after = (int) DB::run("SELECT COUNT(*) c FROM tools WHERE title LIKE :p", [':p' => Fixtures::PREFIX . '%'])->fetchColumn();
     Assert::eq($before + 1, $after, 'دقیقا یک ردیف جدید باید ساخته شود');
@@ -47,7 +47,7 @@ Assert::test('edit معتبر → مقادیر DB واقعا آپدیت می‌�
     $http = admin_http($BASE, $ACC);
     $id = Fixtures::createTool();
     $newTitle = Fixtures::uniq('edited');
-    $res = $http->postJson('/admin.php?api=edit', ['id' => $id, 'title' => $newTitle, 'path' => '/' . $newTitle]);
+    $res = $http->postJson('/admin.php?api=edit', ['id' => $id, 'title' => $newTitle, 'path' => '/' . $newTitle, 'badge' => 'zztest']);
     Assert::jsonOk($res, 'edit معتبر باید موفق باشد');
     $row = DB::run('SELECT title FROM tools WHERE id=:id', [':id' => $id])->fetch();
     Assert::eq($newTitle, $row['title'] ?? null, 'عنوان در DB باید آپدیت شده باشد');
