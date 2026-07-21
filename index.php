@@ -65,6 +65,10 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
 
   <a href="#main-content" class="sr-only">رفتن به محتوا</a>
 
+  <!-- Modal-style dim layer shown while a header popover (bell / user menu) is open.
+       Sits below the sticky header, so the header and the popover stay crisp. -->
+  <div class="pop-backdrop" id="popBackdrop" aria-hidden="true"></div>
+
   <header class="app-header">
     <div class="app-header__inner">
       <h1 class="app-header__title">داشبورد مجموعه ابزارهای کمکی</h1>
@@ -118,6 +122,9 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
             <span class="notif-bell-badge" id="notifBellBadge" aria-live="polite" aria-atomic="true"></span>
           </button>
 
+          <!-- .pop-shell carries the popover's placement + unified drop-shadow;
+               the panel inside gets its arrow-included shape from popover.js -->
+          <div class="pop-shell">
           <div
             class="notif-dropdown"
             id="notifDropdown"
@@ -165,6 +172,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
             </div>
 
           </div>
+          </div><!-- /.pop-shell -->
         </div>
         <!-- /Notification bell -->
 
@@ -188,6 +196,8 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
               </svg>
             </button>
 
+            <!-- .pop-shell carries the popover's placement + unified drop-shadow -->
+            <div class="pop-shell">
             <div class="user-menu-dropdown" id="userMenuDropdown" role="menu" aria-hidden="true">
 
               <div class="user-menu-header">
@@ -230,6 +240,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
               </button>
 
             </div>
+            </div><!-- /.pop-shell -->
           </div>
 
         </div>
@@ -495,6 +506,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
   <script src="/assets/js/lightbox.js?v=<?= $v_lb ?>" defer></script>
   <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/assets/js/actions.js') ?>" defer></script>
   <script src="/assets/js/notif-detail.js?v=<?= asset_v(__DIR__ . '/assets/js/notif-detail.js') ?>" defer></script>
+  <script src="/assets/js/popover.js?v=<?= asset_v(__DIR__ . '/assets/js/popover.js') ?>" defer></script>
   <script src="/assets/js/script.js?v=<?= $v_js ?>" defer></script>
 </body>
 </html>

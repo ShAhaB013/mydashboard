@@ -1683,38 +1683,69 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   flex-shrink: 0;
 }
 
-/* -- Pointer arrow to the corresponding button (bell and user dropdowns) --
-   Placed on the wrapper because the dropdown itself has overflow:hidden.
-   Sits BEHIND the panel (z-index lower than the dropdown) and is centered
-   on the panel's top edge, so the panel's own background/border swallows
-   its bottom half — only the tip peeks out, fused to the panel like a
-   single molded shape instead of a separate floating diamond. */
-#notifBellWrap::after,
-.user-menu-wrap::after {
-  content: ''; position: absolute; z-index: 149;
-  top: calc(100% + 4px); left: 14px;
-  width: 12px; height: 12px;
-  background: var(--color-bg-card);
-  border-left: 1.5px solid var(--color-border);
-  border-top: 1.5px solid var(--color-border);
-  border-radius: 2px 0 0 0;
-  box-shadow: -2px -2px 6px rgba(15,23,42,.05);
-  transform: rotate(45deg) scale(0);
-  transform-origin: center;
-  opacity: 0; pointer-events: none;
-  /* closing: fast, no bounce, so the arrow fades out in sync with the dropdown (fixes a lingering diamond-shape lag) */
-  transition: opacity .1s ease, transform .1s ease;
+/* ── Unified popover shape — bell + user dropdowns ──────────────────────
+   The panel and its pointer arrow are ONE shape: popover.js builds a single
+   rounded-rect-plus-arrow path from the live anchor-button position and sets
+   it as clip-path on the panel; the top 9px of the panel box (padding-top)
+   is the zone the clip carves into the arrow. No pseudo-element, no rotated
+   square — nothing that could read as a separate piece.
+   clip-path discards box-shadow, and a filter on the SAME element is applied
+   before clipping (the shadow would be cut off) — so the shadow lives here,
+   on a thin positioning shell around the panel, as filter: drop-shadow(),
+   which follows the clipped silhouette exactly: one continuous shadow around
+   body and arrow. The shell must carry no visual styling of its own. */
+.pop-shell {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 150;
+  pointer-events: none; /* the panel re-enables itself when open */
+  filter: drop-shadow(0 8px 22px rgba(15,23,42,.13)) drop-shadow(0 2px 6px rgba(15,23,42,.08));
 }
-#notifBellWrap:has(.notif-dropdown.open)::after,
-.user-menu-wrap:has(.user-menu-dropdown.open)::after {
-  opacity: 1; transform: rotate(45deg) scale(1);
-  /* opening: smooth entrance with a gentle bounce */
-  transition: opacity .18s ease, transform .22s cubic-bezier(.34,1.4,.64,1);
+[data-theme="dark"] .pop-shell {
+  /* the 1px rim pass keeps the silhouette (arrow included) readable on dark;
+     it follows the whole shape, so it can't look like a border seam */
+  filter: drop-shadow(0 0 1px rgba(240,246,252,.14)) drop-shadow(0 10px 30px rgba(0,0,0,.5));
+}
+.pop-shell > .user-menu-dropdown,
+.pop-shell > .notif-dropdown {
+  position: static; /* the shell owns placement, incl. the mobile fixed variant */
+}
+/* Reserve the arrow zone only when the unified clip is actually available;
+   without it the panel stays a plain rounded card and needs no top gap. */
+@supports (clip-path: path('M0 0h1v1z')) {
+  .pop-shell > .user-menu-dropdown,
+  .pop-shell > .notif-dropdown { padding-top: 9px; }
 }
 
-[data-theme="dark"] #notifBellWrap::after,
-[data-theme="dark"] .user-menu-wrap::after {
-  box-shadow: -2px -2px 6px rgba(0,0,0,.25);
+/* ── Popover backdrop — modal-style page dim while a popover is open ──
+   Same look as the modal overlays, but z-index sits just BELOW the sticky
+   header (100): the popovers render inside the header's stacking context,
+   so a modal-level (200) backdrop would cover them too. Header + popover
+   stay crisp; everything else dims. Clicking the dim area closes the
+   popover via the existing document-level outside-click handler. */
+.pop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+.pop-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Freeze the looping card animations while the page is dimmed behind a
+   popover — same pattern as body.notif-modal-open / body.tool-modal-open:
+   the !important is required to beat calm-mode's hover rule
+   (.grid--calm .card:hover ... running !important). */
+body.pop-open .card-deco-wrap *,
+body.pop-open .card-corner-deco * {
+  animation-play-state: paused !important;
 }
 
 /* Button that opens the menu */
@@ -1774,19 +1805,16 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   transform: rotate(180deg);
 }
 
-/* ── dropdown panel ── */
+/* ── dropdown panel ──
+   Placement, shadow and the unified panel+arrow silhouette live on the
+   .pop-shell wrapper (see "Unified popover shape"); no border/box-shadow
+   here — a border can't follow the clipped arrow and would read as a seam. */
 .user-menu-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
   min-width: 200px;
   background: var(--color-bg-card);
-  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 28px rgba(15,23,42,.12), 0 2px 8px rgba(15,23,42,.06);
-  z-index: 150;
   overflow: hidden;
-  /* opening animation */
+  /* opening animation (transform-origin is set to the arrow tip by popover.js) */
   opacity: 0;
   transform: translateY(-6px) scale(.97);
   pointer-events: none;
@@ -1796,10 +1824,6 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
-}
-
-[data-theme="dark"] .user-menu-dropdown {
-  box-shadow: 0 8px 28px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.2);
 }
 
 /* Dropdown header — name and username */
@@ -1959,19 +1983,15 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   z-index: 1;
 }
  
-/* ── Dropdown panel ── */
+/* ── Dropdown panel ──
+   Placement/shadow/silhouette live on .pop-shell (see "Unified popover
+   shape") — no border or box-shadow here, they can't follow the arrow. */
 .notif-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
   width: 340px;
   background: var(--color-bg-card);
-  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 10px 36px rgba(15,23,42,.14), 0 2px 10px rgba(15,23,42,.06);
-  z-index: 150;
   overflow: hidden;
-  /* opening animation */
+  /* opening animation (transform-origin is set to the arrow tip by popover.js) */
   opacity: 0;
   transform: translateY(-8px) scale(.97);
   pointer-events: none;
@@ -1981,9 +2001,6 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
-}
-[data-theme="dark"] .notif-dropdown {
-  box-shadow: 0 10px 36px rgba(0,0,0,.40), 0 2px 10px rgba(0,0,0,.22);
 }
 
 /* Dropdown header */
@@ -2186,14 +2203,6 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   height: 13px;
 }
  
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  .notif-dropdown {
-    left: auto;
-    right: 0;
-  }
-}
-
 /* ── Wrapper ── */
 #notifBellWrap {
   position: relative;
@@ -2250,17 +2259,13 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   pointer-events: none; z-index: 1;
 }
  
-/* ── Dropdown panel ── */
+/* ── Dropdown panel ──
+   (duplicate of the earlier block, kept in sync: placement/shadow/silhouette
+   live on .pop-shell — see "Unified popover shape") */
 .notif-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
   width: 340px;
   background: var(--color-bg-card);
-  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 10px 36px rgba(15,23,42,.14), 0 2px 10px rgba(15,23,42,.06);
-  z-index: 150;
   overflow: hidden;
   opacity: 0;
   transform: translateY(-8px) scale(.97);
@@ -2269,9 +2274,6 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 }
 .notif-dropdown.open {
   opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
-}
-[data-theme="dark"] .notif-dropdown {
-  box-shadow: 0 10px 36px rgba(0,0,0,.40), 0 2px 10px rgba(0,0,0,.22);
 }
  
 /* Header */
@@ -2542,12 +2544,17 @@ body.tool-modal-open .card-corner-deco * {
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .notif-dropdown,
-  .user-menu-dropdown {
+  /* full-width fixed placement moves to the shell; the panel fills it.
+     The arrow keeps working here — popover.js recomputes its position from
+     the anchor button, so it still points at the bell/avatar. */
+  .pop-shell {
     position: fixed;
     left: 10px;
     right: 10px;
     top: 64px; /* right under the 56px header (used to be 108px, which left a gap) */
+  }
+  .notif-dropdown,
+  .user-menu-dropdown {
     width: auto;
     min-width: unset;
     max-height: 70vh;
@@ -2558,8 +2565,6 @@ body.tool-modal-open .card-corner-deco * {
   .user-menu-dropdown.open {
     transform: translateY(0) scale(1);
   }
-  /* on mobile the dropdown is full-width fixed; the arrow doesn't make sense */
-  #notifBellWrap::after, .user-menu-wrap::after { display: none; }
 }
 @media (max-width: 480px) {
   .nd-box { max-height: 94vh; }

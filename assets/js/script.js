@@ -149,6 +149,27 @@ const Auth = {
 /* ═══════════════════════════════════════════════════════════
    User Menu Dropdown
    ═══════════════════════════════════════════════════════════ */
+/* Modal-style backdrop shared by the bell + user-menu popovers: dims the page
+   and (via body.pop-open, see style.css) pauses the looping card animations
+   while either popover is open. Checks the combined state so the two panels
+   closing each other during a switch can't blink the backdrop off. */
+function syncPopBackdrop() {
+  const on = UserMenu._open || NotifPanel._open;
+  document.body.classList.toggle('pop-open', on);
+  document.getElementById('popBackdrop')?.classList.toggle('open', on);
+}
+
+/* Is the page currently dimmed behind an overlay? (bell/user popover here,
+   notification detail + tool edit/delete modals in their own files.) While
+   dimmed, deco animation must stay frozen: the CSS side is handled by the
+   body.pop-open / body.notif-modal-open / body.tool-modal-open rules in
+   style.css, and the SMIL side (which CSS can't reach) hangs off this check
+   inside the pause/resume helpers below. */
+function pageDimmed() {
+  const c = document.body.classList;
+  return c.contains('pop-open') || c.contains('notif-modal-open') || c.contains('tool-modal-open');
+}
+
 const UserMenu = {
   _open: false,
 
@@ -159,6 +180,7 @@ const UserMenu = {
     const dropdown = document.getElementById('userMenuDropdown');
     if (btn)      btn.setAttribute('aria-expanded', 'true');
     if (dropdown) { dropdown.classList.add('open'); dropdown.setAttribute('aria-hidden', 'false'); }
+    syncPopBackdrop();
   },
   close() {
     this._open = false;
@@ -166,6 +188,7 @@ const UserMenu = {
     const dropdown = document.getElementById('userMenuDropdown');
     if (btn)      btn.setAttribute('aria-expanded', 'false');
     if (dropdown) { dropdown.classList.remove('open'); dropdown.setAttribute('aria-hidden', 'true'); }
+    syncPopBackdrop();
   },
 };
 
@@ -388,6 +411,7 @@ const NotifPanel = {
     }
 
     UserMenu.close();
+    syncPopBackdrop();
   },
 
   close() {
@@ -398,6 +422,7 @@ const NotifPanel = {
     if (btn)      btn.setAttribute('aria-expanded', 'false');
     if (dropdown) { dropdown.classList.remove('open'); dropdown.setAttribute('aria-hidden', 'true'); }
     if (body && this._scrollHandler) body.removeEventListener('scroll', this._scrollHandler);
+    syncPopBackdrop();
   },
 
   /** Screen-reader-only announcement (e.g. "3 more notifications loaded") for the
@@ -642,6 +667,9 @@ function unpauseSMIL(scope) {
   scope.querySelectorAll('svg').forEach(s => { try { s.unpauseAnimations(); } catch (_) {} });
 }
 /* Same as unpauseSMIL, but respects other modes that keep animation paused on purpose:
+   - a dimmed page (popover/modal open — see pageDimmed()) keeps everything frozen;
+     without this guard the scroll-stop and card-visibility resumers below would
+     visibly restart the SMIL decos behind the dim layer.
    - reorder mode (dragging cards) pauses everything itself and manages its own resume
      (on exit); a scroll mid-drag (the edge auto-scroll) must not undo that.
    - "calm mode" (30+ cards, deco only animates on hover/focus — see .grid--calm in
@@ -649,6 +677,7 @@ function unpauseSMIL(scope) {
      visibility resuming it would fight the CSS rule and run the SMIL invisibly
      (wasting CPU) or visibly out of sync. */
 function resumeSMIL(scope) {
+  if (pageDimmed()) return;
   if (grid.classList.contains('reordering')) return;
   const calm = grid.classList.contains('grid--calm');
   scope.querySelectorAll('svg').forEach(s => {
@@ -659,6 +688,14 @@ function resumeSMIL(scope) {
     try { s.unpauseAnimations(); } catch (_) {}
   });
 }
+
+/* Drive the SMIL freeze from the dim state itself: a body-class observer
+   covers all three dim sources (bell/user popovers in this file, the
+   notification + tool modals in theirs) without touching their code.
+   Undimming goes through resumeSMIL so calm/reorder rules keep applying. */
+new MutationObserver(() => {
+  if (pageDimmed()) pauseSMIL(grid); else resumeSMIL(grid);
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 /* ═══════════════════════════════════════════════════════════
    Card visibility observer — pause off-screen card animation
@@ -741,6 +778,10 @@ function renderNextBatch() {
   }
   grid.appendChild(frag);
   renderQueue.rendered += slice.length;
+
+  // cards born while the page is dimmed (e.g. lazy batch loaded by scrolling
+  // under an open popover) must arrive frozen like the rest of the grid
+  if (pageDimmed()) newCards.forEach(c => pauseSMIL(c));
 
   // only observe the newly added cards, for off-screen animation pausing
   const obs = getCardVisibilityObserver();
@@ -852,8 +893,9 @@ function createCard(tool) {
     pauseSMIL(card);
     // hover/drag during reorder mode must NOT wake it back up — dragging a card
     // over others fires mouseenter/mouseleave on them just like a real hover
+    // (nor may keyboard focus while the page is dimmed behind a popover/modal)
     const wake  = () => {
-      if (!document.documentElement.classList.contains('is-scrolling') && !grid.classList.contains('reordering')) {
+      if (!document.documentElement.classList.contains('is-scrolling') && !grid.classList.contains('reordering') && !pageDimmed()) {
         unpauseSMIL(card);
       }
     };
