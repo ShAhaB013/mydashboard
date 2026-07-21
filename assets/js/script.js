@@ -242,9 +242,18 @@ const NotifPanel = {
   async _loadMore() {
     if (this._loadingMore || !this._hasMore || !this._nextCursor) return;
     this._loadingMore = true;
-    this._renderDropdown(); // shows the trailing "loading more" skeleton row
 
-    const before = this._notifications.length;
+    // Append-only (never touch the already-rendered rows): this runs from a live
+    // 'scroll' handler, so a full _renderDropdown() rebuild here would innerHTML='' the
+    // container mid-gesture. That resets scrollTop and makes the browser lose track of
+    // which element owns the in-progress wheel/touch scroll, so the rest of that same
+    // gesture leaks through to the dashboard page behind the popover instead of staying
+    // inside it. Appending new nodes without touching existing ones keeps scrollTop
+    // untouched, so no restore hack is needed either.
+    const body = document.getElementById('notifDropdownBody');
+    const sentinel = body ? this._buildLoadingSentinel() : null;
+    if (body && sentinel) body.appendChild(sentinel);
+
     try {
       const page = await this._fetchPage(this._nextCursor);
       if (page) {
@@ -257,16 +266,17 @@ const NotifPanel = {
             ? 'یک اعلان دیگر بارگذاری شد'
             : `${page.notifications.length} اعلان دیگر بارگذاری شد`
         );
+        if (body) {
+          const frag = document.createDocumentFragment();
+          page.notifications.forEach(n => frag.appendChild(this._buildItemEl(n)));
+          if (sentinel) body.replaceChild(frag, sentinel);
+          else body.appendChild(frag);
+        }
+      } else if (sentinel) {
+        sentinel.remove();
       }
     } finally {
       this._loadingMore = false;
-      this._renderDropdown();
-      // restore scroll position relative to content instead of jumping to the top
-      const body = document.getElementById('notifDropdownBody');
-      if (body && before > 0) {
-        const anchor = body.children[before - 1];
-        if (anchor) anchor.scrollIntoView({ block: 'start' });
-      }
     }
   },
 
@@ -433,6 +443,50 @@ const NotifPanel = {
     if (live) live.textContent = msg;
   },
 
+  /** Builds one notif-drop-item row (shared by the full render and the incremental
+   *  append in _loadMore(), so infinite-scroll never has to rebuild existing rows). */
+  _buildItemEl(n) {
+    const item = document.createElement('div');
+    item.className  = `notif-drop-item${n.is_read ? '' : ' notif-drop-item--unread'}`;
+    item.dataset.id = n.id;
+    item.setAttribute('role', 'listitem');
+
+    const ago     = this._timeAgo(n.created_at);
+    const hasImg  = !!(n.image_path);
+
+    item.innerHTML = `
+      <div class="notif-drop-bar" aria-hidden="true"></div>
+      <div class="notif-drop-content">
+        <div class="notif-drop-title">${this._esc(n.title)}</div>
+        <div class="notif-drop-time">
+          ${ago}${hasImg ? ' &nbsp;·&nbsp; <span style="opacity:.7;" aria-label="دارای تصویر"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>' : ''}
+        </div>
+      </div>
+      <button class="notif-drop-view-btn"
+              aria-label="مشاهده: ${this._esc(n.title)}">
+        مشاهده
+      </button>
+    `;
+
+    const openDetail = () => {
+      this.close();
+      NotifDetail.open(n);
+      if (!n.is_read) {
+        this._markReadSilent(n.id, item, n);
+      }
+    };
+
+    item.querySelector('.notif-drop-view-btn').addEventListener('click', openDetail);
+    return item;
+  },
+
+  /** The trailing "loading more" skeleton row appended during _loadMore(). */
+  _buildLoadingSentinel() {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = SKELETON_LIST_ITEM;
+    return wrap.firstElementChild;
+  },
+
   _renderDropdown() {
     const body = document.getElementById('notifDropdownBody');
     if (!body) return;
@@ -457,47 +511,10 @@ const NotifPanel = {
     body.innerHTML = '';
     const frag = document.createDocumentFragment();
 
-    list.forEach(n => {
-      const item = document.createElement('div');
-      item.className  = `notif-drop-item${n.is_read ? '' : ' notif-drop-item--unread'}`;
-      item.dataset.id = n.id;
-      item.setAttribute('role', 'listitem');
-
-      const ago     = this._timeAgo(n.created_at);
-      const hasImg  = !!(n.image_path);
-
-      item.innerHTML = `
-        <div class="notif-drop-bar" aria-hidden="true"></div>
-        <div class="notif-drop-content">
-          <div class="notif-drop-title">${this._esc(n.title)}</div>
-          <div class="notif-drop-time">
-            ${ago}${hasImg ? ' &nbsp;·&nbsp; <span style="opacity:.7;" aria-label="دارای تصویر"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>' : ''}
-          </div>
-        </div>
-        <button class="notif-drop-view-btn"
-                aria-label="مشاهده: ${this._esc(n.title)}">
-          مشاهده
-        </button>
-      `;
-
-      const openDetail = () => {
-        this.close();
-        NotifDetail.open(n);
-        if (!n.is_read) {
-          this._markReadSilent(n.id, item, n);
-        }
-      };
-
-      const viewBtn = item.querySelector('.notif-drop-view-btn');
-      viewBtn.addEventListener('click', openDetail);
-
-      frag.appendChild(item);
-    });
+    list.forEach(n => frag.appendChild(this._buildItemEl(n)));
 
     if (this._loadingMore) {
-      const sentinel = document.createElement('div');
-      sentinel.innerHTML = SKELETON_LIST_ITEM;
-      frag.appendChild(sentinel.firstElementChild);
+      frag.appendChild(this._buildLoadingSentinel());
     }
 
     body.appendChild(frag);
