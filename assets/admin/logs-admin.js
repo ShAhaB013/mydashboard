@@ -156,9 +156,10 @@ const LogsManager = {
         <span class="log-table-time">${esc(DateFmt.dateTime(l.created_at))}</span>
         <span class="log-table-msg" title="${esc(l.message)}">${esc(l.message)}</span>
         <button type="button" class="log-table-del" title="حذف" data-act="logOpenDelete" data-id="${l.id}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6"/>
             <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
           </svg>
         </button>
       </div>`;

@@ -405,6 +405,11 @@
     <div class="modal-body" style="display:block;padding:20px;overflow-y:auto;max-height:65vh;">
       <input type="hidden" id="accessUserId">
 
+      <div class="access-admin-hint" id="accessAdminHint">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>این کاربر مدیر سیستم است و به‌طور پیش‌فرض به همه دسته‌بندی‌ها و ابزارها دسترسی دارد. این تنظیمات فقط روی کاربران عادی اثر می‌گذارد.</span>
+      </div>
+
       <div class="access-section">
         <div class="access-section-title">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">

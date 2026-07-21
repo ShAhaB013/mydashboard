@@ -367,7 +367,7 @@ const UserManager = {
       </div>
       <div class="user-row-actions">
         <button class="btn btn-secondary btn-icon btn-sm" title="تنظیم دسترسی"
-          data-act="accessOpen" data-id="${u.id}" data-name="${esc(name)}">
+          data-act="accessOpen" data-id="${u.id}" data-name="${esc(name)}" data-role="${esc(u.role || 'user')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
@@ -761,6 +761,7 @@ const UserManager = {
 const AccessManager = {
   _currentUserId: null,
   _currentBadges: [],
+  _isAdminTarget: false,
   _dirty: false,
   _wiredDirty: false,
   _wireDirty() {
@@ -791,15 +792,24 @@ const AccessManager = {
     Modal.close('accessModal');
   },
 
-  async open(userId, userName) {
+  async open(userId, userName, role) {
     this._wireDirty();
     this._currentUserId = userId;
     this._currentBadges = [];
+    this._isAdminTarget = role === 'admin';
 
     document.getElementById('accessModalTitle').textContent = `تنظیم دسترسی — ${userName}`;
     document.getElementById('accessUserId').value = userId;
     const badgesGrid = document.getElementById('accessBadgesGrid');
     const toolsList  = document.getElementById('accessToolsList');
+    const adminHint  = document.getElementById('accessAdminHint');
+    const saveBtn    = document.getElementById('saveAccessBtn');
+    if (adminHint) adminHint.classList.toggle('show', this._isAdminTarget);
+    if (saveBtn) {
+      saveBtn.disabled = this._isAdminTarget;
+      saveBtn.removeAttribute('data-tip');
+      saveBtn.title = this._isAdminTarget ? 'کاربر مدیر همیشه به همه بخش‌ها دسترسی کامل دارد و نیازی به ذخیره ندارد' : '';
+    }
     badgesGrid.innerHTML = SKELETON_BADGE_CHIP.repeat(4);
     toolsList.innerHTML  = SKELETON_TABLE_ROW.repeat(4);
     Skeleton.mark(badgesGrid);
@@ -817,9 +827,17 @@ const AccessManager = {
       return;
     }
 
-    this._currentBadges = accessRes.badges || [];
+    const availableBadges = badgesRes.badges || [];
+    // Admins bypass the access tables entirely (they always see every tool — see
+    // AppController::isAdmin branch), so tool_access/category_access rows for an
+    // admin account are stale and would render as "nothing checked", implying the
+    // admin has no access when really they have all of it. Show it as such instead.
+    const selectedToolIds = this._isAdminTarget ? TOOLS_RAW.map(t => t.id) : (accessRes.tool_ids || []);
+    const selectedBadges  = this._isAdminTarget ? availableBadges.slice()  : (accessRes.badges   || []);
+
+    this._currentBadges = selectedBadges;
     await Skeleton.wait(badgesGrid);
-    this._render(badgesRes.badges || [], accessRes.tool_ids || [], accessRes.badges || []);
+    this._render(availableBadges, selectedToolIds, selectedBadges);
   },
 
   _render(availableBadges, selectedToolIds, selectedBadges) {
@@ -831,9 +849,9 @@ const AccessManager = {
       availableBadges.forEach(badge => {
         const checked = selectedBadges.includes(badge);
         const label = document.createElement('label');
-        label.className = 'access-badge-label';
+        label.className = 'access-badge-label' + (this._isAdminTarget ? ' disabled' : '');
         label.innerHTML = `
-          <input type="checkbox" class="access-badge-cb" value="${esc(badge)}" ${checked ? 'checked' : ''}>
+          <input type="checkbox" class="access-badge-cb" value="${esc(badge)}" ${checked ? 'checked' : ''} ${this._isAdminTarget ? 'disabled' : ''}>
           <span>${esc(badge)}</span>
         `;
         label.querySelector('input').addEventListener('change', () => {
@@ -859,7 +877,7 @@ const AccessManager = {
     TOOLS_RAW.forEach(tool => {
       const inBadge    = selectedBadges.includes(tool.badge || '');
       const isChecked  = selectedToolIds.includes(tool.id) || inBadge;
-      const isDisabled = inBadge;
+      const isDisabled = inBadge || this._isAdminTarget;
 
       const row = document.createElement('div');
       row.className = 'access-tool-row';
@@ -1295,7 +1313,7 @@ function refreshDecoPreview()       { DecoEditor.refreshPreview(); }
 function openEditUserModal(id,n,u,p,e,r){ UserManager.openEdit(id, n, u, p, e, r); }
 function toggleUser(id, btn)        { UserManager.toggle(id, btn); }
 function openDeleteUserModal(id, n) { UserManager.openDelete(id, n); }
-function openAccessModal(id, name)  { AccessManager.open(id, name); }
+function openAccessModal(id, name, role) { AccessManager.open(id, name, role); }
 function saveAccess()               { AccessManager.save(); }
 
 /* ── show/hide password ── */
@@ -1631,9 +1649,10 @@ const CategoriesManager = {
             </svg>
           </button>
           <button class="btn btn-danger btn-icon btn-sm" title="${esc(deleteTitle)}" data-act="catOpenDelete" data-id="${c.id}" data-name="${esc(c.name)}" ${orphan ? '' : 'disabled aria-disabled="true"'}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
             </svg>
           </button>
         </div>
@@ -2021,7 +2040,7 @@ if (window.Actions) {
     genUserPassword:    (el) => genUserPassword(el),
     closeModal:         (el) => closeModal(el.dataset.modal),
     // access
-    accessOpen:         (el) => openAccessModal(+el.dataset.id, el.dataset.name),
+    accessOpen:         (el) => openAccessModal(+el.dataset.id, el.dataset.name, el.dataset.role),
     accessClose:        () => AccessManager.close(),
     saveAccess:         () => saveAccess(),
     // sessions

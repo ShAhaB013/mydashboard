@@ -231,8 +231,15 @@ class UserController
             return;
         }
 
-        if (!$this->model->findById($id)) {
+        $user = $this->model->findById($id);
+        if (!$user) {
             Response::error('کاربر یافت نشد');
+            return;
+        }
+
+        // Guard: an active user cannot deactivate their own logged-in account
+        if ($id === UserSession::id() && (bool) $user['is_active']) {
+            Response::error('شما نمی‌توانید حساب فعال خودتان را در حین ورود به سیستم غیرفعال کنید.');
             return;
         }
 

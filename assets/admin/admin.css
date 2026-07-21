@@ -983,6 +983,16 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
    Access modal
    ═══════════════════════════════════════════════════════════ */
 
+.access-admin-hint {
+  display:none; align-items:flex-start; gap:8px;
+  background:var(--accent-bg); border:1px solid var(--accent);
+  color:var(--accent); border-radius:var(--radius-xs);
+  padding:10px 12px; font-size:12.5px; line-height:1.6;
+  margin-bottom:16px;
+}
+.access-admin-hint svg { flex-shrink:0; margin-top:2px; }
+.access-admin-hint.show { display:flex; }
+
 .access-section { display:flex; flex-direction:column; gap:10px; }
 
 .access-section-title {
@@ -1009,6 +1019,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   border-color:var(--accent); background:var(--accent-bg); color:var(--accent);
 }
 .access-badge-label input[type="checkbox"] { display:none; }
+.access-badge-label.disabled { opacity:.7; cursor:default; }
 
 /* Tools list in the access modal */
 .access-tools-list {
