@@ -11,8 +11,8 @@
   if (window.__tipReady) return;
   window.__tipReady = true;
 
-  var tip = null, curEl = null, showT = 0, hideT = 0;
-  var SHOW_DELAY = 320, HIDE_DELAY = 60;
+  var tip = null, curEl = null, showT = 0, hideT = 0, suppressEl = null;
+  var SHOW_DELAY = 600, HIDE_DELAY = 60;
 
   function ensure() {
     if (tip) return tip;
@@ -51,21 +51,27 @@
   }
 
   function show(el) {
+    if (el !== curEl || !el.isConnected) return;
     var txt = text(el);
     if (!txt) return;
     var t = ensure();
     t.textContent = txt;
     place(el);
-    requestAnimationFrame(function () { t.classList.add('is-on'); });
+    /* Re-check curEl inside the frame: a click may have hidden the tooltip
+       between show() and this callback — never resurrect it */
+    requestAnimationFrame(function () {
+      if (el === curEl) t.classList.add('is-on');
+    });
   }
 
   function hide() {
+    clearTimeout(showT); clearTimeout(hideT);
     if (tip) tip.classList.remove('is-on');
     curEl = null;
   }
 
   function enter(el) {
-    if (el === curEl) return;
+    if (el === curEl || el === suppressEl) return;
     if (!text(el)) return;
     curEl = el;
     clearTimeout(hideT); clearTimeout(showT);
@@ -87,6 +93,7 @@
     var el = e.target.closest && e.target.closest('[data-tip],[title]');
     if (!el) return;
     if (e.relatedTarget && el.contains(e.relatedTarget)) return;
+    if (el === suppressEl) suppressEl = null;
     if (el === curEl) leave();
   }, true);
 
@@ -101,7 +108,13 @@
   }, true);
   document.addEventListener('focusout', function () { clearTimeout(showT); hide(); }, true);
   document.addEventListener('mousedown', hide, true);
-  document.addEventListener('pointerdown', function () { clearTimeout(showT); hide(); }, true);
+  document.addEventListener('pointerdown', function (e) {
+    /* A click can re-render the target and refire mouseover without the mouse
+       moving — suppress re-showing until the pointer actually leaves it */
+    var el = e.target && e.target.closest && e.target.closest('[data-tip],[title]');
+    if (el) suppressEl = el;
+    hide();
+  }, true);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); }, true);
   window.addEventListener('scroll', hide, true);
   window.addEventListener('resize', hide);
