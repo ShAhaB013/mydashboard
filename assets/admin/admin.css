@@ -421,7 +421,9 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 /* ── Admin tiles grid (clickable cards) ── */
 .admin-tiles {
   display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));
+  /* min(290px, 100%) keeps the min track narrower than the container,
+     so tiles never overflow on very small screens (<320px) */
+  grid-template-columns:repeat(auto-fill, minmax(min(290px, 100%), 1fr));
   gap:16px; margin-bottom:24px;
 }
 .admin-tile {
@@ -458,7 +460,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .admin-tile:hover .admin-tile-arrow:not(.admin-tile-chevron) { transform:translateX(-3px); }
 .admin-tile.active .admin-tile-chevron { transform:rotate(180deg); color:var(--accent); }
 
-/* ── Section panel (opens below the grid; only one at a time) ── */
+/* ── Section panel (grid item right after its tile; only one at a time) ── */
 .section-panel {
   display:none;
   background:var(--bg-card); border:1px solid var(--border);
@@ -466,6 +468,9 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   animation:panelIn var(--t);
 }
 .section-panel.open { display:block; }
+/* Inside the tiles grid: span the full row so the panel opens directly
+   below the row of the clicked tile; the grid gap handles spacing */
+.admin-tiles .section-panel { grid-column:1 / -1; margin-bottom:0; }
 .section-panel-body { padding:22px 20px; }
 @keyframes panelIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
 

@@ -8,7 +8,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>پنل مدیریت ابزارها</title>
+  <title>پنل مدیریت</title>
   <script nonce="<?= csp_nonce() ?>">
     (function(){
       const t = localStorage.getItem('theme');
@@ -37,7 +37,7 @@
 
 <header class="app-header">
   <div class="app-header__inner">
-    <h1 class="app-header__title">پنل مدیریت ابزارها</h1>
+    <h1 class="app-header__title">پنل مدیریت</h1>
     <div class="app-header__actions">
       <a href="/" class="hdr-btn" title="بازگشت به داشبورد" aria-label="بازگشت به داشبورد">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -135,6 +135,63 @@
       <svg class="admin-tile-arrow admin-tile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
 
+    <!-- Full-width grid row: opens directly below the icons tile's row -->
+    <div class="section-panel" id="iconsBox">
+      <div class="section-panel-body">
+        <div class="asset-grid" id="iconAssetGrid"></div>
+        <div class="asset-editor" id="iconEditor" style="display:none;">
+          <div class="asset-editor-head">
+            <strong>آیکون انتخاب‌شده:</strong>
+            <span class="key-badge" id="iconEditorKey"></span>
+          </div>
+          <div class="field">
+            <label>SVG Path</label>
+            <textarea id="iconEditorPath" rows="4" placeholder='<path d="..." fill="currentColor"/>'></textarea>
+          </div>
+          <div class="asset-editor-actions">
+            <button class="btn btn-success btn-sm" data-act="saveIconEdit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              ذخیره تغییرات
+            </button>
+            <button class="btn btn-danger btn-sm" id="iconDeleteBtn" data-act="deleteIcon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              </svg>
+              حذف آیکون
+            </button>
+          </div>
+        </div>
+        <div class="add-asset-form" id="iconAddForm" style="display:none;">
+          <h4>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            آیکون جدید
+          </h4>
+          <div class="add-asset-row">
+            <div class="field">
+              <label>نام (key) <span class="req">*</span></label>
+              <div class="field-input-wrap">
+                <input type="text" id="newIconKey" placeholder="مثال: compress" maxlength="40">
+                <span class="field-counter-inline" id="newIconKeyCounter" dir="ltr"><span id="newIconKeyCount">0</span>/40</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>SVG Path <span class="req">*</span></label>
+              <textarea id="newIconPath" rows="3" placeholder='<path d="M12 2..." fill="currentColor"/>'></textarea>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+            <button class="btn btn-primary btn-sm" data-act="addNewIcon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              افزودن آیکون
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <button type="button" class="admin-tile" data-act="togglePanel" data-panel="decosBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -148,130 +205,75 @@
       <svg class="admin-tile-arrow admin-tile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
 
-  </div>
-
-  <div class="section-panel" id="iconsBox">
-    <div class="section-panel-body">
-      <div class="asset-grid" id="iconAssetGrid"></div>
-      <div class="asset-editor" id="iconEditor" style="display:none;">
-        <div class="asset-editor-head">
-          <strong>آیکون انتخاب‌شده:</strong>
-          <span class="key-badge" id="iconEditorKey"></span>
-        </div>
-        <div class="field">
-          <label>SVG Path</label>
-          <textarea id="iconEditorPath" rows="4" placeholder='<path d="..." fill="currentColor"/>'></textarea>
-        </div>
-        <div class="asset-editor-actions">
-          <button class="btn btn-success btn-sm" data-act="saveIconEdit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            ذخیره تغییرات
-          </button>
-          <button class="btn btn-danger btn-sm" id="iconDeleteBtn" data-act="deleteIcon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-            </svg>
-            حذف آیکون
-          </button>
-        </div>
-      </div>
-      <div class="add-asset-form" id="iconAddForm" style="display:none;">
-        <h4>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          آیکون جدید
-        </h4>
-        <div class="add-asset-row">
+    <!-- Full-width grid row: opens directly below the decos tile's row -->
+    <div class="section-panel" id="decosBox">
+      <div class="section-panel-body">
+        <div class="asset-grid" id="decoAssetGrid" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));"></div>
+        <div class="asset-editor" id="decoEditor" style="display:none;">
+          <div class="asset-editor-head">
+            <strong>انیمیشن انتخاب‌شده:</strong>
+            <span class="key-badge" id="decoEditorKey"></span>
+          </div>
           <div class="field">
-            <label>نام (key) <span class="req">*</span></label>
-            <div class="field-input-wrap">
-              <input type="text" id="newIconKey" placeholder="مثال: compress" maxlength="40">
-              <span class="field-counter-inline" id="newIconKeyCounter" dir="ltr"><span id="newIconKeyCount">0</span>/40</span>
+            <label>SVG کامل</label>
+            <textarea id="decoEditorSVG" rows="8" placeholder='<svg class="card-deco" viewBox="0 0 120 60" ...>'></textarea>
+          </div>
+          <div style="margin-top:10px;">
+            <div style="font-size:12px;color:var(--text-2);margin-bottom:6px;">پیش‌نمایش:</div>
+            <div id="decoEditorPreview" style="width:100%;max-width:280px;height:72px;border-radius:var(--radius-xs);background:rgba(88,166,255,.05);border:1px solid var(--border);overflow:hidden;--card-color:#58a6ff;"></div>
+          </div>
+          <div class="asset-editor-actions">
+            <button class="btn btn-success btn-sm" data-act="saveDecoEdit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              ذخیره تغییرات
+            </button>
+            <button class="btn btn-secondary btn-sm" data-act="refreshDecoPreview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+              </svg>
+              پیش‌نمایش
+            </button>
+            <button class="btn btn-danger btn-sm" id="decoDeleteBtn" data-act="deleteDeco">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              </svg>
+              حذف
+            </button>
+          </div>
+        </div>
+        <div class="add-asset-form" id="decoAddForm" style="display:none;">
+          <h4>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            انیمیشن جدید
+          </h4>
+          <div class="add-asset-row">
+            <div class="field">
+              <label>نام (key) <span class="req">*</span></label>
+              <div class="field-input-wrap">
+                <input type="text" id="newDecoKey" placeholder="مثال: waves" maxlength="40">
+                <span class="field-counter-inline" id="newDecoKeyCounter" dir="ltr"><span id="newDecoKeyCount">0</span>/40</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>SVG کامل <span class="req">*</span></label>
+              <textarea id="newDecoSVG" rows="5" placeholder='<svg class="card-deco" viewBox="0 0 120 60" aria-hidden="true">...</svg>'></textarea>
             </div>
           </div>
-          <div class="field">
-            <label>SVG Path <span class="req">*</span></label>
-            <textarea id="newIconPath" rows="3" placeholder='<path d="M12 2..." fill="currentColor"/>'></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+            <button class="btn btn-primary btn-sm" data-act="addNewDeco">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              افزودن انیمیشن
+            </button>
           </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-          <button class="btn btn-primary btn-sm" data-act="addNewIcon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            افزودن آیکون
-          </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="section-panel" id="decosBox">
-    <div class="section-panel-body">
-      <div class="asset-grid" id="decoAssetGrid" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));"></div>
-      <div class="asset-editor" id="decoEditor" style="display:none;">
-        <div class="asset-editor-head">
-          <strong>انیمیشن انتخاب‌شده:</strong>
-          <span class="key-badge" id="decoEditorKey"></span>
-        </div>
-        <div class="field">
-          <label>SVG کامل</label>
-          <textarea id="decoEditorSVG" rows="8" placeholder='<svg class="card-deco" viewBox="0 0 120 60" ...>'></textarea>
-        </div>
-        <div style="margin-top:10px;">
-          <div style="font-size:12px;color:var(--text-2);margin-bottom:6px;">پیش‌نمایش:</div>
-          <div id="decoEditorPreview" style="width:100%;max-width:280px;height:72px;border-radius:var(--radius-xs);background:rgba(88,166,255,.05);border:1px solid var(--border);overflow:hidden;--card-color:#58a6ff;"></div>
-        </div>
-        <div class="asset-editor-actions">
-          <button class="btn btn-success btn-sm" data-act="saveDecoEdit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            ذخیره تغییرات
-          </button>
-          <button class="btn btn-secondary btn-sm" data-act="refreshDecoPreview">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="1 4 1 10 7 10"/>
-              <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-            </svg>
-            پیش‌نمایش
-          </button>
-          <button class="btn btn-danger btn-sm" id="decoDeleteBtn" data-act="deleteDeco">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-            </svg>
-            حذف
-          </button>
-        </div>
-      </div>
-      <div class="add-asset-form" id="decoAddForm" style="display:none;">
-        <h4>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          انیمیشن جدید
-        </h4>
-        <div class="add-asset-row">
-          <div class="field">
-            <label>نام (key) <span class="req">*</span></label>
-            <div class="field-input-wrap">
-              <input type="text" id="newDecoKey" placeholder="مثال: waves" maxlength="40">
-              <span class="field-counter-inline" id="newDecoKeyCounter" dir="ltr"><span id="newDecoKeyCount">0</span>/40</span>
-            </div>
-          </div>
-          <div class="field">
-            <label>SVG کامل <span class="req">*</span></label>
-            <textarea id="newDecoSVG" rows="5" placeholder='<svg class="card-deco" viewBox="0 0 120 60" aria-hidden="true">...</svg>'></textarea>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-          <button class="btn btn-primary btn-sm" data-act="addNewDeco">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            افزودن انیمیشن
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  </div><!-- /admin-tiles -->
 
 </div><!-- /admin-wrap -->
 
