@@ -1,5 +1,9 @@
 /* =============================================================================
    CSS Variables — Light Mode (default)
+   NOTE: app/Views/error_page.php inlines a copy of the subset it uses
+   (colors, radius, transition, aurora) so error pages render with zero
+   dependency on this file (e.g. under an IP block every asset request
+   gets 403). When changing palette values here, update that copy too.
    ============================================================================= */
 :root {
   --color-bg-primary:     #f0f4fb;

@@ -2,9 +2,20 @@
 /**
  * error_page.php — themed HTML error page (403 / 404 / 500 / 503).
  * Rendered by ErrorPage::render(); expects $code, $title, $desc, $digits,
- * $debugDetail in scope. Loads only static assets (style.css, theme.js,
- * fonts) — no DB, no session, no other app class — so it still renders
- * correctly during a total outage (missing config, dead database, …).
+ * $debugDetail in scope.
+ *
+ * Fully self-contained: no DB, no session, no other app class, and no
+ * dependency on style.css / theme.js — everything it needs (CSS variables,
+ * base/body styles, aurora background, @font-face) is inlined below. This
+ * matters because ErrorDocument serves this page even when every other
+ * request is failing (IP/geo block → assets themselves get 403; dead DB;
+ * missing config). Fonts are the one exception: they cannot be inlined
+ * (CSP font-src 'self' forbids data: URLs), so @font-face uses
+ * font-display: swap and degrades silently to the system font stack.
+ *
+ * The variable values are a copy of the subset used here from
+ * assets/css/style.css (:root / [data-theme="dark"]) — when the palette
+ * changes there, update this copy too (style.css carries the same note).
  */
 declare(strict_types=1);
 ?>
@@ -18,7 +29,6 @@ declare(strict_types=1);
   <meta name="color-scheme" content="light dark">
   <title><?= ErrorPage::esc($title) ?> — داشبورد ابزارهای کمکی</title>
   <link rel="preload" href="/fonts/vazir-font/Vazir-Variable.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-  <link rel="stylesheet" href="/assets/css/style.css">
   <?php // CSP nonce: required when the page is rendered via ErrorHandler
         // (bootstrap already sent an enforcing CSP header). On the standalone
         // error.php path there is no CSP header and no csp_nonce() — the
@@ -35,11 +45,106 @@ declare(strict_types=1);
       } catch (e) {}
     })();
   </script>
-  <script src="/assets/js/theme.js" defer></script>
   <style>
+    /* ── Self-contained base (copied subset of style.css — keep in sync) ──
+       Only the variables/rules this page actually uses. No external CSS/JS:
+       under an IP/geo block or total outage those requests 403/fail and the
+       ErrorDocument would answer them with text/html, which the browser
+       rejects for stylesheets (strict MIME checking). */
+    :root {
+      --color-bg-card:        #ffffff;
+      --color-border:         #e2e8f0;
+      --color-text-primary:   #0f172a;
+      --color-text-secondary: #64748b;
+      --color-text-muted:     #94a3b8;
+      --color-accent:         #3e7de7;
+      --color-accent-bg:      rgba(62,125,231,0.08);
+      --color-accent-border:  rgba(62,125,231,0.25);
+      --color-shadow-card:    rgba(62,125,231,0.12);
+
+      --radius-sm: 10px;
+      --radius-lg: 10px;
+      --transition:        0.22s cubic-bezier(0.4,0,0.2,1);
+      --transition-bounce: 0.32s cubic-bezier(0.34,1.56,0.64,1);
+
+      /* aurora */
+      --aurora-bg:      #edf1fb;
+      --aurora-blob-1:  rgba(62,125,231,0.22);
+      --aurora-blob-2:  rgba(139,92,246,0.18);
+      --aurora-blob-3:  rgba(14,164,114,0.14);
+      --aurora-blob-4:  rgba(139,92,246,0.10);
+      --aurora-center:  rgba(255,255,255,0.40);
+      --noise-opacity:  0.032;
+    }
+    [data-theme="dark"] {
+      --color-bg-card:        #161b22;
+      --color-border:         #30363d;
+      --color-text-primary:   #e6edf3;
+      --color-text-secondary: #8b949e;
+      --color-text-muted:     #484f58;
+      --color-accent:         #58a6ff;
+      --color-accent-bg:      rgba(88,166,255,0.10);
+      --color-accent-border:  rgba(88,166,255,0.28);
+      --color-shadow-card:    rgba(88,166,255,0.14);
+
+      /* aurora dark */
+      --aurora-bg:      #0d1117;
+      --aurora-blob-1:  rgba(88,166,255,0.12);
+      --aurora-blob-2:  rgba(167,139,250,0.10);
+      --aurora-blob-3:  rgba(52,211,153,0.08);
+      --aurora-blob-4:  rgba(167,139,250,0.06);
+      --aurora-center:  rgba(255,255,255,0.03);
+      --noise-opacity:  0.045;
+    }
+
+    @font-face {
+      font-family: 'DashboardFont';
+      src: url('/fonts/vazir-font/Vazir-Variable.woff2') format('woff2');
+      font-weight: 100 900; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'HeadingFont';
+      src: url('/fonts/IRANSans/IRANSansWeb_Bold.woff') format('woff');
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
     body {
+      font-family: 'DashboardFont', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      background-color: var(--aurora-bg);
+      overflow-x: clip;
+      user-select: none; -webkit-user-select: none;
       display: flex; align-items: center; justify-content: center;
       min-height: 100vh; padding: 24px;
+    }
+
+    /* Aurora + noise layers — same fixed, composited layers as style.css
+       (.err-page sits above them via z-index: 1) */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      transform: translateZ(0);
+      background-image:
+        radial-gradient(ellipse 75% 60% at  8% 15%, var(--aurora-blob-1) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 65% at 92%  8%, var(--aurora-blob-2) 0%, transparent 60%),
+        radial-gradient(ellipse 65% 55% at 88% 90%, var(--aurora-blob-3) 0%, transparent 58%),
+        radial-gradient(ellipse 55% 60% at  4% 92%, var(--aurora-blob-4) 0%, transparent 55%),
+        radial-gradient(ellipse 80% 50% at 50% 50%, var(--aurora-center) 0%, transparent 70%);
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      transform: translateZ(0);
+      opacity: var(--noise-opacity);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 180px 180px;
     }
     .err-page {
       position: relative; z-index: 1;
@@ -211,6 +316,7 @@ declare(strict_types=1);
       background: var(--color-bg-card); border: 1px solid var(--color-border);
       border-radius: var(--radius-sm); font-family: monospace; font-size: 12px;
       line-height: 1.6; white-space: pre-wrap; word-break: break-word; text-align: left; direction: ltr;
+      user-select: text; -webkit-user-select: text; /* debug text must be copyable despite body's user-select: none */
     }
   </style>
 </head>

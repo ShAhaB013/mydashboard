@@ -4,9 +4,10 @@ declare(strict_types=1);
 // ═══════════════════════════════════════════════════════════
 // ErrorPage — renders the themed HTML error page (403/404/500/503) shown
 // to browsers. Deliberately self-contained: no DB, no session, no other
-// app class — only static assets (style.css/theme.js/fonts) — so it still
-// renders correctly during a total outage (missing config.php, dead DB
-// connection, …), which is exactly when it matters most.
+// app class, and the view inlines all of its CSS/JS (no style.css/theme.js
+// requests — only fonts, which degrade gracefully) — so it still renders
+// correctly during a total outage (missing config.php, dead DB connection,
+// IP/geo block that 403s every request), which is exactly when it matters most.
 // ═══════════════════════════════════════════════════════════
 final class ErrorPage
 {
