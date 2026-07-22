@@ -62,6 +62,25 @@ window.DateFmt = {
   },
 };
 
+// ── ServerClock: server-anchored "now" for time-based visibility rules ──
+// The user's system clock can't be trusted for checks like "has this expired
+// yet?" — those must follow the server's clock (the same one expiry queries
+// run against). The offset is learned from the HTTP `Date` header of API
+// responses we already make (second precision, refreshed by every sync call),
+// so no extra endpoint or request is needed. Until the first sync it falls
+// back to the client clock (offset 0).
+window.ServerClock = {
+  _offsetMs: 0, // serverNow - clientNow
+  syncFromResponse(res) {
+    const hdr = res && res.headers && res.headers.get('Date');
+    if (!hdr) return;
+    const t = Date.parse(hdr);
+    // +500ms centers the header's whole-second truncation
+    if (Number.isFinite(t)) this._offsetMs = t + 500 - Date.now();
+  },
+  now() { return Date.now() + this._offsetMs; },
+};
+
 // ── Skeleton loading: enforces a minimum visible duration so a fast
 // response doesn't just flash the skeleton for a frame before the real
 // content replaces it (jarring on a fast connection/cache hit).

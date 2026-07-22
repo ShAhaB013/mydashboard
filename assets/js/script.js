@@ -257,18 +257,23 @@ const NotifPanel = {
     try {
       const page = await this._fetchPage(this._nextCursor);
       if (page) {
-        this._notifications.push(...page.notifications);
+        // later pages can also arrive from the HTTP cache with pre-expiry copies —
+        // apply the same visibility rule before they reach the array/DOM
+        const arrived = page.notifications.filter(n => !this._isGoneExpired(n));
+        this._notifications.push(...arrived);
         this._nextCursor     = page.next_cursor;
         this._hasMore        = page.has_more;
         this._scrolledDeeper = true;
-        this._announce(
-          page.notifications.length === 1
-            ? 'یک اعلان دیگر بارگذاری شد'
-            : `${page.notifications.length} اعلان دیگر بارگذاری شد`
-        );
+        if (arrived.length) {
+          this._announce(
+            arrived.length === 1
+              ? 'یک اعلان دیگر بارگذاری شد'
+              : `${arrived.length} اعلان دیگر بارگذاری شد`
+          );
+        }
         if (body) {
           const frag = document.createDocumentFragment();
-          page.notifications.forEach(n => frag.appendChild(this._buildItemEl(n)));
+          arrived.forEach(n => frag.appendChild(this._buildItemEl(n)));
           if (sentinel) body.replaceChild(frag, sentinel);
           else body.appendChild(frag);
         }
@@ -286,6 +291,7 @@ const NotifPanel = {
     if (cursor) url += `&before=${encodeURIComponent(cursor)}`;
     try {
       const res = await fetch(url, { cache: 'no-cache' });
+      ServerClock.syncFromResponse(res);
       if (res.status === 304) return null; // nothing changed since the last identical request
       const data = await res.json();
       if (!data.ok) return null;
@@ -334,6 +340,7 @@ const NotifPanel = {
       // user themself edits the name/email/role, it updates on this page within ~25s
       // without needing a logout/login or manual refresh.
       const countRes = await fetch(`${API_URL}?action=unread_count`, { cache: 'no-cache' });
+      ServerClock.syncFromResponse(countRes);
       const data = await countRes.json();
       if (!data.ok) return;
 
@@ -487,11 +494,21 @@ const NotifPanel = {
     return wrap.firstElementChild;
   },
 
+  // A read notification whose expiry moment has passed must leave the bell even if
+  // our copy of it predates the expiry: silently crossing expires_at moves none of
+  // the ETag watermark's parts (latest/total/unread), so the server can keep
+  // answering 304 with a pre-expiry body forever and the stale item would otherwise
+  // stay rendered indefinitely. Same rule as bellFeed()'s expired-and-read guard,
+  // evaluated against server-anchored time — never the raw client clock.
+  _isGoneExpired(n) {
+    return !!n.is_read && n.expires_at > 0 && n.expires_at * 1000 <= ServerClock.now();
+  },
+
   _renderDropdown() {
     const body = document.getElementById('notifDropdownBody');
     if (!body) return;
 
-    const list = this._notifications;
+    const list = this._notifications.filter(n => !this._isGoneExpired(n));
 
     if (!list.length) {
       body.innerHTML = this._loaded
