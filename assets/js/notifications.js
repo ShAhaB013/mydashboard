@@ -72,6 +72,17 @@
       });
     }
 
+    // ── Expiry times: re-render in the viewer's timezone ──────
+    // The server prints expires_at (a Unix epoch) using ITS OWN timezone, which
+    // can differ from the viewer's; the detail modal formats the same epoch in
+    // browser-local time (notif-detail.js), so the two could disagree. Overwrite
+    // the server-rendered text with the local rendering so they always match.
+    document.querySelectorAll('.notif-row-date[data-exp-ts]').forEach(el => {
+      const ts  = parseInt(el.dataset.expTs, 10);
+      const val = el.querySelector('.notif-exp-val');
+      if (ts > 0 && val && window.DateFmt) val.textContent = DateFmt.dateTime(new Date(ts * 1000));
+    });
+
     // ── Hover preload: loads the image on row hover ──────
     // When the mouse enters a row, image loading starts so it
     // can be served from cache when the user clicks "view"

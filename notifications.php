@@ -355,7 +355,7 @@ foreach ($items as $item) {
                 <?php endforeach; ?>
                 <span class="notif-row-date" title="تاریخ انتشار">انتشار: <?= $createdShamsi ?></span>
                 <?php if ($expiresTs > 0): ?>
-                  <span class="notif-row-date" title="تاریخ انقضا"><?= $isExpired ? 'منقضی شد: ' : 'انقضا: ' ?><?= $expiresShamsi ?></span>
+                  <span class="notif-row-date" title="تاریخ انقضا" data-exp-ts="<?= $expiresTs ?>"><?= $isExpired ? 'منقضی شد: ' : 'انقضا: ' ?><span class="notif-exp-val"><?= $expiresShamsi ?></span></span>
                 <?php endif; ?>
               </div>
             </div>
