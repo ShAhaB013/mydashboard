@@ -2551,7 +2551,9 @@ body.tool-modal-open .card-corner-deco * {
     position: fixed;
     left: 10px;
     right: 10px;
-    top: 64px; /* right under the 56px header (used to be 108px, which left a gap) */
+    /* fallback only — when the unified clip is supported, popover.js pins the
+       top to the live anchor-button bottom (tracks the header's stuck state) */
+    top: 64px;
   }
   .notif-dropdown,
   .user-menu-dropdown {
