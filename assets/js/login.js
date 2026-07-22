@@ -149,6 +149,15 @@
     function toFa(n) { return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
     let RESEND_COOLDOWN = 30;
 
+    /* Single source for the "code sent" toast (first send and resend must match),
+       and a separate honest message for the throttled case where the server
+       returns ok+retry_after without actually sending a new email. */
+    const SENT_TOAST_TITLE = 'ایمیل ارسال شد';
+    const SENT_TOAST_MSG   = 'کد بازیابی به ایمیل شما ارسال شد؛ اگر آن را در صندوق ورودی نمی‌بینید، پوشه اسپم را بررسی کنید';
+    function showThrottleToast(sec) {
+      showToast('کد قبلا به ایمیل شما ارسال شده است؛ برای دریافت کد جدید ' + toFa(sec) + ' ثانیه صبر کنید', 'info', 'کد قبلا ارسال شده');
+    }
+
     const forgotForm   = document.getElementById('forgotForm');
     const fpSubmitBtn  = document.getElementById('fpSubmitBtn');
     const fpBack       = document.getElementById('fpBack');
@@ -222,8 +231,14 @@
         if (data.dev_code) { note.hidden = false; note.textContent = 'کد تست (محیط محلی): ' + data.dev_code; }
         else { note.hidden = true; note.textContent = ''; }
         showFpStep(2);
-        runCooldown(fpResendBtn, fpResendTime, data.retry_after || nextCooldown(fpResendBtn, true));
-        showToast('کد بازیابی به ایمیل شما ارسال شد؛ اگر آن را در صندوق ورودی نمی‌بینید، پوشه اسپم را بررسی کنید', 'success', 'ایمیل ارسال شد');
+        if (data.retry_after) {
+          // Throttled: the server sent nothing new — the previously emailed code is still the valid one
+          runCooldown(fpResendBtn, fpResendTime, data.retry_after);
+          showThrottleToast(data.retry_after);
+        } else {
+          runCooldown(fpResendBtn, fpResendTime, nextCooldown(fpResendBtn, true));
+          showToast(SENT_TOAST_MSG, 'success', SENT_TOAST_TITLE);
+        }
       } catch (e) {
         setLoading(fpSubmitBtn, false, 'ارسال کد');
         showToast('خطا در ارتباط با سرور', 'error');
@@ -325,13 +340,14 @@
           if (data.resend_cooldown) RESEND_COOLDOWN = data.resend_cooldown;
           const note = document.getElementById('fpDevNote');
           if (data.dev_code) { note.hidden = false; note.textContent = 'کد تست (محیط محلی): ' + data.dev_code; }
-          if (data.retry_after) runCooldown(fpResendBtn, fpResendTime, data.retry_after);
-          else runCooldown(fpResendBtn, fpResendTime, nextCooldown(fpResendBtn, false));
-          showToast('کد جدید ارسال شد؛ در صورت نیاز پوشه اسپم را هم بررسی کنید', 'success', 'ارسال موفق');
-        } else if (data.retry_after) {
-          if (data.resend_cooldown) RESEND_COOLDOWN = data.resend_cooldown;
-          runCooldown(fpResendBtn, fpResendTime, data.retry_after);
-          showToast(data.msg || 'برای ارسال مجدد کد کمی صبر کنید', 'error');
+          if (data.retry_after) {
+            // Throttled: no new code was issued — don't claim a fresh email was sent
+            runCooldown(fpResendBtn, fpResendTime, data.retry_after);
+            showThrottleToast(data.retry_after);
+          } else {
+            runCooldown(fpResendBtn, fpResendTime, nextCooldown(fpResendBtn, false));
+            showToast(SENT_TOAST_MSG, 'success', SENT_TOAST_TITLE);
+          }
         } else showToast(data.msg || 'خطا در ارسال مجدد کد', 'error');
       } catch (e) { setResendSending(fpResendBtn, false); showToast('خطا در ارتباط با سرور', 'error'); }
     });

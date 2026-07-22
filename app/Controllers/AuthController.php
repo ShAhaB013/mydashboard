@@ -248,11 +248,13 @@ class AuthController
         $userModel->clearResetCode((int) $user['id']);
 
         $uid = (int) $user['id'];
-        $ua  = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
         try {
+            // Unlike login() (which only replaces this browser's previous session),
+            // a password reset means the old password may be compromised — revoke
+            // ALL of the user's sessions on every device/browser.
             DB::run(
-                'DELETE FROM sessions WHERE user_id = :uid AND user_agent = :ua',
-                [':uid' => $uid, ':ua' => $ua]
+                'DELETE FROM sessions WHERE user_id = :uid',
+                [':uid' => $uid]
             );
         } catch (\Throwable $e) {
             // Best-effort cleanup — password reset still proceeds either way, but a
