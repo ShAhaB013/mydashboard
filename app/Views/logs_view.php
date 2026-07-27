@@ -21,21 +21,15 @@
   <link rel="stylesheet" href="/assets/css/datepicker.css?v=<?= asset_v(__DIR__ . '/../../assets/css/datepicker.css') ?>">
   <link rel="stylesheet" href="/assets/css/pagination.css?v=<?= asset_v(__DIR__ . '/../../assets/css/pagination.css') ?>">
   <style>
-    /* ── Debug-mode toggle (same widget as the settings page's SMTP switch) ── */
+    /* ── Debug-mode toggle (same widget as the settings page's SMTP switch) ──
+       This box stands alone directly on the page background (not nested inside
+       a card like the settings/users-modal versions), so it overrides the
+       shared .set-toggle-box default to look like a full card itself. */
     .set-hint { font-size:12px; color:var(--text-3); margin-top:4px; line-height:1.6; }
-    .set-switch { display:flex; align-items:center; gap:10px; cursor:pointer; }
-    .set-switch-text { font-size:13.5px; color:var(--text); font-weight:500; }
     .set-toggle-box {
       background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);
       padding:14px 16px; margin-bottom:14px;
     }
-    .toggle-sw { position:relative; width:38px; height:22px; flex-shrink:0; display:inline-block; }
-    .toggle-sw input { opacity:0; width:0; height:0; position:absolute; }
-    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:var(--radius-pill); cursor:pointer; transition:background var(--t); }
-    .toggle-sw input:checked + .toggle-sw-track { background:var(--accent); }
-    .toggle-sw input:focus-visible + .toggle-sw-track { box-shadow:0 0 0 3px var(--accent-bg); }
-    .toggle-sw-track::after { content:''; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:right var(--t); box-shadow:0 1px 3px rgba(0,0,0,.3); }
-    .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
 
     /* ── Level badge (shared coloring: table cells, chips, detail modal) ── */
     .log-level { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700;

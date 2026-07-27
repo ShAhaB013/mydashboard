@@ -809,6 +809,25 @@ const UserManager = {
       },
     });
   },
+
+  async testCredsEmail() {
+    const input = document.getElementById('credsTestEmail');
+    const to = input ? input.value.trim() : '';
+    if (!to) { Toast.show('ایمیل مقصد را وارد کنید', 'error'); input?.focus(); return; }
+    if (!EMAIL_RE.test(to)) { Toast.show('قالب ایمیل نامعتبر است', 'error'); input?.focus(); return; }
+    const btn = document.getElementById('credsTestBtn');
+    if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+    const res = await Api.call('test_credentials_email', { test_email: to });
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+    if (res.ok) {
+      Toast.show(res.msg || 'نمونه ایمیل اطلاعات ورود ارسال شد', 'success', 'ارسال موفق');
+    } else if (res.field === 'test_email') {
+      Toast.show(res.msg || 'ایمیل نامعتبر است', 'error');
+      input?.focus();
+    } else {
+      Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
+    }
+  },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1835,19 +1854,6 @@ const SettingsManager = {
     else if (res.field === 'test_email') FieldErr.set('setTestEmail', res.msg || 'ارسال ناموفق بود');
     else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
   },
-
-  async testCredentials() {
-    const to = this._v('setTestEmail');
-    if (!to) return FieldErr.set('setTestEmail', 'ایمیل مقصد را وارد کنید');
-    if (!EMAIL_RE.test(to)) return FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
-    const btn = document.getElementById('testCredentialsEmailBtn');
-    if (btn) { btn.classList.add('loading'); btn.disabled = true; }
-    const res = await Api.call('test_credentials_email', { test_email: to });
-    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
-    if (res.ok) Toast.show(res.msg || 'نمونه ایمیل اطلاعات ورود ارسال شد', 'success', 'ارسال موفق');
-    else if (res.field === 'test_email') FieldErr.set('setTestEmail', res.msg || 'ارسال ناموفق بود');
-    else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
-  },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -2097,6 +2103,7 @@ if (window.Actions) {
     userToggle:         (el) => toggleUser(+el.dataset.id, el),
     userDelete:         (el) => openDeleteUserModal(+el.dataset.id, el.dataset.name),
     userResetSend:      (el) => UserManager.openResetSend(+el.dataset.id, el.dataset.name, el.dataset.email),
+    userTestCredsEmail: () => UserManager.testCredsEmail(),
     userSearch:         (el) => UserManager.onSearchInput(el.value),
     userClearSearch:    () => UserManager.clearSearch(),
     userSetPerPage:     (el) => UserManager.setPerPage(el.value),
@@ -2125,7 +2132,6 @@ if (window.Actions) {
     // email/SMTP settings
     saveSettings:       () => SettingsManager.save(),
     testSettings:       () => SettingsManager.test(),
-    testCredentialsEmail: () => SettingsManager.testCredentials(),
     // categories
     catOpenRename:      (el) => CategoriesManager.openRename(parseInt(el.dataset.id, 10), el.dataset.name),
     catCloseRename:     () => CategoriesManager.closeRename(),

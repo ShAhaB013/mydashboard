@@ -119,22 +119,6 @@
       flex-wrap:wrap; gap:6px; margin:20px 0 8px;
     }
     .user-pagination.hidden { display:none; }
-
-    /* ── Menu-visibility toggles (same switch component as the settings page) ── */
-    .set-toggle-box {
-      background:var(--bg-2, rgba(127,127,127,.06)); border:1px solid var(--border); border-radius:var(--radius-xs);
-      padding:12px 14px;
-    }
-    .set-switch { display:flex; align-items:center; gap:10px; cursor:pointer; }
-    .set-switch + .set-switch { margin-top:10px; }
-    .set-switch-text { font-size:13.5px; color:var(--text); font-weight:500; }
-    .toggle-sw { position:relative; width:38px; height:22px; flex-shrink:0; display:inline-block; }
-    .toggle-sw input { opacity:0; width:0; height:0; position:absolute; }
-    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:var(--radius-pill); cursor:pointer; transition:background var(--t); }
-    .toggle-sw input:checked + .toggle-sw-track { background:var(--accent); }
-    .toggle-sw input:focus-visible + .toggle-sw-track { box-shadow:0 0 0 3px var(--accent-bg); }
-    .toggle-sw-track::after { content:''; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:right var(--t); box-shadow:0 1px 3px rgba(0,0,0,.3); }
-    .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
   </style>
   <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
@@ -183,15 +167,38 @@
     <h2>کاربران <span class="count-badge" id="userCountBadge">0</span></h2>
   </div>
 
-  <div class="sess-ttl-row">
-    <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود:</label>
-    <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
-    <span>ساعت</span>
-    <button class="btn btn-primary btn-sm" data-act="saveTtl">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-      ذخیره
-    </button>
-    <span class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</span>
+  <div class="box-grid">
+    <div class="sess-ttl-row">
+      <div class="field-row">
+        <div class="field">
+          <label for="sessTtlInput">مدت فعال‌بودن نشست هر ورود</label>
+          <div class="field-input-wrap">
+            <input type="text" id="sessTtlInput" value="<?= (int) ($sessionTtlHours ?? 24) ?>" inputmode="numeric" maxlength="3" dir="ltr">
+            <span class="field-counter-inline">ساعت</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" data-act="saveTtl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          ذخیره
+        </button>
+      </div>
+      <div class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</div>
+    </div>
+
+    <div class="sess-ttl-row">
+      <div class="field-row">
+        <div class="field">
+          <label for="credsTestEmail">ارسال نمونه ایمیل اطلاعات ورود</label>
+          <input type="email" id="credsTestEmail" placeholder="test@example.com" dir="ltr" style="direction:ltr;text-align:left">
+        </div>
+        <button type="button" class="btn btn-primary" id="credsTestBtn" data-act="userTestCredsEmail">
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>
+          ارسال نمونه
+        </button>
+      </div>
+      <div class="sess-ttl-hint">یک ایمیل نمونه با همان قالبی که هنگام ایجاد/ریست کاربر ارسال می‌شود (شامل نام‌کاربری و رمز عبور آزمایشی)، به این آدرس ارسال خواهد شد.</div>
+    </div>
   </div>
 
   <!-- ── Search + per-page count + advanced filter (server-side, AJAX) ── -->

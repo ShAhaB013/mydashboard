@@ -25,35 +25,12 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
     .settings-grid .full { grid-column:1 / -1; }
     @media (max-width:560px){ .settings-grid { grid-template-columns:1fr; } }
     .set-hint { font-size:12px; color:var(--text-3); margin-top:4px; line-height:1.6; }
-    .set-switch { display:flex; align-items:center; gap:10px; cursor:pointer; }
-    .set-switch-text { font-size:13.5px; color:var(--text); font-weight:500; }
     .set-section-title { font-family:'HeadingFont','DashboardFont',sans-serif; font-size:13px; font-weight:700; color:var(--text-2); margin:4px 0 2px; }
     .settings-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:0 22px; margin-top:4px; }
     .settings-card .add-asset-form:first-child { margin-top:0; border-top:none; padding-top:22px; }
     .settings-card .add-asset-form:last-child { padding-bottom:22px; }
-    .toggle-sw { position:relative; width:38px; height:22px; flex-shrink:0; display:inline-block; }
-    .toggle-sw input { opacity:0; width:0; height:0; position:absolute; }
-    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:var(--radius-pill); cursor:pointer; transition:background var(--t); }
-    .toggle-sw input:checked + .toggle-sw-track { background:var(--accent); }
-    .toggle-sw input:focus-visible + .toggle-sw-track { box-shadow:0 0 0 3px var(--accent-bg); }
-    .toggle-sw-track::after { content:''; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:right var(--t); box-shadow:0 1px 3px rgba(0,0,0,.3); }
-    .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
-    .test-email-row { display:flex; align-items:flex-end; gap:10px; }
-    .test-email-row .field { flex:1 1 auto; min-width:0; position:relative; }
-    .test-email-row .btn { flex:0 0 auto; height:44px; }
-    .test-email-row .field-error-msg { position:absolute; top:100%; right:0; margin-top:3px; }
-    .test-email-row { margin-bottom:22px; }
-    @media (max-width:560px){
-      .test-email-row { flex-direction:column; align-items:stretch; }
-      .test-email-row .btn { width:100%; justify-content:center; }
-    }
-    /* Set the SMTP enable section apart from the other fields — matches the
-       project's .sess-ttl-row pattern (soft gray background + radius-xs, same
-       pattern as other settings boxes) */
-    .set-toggle-box {
-      background:var(--bg-2, rgba(127,127,127,.06)); border:1px solid var(--border); border-radius:var(--radius-xs);
-      padding:12px 14px; margin-bottom:18px;
-    }
+    .field-row { margin-bottom:22px; }
+    .set-toggle-box { margin-bottom:18px; }
   </style>
   <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
@@ -177,7 +154,7 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
       ارسال ایمیل آزمایشی
     </h4>
     <div class="set-hint" style="margin-bottom:12px;">ابتدا تنظیمات را ذخیره کنید، سپس یک ایمیل وارد کنید تا پیام آزمایشی برایش ارسال شود.</div>
-    <div class="test-email-row">
+    <div class="field-row">
       <div class="field">
         <label>ایمیل مقصد</label>
         <input type="email" id="setTestEmail" placeholder="test@example.com" dir="ltr" style="direction:ltr;text-align:left">
@@ -186,11 +163,6 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
         <span class="btn-spinner" aria-hidden="true"></span>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
         ارسال آزمایشی
-      </button>
-      <button type="button" class="btn btn-secondary" id="testCredentialsEmailBtn" data-act="testCredentialsEmail" title="ارسال نمونه‌ای از قالب «اطلاعات ورود» که هنگام ایجاد/ریست کاربر ارسال می‌شود">
-        <span class="btn-spinner" aria-hidden="true"></span>
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>
-        ارسال نمونه اطلاعات ورود
       </button>
     </div>
   </div>
