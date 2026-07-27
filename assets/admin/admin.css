@@ -936,8 +936,9 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 .user-row-avatar svg { width:18px; height:18px; }
 
 .user-row-info { flex:1; min-width:0; }
-.user-row-info h3 { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; }
-.user-row-info p  { font-size:12px; color:var(--text-3); font-family:monospace; }
+.user-row-info h3 { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; min-width:0; }
+.user-row-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.user-row-info p  { font-size:12.5px; color:var(--text-3); letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Admin badge — blue check, synced with the profile page/header */
 .user-admin-badge { display:inline-flex; flex-shrink:0; width:15px; height:15px; color:var(--accent); }
@@ -1116,6 +1117,14 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 @media(max-width:680px) {
   .user-add-grid { grid-template-columns:1fr; }
   .user-row-meta { display:none; }
+}
+@media(max-width:520px) {
+  .user-row { flex-wrap:wrap; row-gap:10px; }
+  .user-row-info { flex-basis:0; }
+  .user-row-actions {
+    flex-basis:100%; justify-content:flex-end;
+    padding-top:10px; border-top:1px solid var(--border);
+  }
 }
 
 /* Admin notification count badge (optional) */
