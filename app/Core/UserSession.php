@@ -13,19 +13,6 @@ class UserSession
     /** Default session lifetime (hours) if settings aren't available */
     private const TTL_HOURS_DEFAULT = 24;
 
-    /** TEMPORARY: config.php's auth.bypass flag — see check() */
-    private static bool $bypass = false;
-
-    public static function setBypass(bool $on): void
-    {
-        self::$bypass = $on;
-    }
-
-    public static function bypassActive(): bool
-    {
-        return self::$bypass;
-    }
-
     public static function start(): void
     {
         if (session_status() !== PHP_SESSION_NONE) return;
@@ -76,14 +63,6 @@ class UserSession
 
     public static function check(): bool
     {
-        // TEMPORARY: bypass forced login while no real user accounts exist.
-        // A real login already in the session (if one somehow exists) always
-        // wins — the fake session never overwrites a genuine one.
-        if (self::$bypass && empty($_SESSION['user_id'])) {
-            self::startBypassSession();
-            return true;
-        }
-
         if (empty($_SESSION['user_id'])) return false;
 
         // Absolute session lifetime limit: since DbSessionHandler advances
@@ -102,17 +81,6 @@ class UserSession
         self::refreshFromDb();
 
         return true;
-    }
-
-    /** TEMPORARY: fakes a logged-in admin session while auth.bypass is on. */
-    private static function startBypassSession(): void
-    {
-        $_SESSION['user_id']      = -1;
-        $_SESSION['username']     = 'guest';
-        $_SESSION['display_name'] = 'دسترسی موقت';
-        $_SESSION['role']         = 'admin';
-        $_SESSION['login_time']   = time();
-        self::ensureCsrfToken();
     }
 
     /**

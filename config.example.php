@@ -32,11 +32,4 @@ return [
     'protected_icons' => ['star'],
     'protected_decos' => ['generic'],
 
-    // TEMPORARY: while no real user accounts exist, set to true to let
-    // everyone through without logging in (dashboard + admin panel). Flip
-    // back to false once real accounts are created.
-    'auth' => [
-        'bypass' => false,
-    ],
-
 ];

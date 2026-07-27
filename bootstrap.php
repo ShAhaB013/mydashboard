@@ -92,10 +92,6 @@ ErrorHandler::register($isApiRequest);
 // ── Config (one level above webroot) ─────────────────────
 $config = require dirname(__DIR__) . '/config.php';
 
-// TEMPORARY: see config.example.php's auth.bypass — lets everyone through
-// without logging in while no real user accounts exist yet.
-UserSession::setBypass((bool) ($config['auth']['bypass'] ?? false));
-
 // ── DB connection (error response depends on entry-point type) ──
 try {
     DB::connect($config['db']);
