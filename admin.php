@@ -40,9 +40,12 @@ $adminUser = null;
 if (UserSession::check()) {
     $adminUser = (new UserModel())->findById(UserSession::id());
 }
-$isAdmin = $adminUser
-    && ($adminUser['role'] ?? 'user') === 'admin'
-    && (int) ($adminUser['is_active'] ?? 0) === 1;
+// TEMPORARY: auth.bypass (config.php) lets everyone into the admin panel
+// while no real user accounts exist yet — see config.example.php.
+$isAdmin = UserSession::bypassActive()
+    || ($adminUser
+        && ($adminUser['role'] ?? 'user') === 'admin'
+        && (int) ($adminUser['is_active'] ?? 0) === 1);
 
 if (!$isAdmin) {
     if ($isApi) {

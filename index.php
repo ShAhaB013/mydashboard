@@ -13,9 +13,6 @@ $username    = (string) ($_SESSION['username'] ?? '');
 $email       = (string) ($_SESSION['email'] ?? '');
 $isAdmin     = UserSession::isAdmin();
 $menuName    = $displayName !== '' ? $displayName : $username;
-// TEMPORARY: the guest bypass session isn't a real login — hide the whole
-// account menu (admin link / profile / logout) instead of showing a fake identity.
-$isGuestBypass = UserSession::isGuestBypass();
 
 // CSRF token — needed for state-changing requests to api.php (logout / mark_read /
 // mark_all_read) as well as inline admin management.
@@ -179,9 +176,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
         </div>
         <!-- /Notification bell -->
 
-        <!-- Auth area — every visitor is authenticated (login enforced server-side above),
-             except the TEMPORARY guest-bypass session, which has no real identity to show. -->
-        <?php if (!$isGuestBypass): ?>
+        <!-- Auth area — every visitor is authenticated (login enforced server-side above) -->
         <div class="auth-area">
 
           <div class="user-menu-wrap" id="userMenuWrap">
@@ -249,7 +244,6 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
           </div>
 
         </div>
-        <?php endif; ?>
 
       </div>
 

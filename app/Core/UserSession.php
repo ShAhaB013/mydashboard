@@ -26,16 +26,6 @@ class UserSession
         return self::$bypass;
     }
 
-    /**
-     * True only for the fake session created by startBypassSession() — unlike
-     * bypassActive() (which just reflects the config flag), this stays false
-     * for a real logged-in user even while auth.bypass is on.
-     */
-    public static function isGuestBypass(): bool
-    {
-        return self::$bypass && self::id() === -1;
-    }
-
     public static function start(): void
     {
         if (session_status() !== PHP_SESSION_NONE) return;
@@ -114,17 +104,13 @@ class UserSession
         return true;
     }
 
-    /**
-     * TEMPORARY: fakes a logged-in regular-user session while auth.bypass is
-     * on. Role is 'user', not 'admin' — the admin panel (admin.php) always
-     * re-checks a real admin user in the DB regardless of this flag.
-     */
+    /** TEMPORARY: fakes a logged-in admin session while auth.bypass is on. */
     private static function startBypassSession(): void
     {
         $_SESSION['user_id']      = -1;
         $_SESSION['username']     = 'guest';
         $_SESSION['display_name'] = 'دسترسی موقت';
-        $_SESSION['role']         = 'user';
+        $_SESSION['role']         = 'admin';
         $_SESSION['login_time']   = time();
         self::ensureCsrfToken();
     }
