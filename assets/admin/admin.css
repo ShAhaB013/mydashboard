@@ -489,6 +489,7 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
   border-radius:var(--radius); box-shadow:0 4px 16px rgba(0,0,0,.18);
 }
 .reorder-bar[hidden] { display:none; }
+#sendCredsField[hidden] { display:none; }
 .reorder-bar-msg {
   display:flex; align-items:center; gap:8px;
   font-size:13px; font-weight:600; color:var(--text);

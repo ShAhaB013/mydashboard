@@ -187,6 +187,11 @@ $val = fn(string $k) => htmlspecialchars((string) ($s[$k] ?? ''), ENT_QUOTES);
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
         ارسال آزمایشی
       </button>
+      <button type="button" class="btn btn-secondary" id="testCredentialsEmailBtn" data-act="testCredentialsEmail" title="ارسال نمونه‌ای از قالب «اطلاعات ورود» که هنگام ایجاد/ریست کاربر ارسال می‌شود">
+        <span class="btn-spinner" aria-hidden="true"></span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>
+        ارسال نمونه اطلاعات ورود
+      </button>
     </div>
   </div>
 

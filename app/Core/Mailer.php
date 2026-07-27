@@ -59,6 +59,120 @@ class Mailer
         return self::send($to, $subject, $body, $html);
     }
 
+    /**
+     * Sends a user's login credentials (used by the admin panel on user creation / manual reset).
+     * @return array{ok:bool, error:string}
+     */
+    public static function sendCredentials(string $to, string $username, string $password): array
+    {
+        $subject = 'اطلاعات ورود به حساب کاربری';
+        $loginUrl = self::loginUrl();
+        $body = "نام‌کاربری: {$username}\n"
+               . "رمز عبور: {$password}\n\n"
+               . "برای ورود به داشبورد از آدرس زیر استفاده کنید:\n{$loginUrl}\n\n"
+               . "پیشنهاد می‌شود پس از ورود، رمز عبور خود را تغییر دهید.";
+        $html = self::credentialsEmailHtml($username, $password, $loginUrl);
+        return self::send($to, $subject, $body, $html);
+    }
+
+    /** Best-effort absolute URL to the login page, based on the current request's host */
+    private static function loginUrl(): string
+    {
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+        $host = preg_replace('/[^a-zA-Z0-9.\-:]/', '', (string) $host);
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        return $host !== '' ? "{$scheme}://{$host}/login.php" : '';
+    }
+
+    /** RTL HTML template for the login-credentials email (inline styles + tables for email-client compatibility) */
+    private static function credentialsEmailHtml(string $username, string $password, string $loginUrl): string
+    {
+        $brand   = trim((string) SettingsModel::get('smtp_from_name'));
+        if ($brand === '') $brand = 'داشبورد ابزارها';
+        $brand    = htmlspecialchars($brand, ENT_QUOTES, 'UTF-8');
+        $username = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+        $password = htmlspecialchars($password, ENT_QUOTES, 'UTF-8');
+        $year     = date('Y');
+        $font     = "font-family:Tahoma,'Segoe UI',Arial,sans-serif;";
+
+        $loginBtn = '';
+        if ($loginUrl !== '') {
+            $loginUrlEsc = htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8');
+            $loginBtn = <<<HTML
+          <tr>
+            <td style="padding:4px 28px 24px;text-align:center;">
+              <a href="{$loginUrlEsc}" style="{$font}display:inline-block;background-color:#3e7de7;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:10px;padding:10px 28px;">ورود به داشبورد</a>
+            </td>
+          </tr>
+HTML;
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#f2f4f8;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f2f4f8;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"
+               style="max-width:480px;background-color:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e3e8ef;">
+          <tr>
+            <td style="background-color:#3e7de7;padding:20px 28px;text-align:right;">
+              <span style="{$font}font-size:16px;font-weight:bold;color:#ffffff;">{$brand}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 28px 8px;text-align:right;">
+              <h1 style="{$font}margin:0 0 12px;font-size:18px;font-weight:bold;color:#1f2937;">اطلاعات ورود به حساب کاربری</h1>
+              <p style="{$font}margin:0;font-size:14px;line-height:2;color:#4b5563;">حساب کاربری شما در {$brand} ایجاد/بازنشانی شد. اطلاعات ورود شما به شرح زیر است:</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 28px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td dir="ltr" style="background-color:#eef4fd;border:1px dashed #3e7de7;border-radius:10px;padding:16px 20px;">
+                    <p style="{$font}margin:0 0 8px;font-size:13px;color:#4b5563;">Username</p>
+                    <p style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;margin:0 0 14px;font-size:18px;font-weight:bold;color:#2d6bd4;">{$username}</p>
+                    <p style="{$font}margin:0 0 8px;font-size:13px;color:#4b5563;">Password</p>
+                    <p style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;margin:0;font-size:18px;font-weight:bold;color:#2d6bd4;">{$password}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+{$loginBtn}
+          <tr>
+            <td style="padding:0 28px 24px;text-align:right;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="background-color:#f6f7f9;border:1px solid #e3e8ef;border-radius:10px;padding:10px 14px;">
+                    <p style="{$font}margin:0;font-size:12px;line-height:2;color:#6b7280;">
+                      پیشنهاد می‌شود پس از ورود، رمز عبور خود را از بخش «حساب کاربری» تغییر دهید.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top:1px solid #e3e8ef;padding:16px 28px;text-align:center;">
+              <p style="{$font}margin:0;font-size:11px;line-height:1.9;color:#9ca3af;">
+                این ایمیل به صورت خودکار ارسال شده است؛ لطفا به آن پاسخ ندهید.<br>
+                {$brand} &copy; {$year}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+HTML;
+    }
+
     /** RTL HTML template for verification-code emails (inline styles + tables for email-client compatibility) */
     private static function codeEmailHtml(string $code, int $ttlMin, string $title, string $intro): string
     {

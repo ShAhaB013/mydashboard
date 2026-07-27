@@ -114,4 +114,30 @@ class SettingsController
             Response::error('ارسال ناموفق بود: ' . $err);
         }
     }
+
+    /** Sends a sample of the "login credentials" email template (used by the admin panel's user-creation/reset flow) */
+    public function sendTestCredentials(): void
+    {
+        $to = trim((string) $this->request->input('test_email'));
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            Response::error('ایمیل مقصد آزمایش معتبر نیست', 'test_email');
+            return;
+        }
+        if (!Mailer::isConfigured()) {
+            Response::error('ابتدا SMTP را فعال و ذخیره کنید');
+            return;
+        }
+
+        $res = Mailer::sendCredentials($to, 'sample_user', PasswordPolicy::generate());
+
+        if ($res['ok']) {
+            Response::ok(['msg' => 'نمونه ایمیل اطلاعات ورود ارسال شد']);
+        } else {
+            $err = trim(preg_replace('/\s+/', ' ', $res['error']));
+            if (mb_strlen($err) > 160) {
+                $err = mb_substr($err, 0, 160) . '…';
+            }
+            Response::error('ارسال ناموفق بود: ' . $err);
+        }
+    }
 }

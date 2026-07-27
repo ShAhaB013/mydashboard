@@ -397,6 +397,13 @@ const UserManager = {
             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
+        <button class="btn btn-secondary btn-icon btn-sm" title="ریست رمز و ارسال ایمیل"
+          data-act="userResetSend" data-id="${u.id}" data-name="${esc(name)}" data-email="${esc(u.email || '')}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M22 6l-10 7L2 6"/>
+          </svg>
+        </button>
         <button class="btn btn-secondary btn-icon btn-sm toggle-user-btn ${!u.is_active ? 'is-inactive' : ''}"
           title="${u.is_active ? 'غیرفعال کردن' : 'فعال کردن'}"
           data-act="userToggle" data-id="${u.id}">
@@ -641,6 +648,10 @@ const UserManager = {
     if (roleSel) { roleSel.value = 'user'; CustomSelect.refresh(roleSel); }
     document.getElementById('editCanViewProfile').checked = true;
     document.getElementById('editCanViewNotifications').checked = true;
+    const sendCredsField = document.getElementById('sendCredsField');
+    if (sendCredsField) sendCredsField.hidden = false;
+    const sendCredsBox = document.getElementById('editSendCredentials');
+    if (sendCredsBox) sendCredsBox.checked = false;
     Counter.update('editFullName', 60);
     Counter.update('editUsername', 60);
     Counter.update('editPhone', 11);
@@ -668,6 +679,8 @@ const UserManager = {
     if (roleSel) { roleSel.value = (role === 'admin') ? 'admin' : 'user'; CustomSelect.refresh(roleSel); }
     document.getElementById('editCanViewProfile').checked = !!canViewProfile;
     document.getElementById('editCanViewNotifications').checked = !!canViewNotifications;
+    const sendCredsField = document.getElementById('sendCredsField');
+    if (sendCredsField) sendCredsField.hidden = true;
     Counter.update('editFullName', 60);
     Counter.update('editUsername', 60);
     Counter.update('editPhone', 11);
@@ -689,6 +702,7 @@ const UserManager = {
     const role     = document.getElementById('editUserRole')?.value || 'user';
     const canViewProfile       = document.getElementById('editCanViewProfile').checked;
     const canViewNotifications = document.getElementById('editCanViewNotifications').checked;
+    const sendCredentials      = isAdd && (document.getElementById('editSendCredentials')?.checked || false);
     if (!fullName) return FieldErr.set('editFullName', 'نام و نام خانوادگی الزامی است');
     if (!username) return FieldErr.set('editUsername', 'نام‌کاربری الزامی است');
     if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
@@ -700,12 +714,19 @@ const UserManager = {
 
     const action = isAdd ? 'add_user' : 'edit_user';
     const body   = isAdd
-      ? { full_name: fullName, username, phone, email, password, role, can_view_profile: canViewProfile, can_view_notifications: canViewNotifications }
+      ? { full_name: fullName, username, phone, email, password, role, can_view_profile: canViewProfile, can_view_notifications: canViewNotifications, send_credentials: sendCredentials }
       : { id: parseInt(idVal), full_name: fullName, username, phone, email, password, role, can_view_profile: canViewProfile, can_view_notifications: canViewNotifications };
     const res = await Api.call(action, body);
     if (res.ok) {
       this.close(true);
       Toast.show(isAdd ? 'کاربر اضافه شد' : 'کاربر ویرایش شد', 'success', isAdd ? 'افزودن موفق' : 'ویرایش موفق');
+      if (isAdd && sendCredentials) {
+        if (res.mail_sent) {
+          Toast.show('اطلاعات ورود برای کاربر ایمیل شد', 'success');
+        } else {
+          Toast.show(res.mail_error || 'ارسال ایمیل اطلاعات ورود ناموفق بود', 'error');
+        }
+      }
       if (isAdd) this._page = 1;
       this.load();
     } else {
@@ -757,6 +778,33 @@ const UserManager = {
           this.load();
         } else {
           Toast.show(res.msg || 'خطا در حذف', 'error');
+        }
+      },
+    });
+  },
+
+  openResetSend(id, name, email) {
+    if (!email) { Toast.show('این کاربر ایمیل ثبت‌شده ندارد', 'error'); return; }
+    Confirm.show({
+      title:    'ریست رمز عبور و ارسال ایمیل',
+      heading:  'رمز عبور این کاربر بازنشانی شود؟',
+      body:     `برای کاربر <span class="item-name">${esc(name)}</span> یک رمز عبور تصادفی جدید ساخته می‌شود و اطلاعات ورود به ایمیل او ارسال خواهد شد.`,
+      warn:     'نشست‌های فعال این کاربر خارج (logout) خواهند شد.',
+      type:     'warning',
+      icon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>',
+      btnLabel: 'ریست و ارسال',
+      btnClass: 'btn-primary',
+      onConfirm: async () => {
+        const res = await Api.call('reset_send_user', { id });
+        if (res.ok) {
+          Confirm.close();
+          if (res.mail_sent) {
+            Toast.show(`رمز عبور «${name}» بازنشانی شد و به آدرس ${email} ارسال شد`, 'success', 'انجام شد');
+          } else {
+            Toast.show(`رمز عبور «${name}» بازنشانی شد اما ارسال ایمیل ناموفق بود: ${res.mail_error || ''}`, 'error');
+          }
+        } else {
+          Toast.show(res.msg || 'خطا در بازنشانی رمز عبور', 'error');
         }
       },
     });
@@ -1787,6 +1835,19 @@ const SettingsManager = {
     else if (res.field === 'test_email') FieldErr.set('setTestEmail', res.msg || 'ارسال ناموفق بود');
     else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
   },
+
+  async testCredentials() {
+    const to = this._v('setTestEmail');
+    if (!to) return FieldErr.set('setTestEmail', 'ایمیل مقصد را وارد کنید');
+    if (!EMAIL_RE.test(to)) return FieldErr.set('setTestEmail', 'قالب ایمیل نامعتبر است');
+    const btn = document.getElementById('testCredentialsEmailBtn');
+    if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+    const res = await Api.call('test_credentials_email', { test_email: to });
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+    if (res.ok) Toast.show(res.msg || 'نمونه ایمیل اطلاعات ورود ارسال شد', 'success', 'ارسال موفق');
+    else if (res.field === 'test_email') FieldErr.set('setTestEmail', res.msg || 'ارسال ناموفق بود');
+    else Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
+  },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -2035,6 +2096,7 @@ if (window.Actions) {
     userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.email, d.role, d.canViewProfile !== '0', d.canViewNotifications !== '0'); },
     userToggle:         (el) => toggleUser(+el.dataset.id, el),
     userDelete:         (el) => openDeleteUserModal(+el.dataset.id, el.dataset.name),
+    userResetSend:      (el) => UserManager.openResetSend(+el.dataset.id, el.dataset.name, el.dataset.email),
     userSearch:         (el) => UserManager.onSearchInput(el.value),
     userClearSearch:    () => UserManager.clearSearch(),
     userSetPerPage:     (el) => UserManager.setPerPage(el.value),
@@ -2063,6 +2125,7 @@ if (window.Actions) {
     // email/SMTP settings
     saveSettings:       () => SettingsManager.save(),
     testSettings:       () => SettingsManager.test(),
+    testCredentialsEmail: () => SettingsManager.testCredentials(),
     // categories
     catOpenRename:      (el) => CategoriesManager.openRename(parseInt(el.dataset.id, 10), el.dataset.name),
     catCloseRename:     () => CategoriesManager.closeRename(),

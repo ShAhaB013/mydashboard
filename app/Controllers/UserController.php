@@ -84,6 +84,7 @@ class UserController
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
         $canViewProfile       = $this->request->input('can_view_profile', '1') !== '';
         $canViewNotifications = $this->request->input('can_view_notifications', '1') !== '';
+        $sendCredentials      = $this->request->input('send_credentials', '') !== '';
 
         if ($fullName === '') {
             Response::error('نام و نام خانوادگی الزامی است', 'full_name');
@@ -144,7 +145,14 @@ class UserController
         // fan-out table must replicate that from the first moment the account exists.
         (new NotificationModel())->refreshRecipientsForUser($id);
 
-        Response::ok(['id' => $id]);
+        $result = ['id' => $id];
+        if ($sendCredentials) {
+            $mail = Mailer::sendCredentials($email, $username, $password);
+            $result['mail_sent']  = $mail['ok'];
+            $result['mail_error'] = $mail['ok'] ? '' : $mail['error'];
+        }
+
+        Response::ok($result);
     }
 
     /** Edit a user */
@@ -294,6 +302,40 @@ class UserController
 
         $this->model->delete($id);
         Response::ok();
+    }
+
+    /** Generates a new random password for an existing user, force-logs them out, and emails the new credentials */
+    public function resetAndSend(): void
+    {
+        $id = $this->request->inputInt('id');
+
+        if ($id <= 0) {
+            Response::error('شناسه کاربر نامعتبر است');
+            return;
+        }
+
+        $user = $this->model->findById($id);
+        if (!$user) {
+            Response::error('کاربر یافت نشد');
+            return;
+        }
+
+        $email = trim((string) ($user['email'] ?? ''));
+        if ($email === '') {
+            Response::error('این کاربر ایمیل ثبت‌شده ندارد');
+            return;
+        }
+
+        $newPassword = PasswordPolicy::generate();
+        $this->model->changePassword($id, $newPassword);
+        SessionModel::terminateUser($id);
+
+        $mail = Mailer::sendCredentials($email, (string) $user['username'], $newPassword);
+
+        Response::ok([
+            'mail_sent'  => $mail['ok'],
+            'mail_error' => $mail['ok'] ? '' : $mail['error'],
+        ]);
     }
 
     // ── login lockout (rate limit) ─────────────────────────────

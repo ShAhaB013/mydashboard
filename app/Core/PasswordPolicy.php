@@ -36,4 +36,27 @@ class PasswordPolicy
     {
         return 'رمز عبور باید بین ۱۰ تا ۶۴ کاراکتر و شامل حروف کوچک و بزرگ انگلیسی، عدد و نماد باشد.';
     }
+
+    /** Generates a strong random password (kept in sync with PasswordPolicy.generate() in the client-side JS) */
+    public static function generate(): string
+    {
+        $upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // excludes ambiguous I, O
+        $lower = 'abcdefghijkmnopqrstuvwxyz'; // excludes ambiguous l
+        $digit = '23456789';                  // excludes ambiguous 0, 1
+        $symbol = '!@#$%^&*-_=+?';
+        $all = $upper . $lower . $digit . $symbol;
+
+        $pick = static fn(string $set): string => $set[random_int(0, strlen($set) - 1)];
+
+        $len = random_int(14, 18);
+        $chars = [$pick($upper), $pick($lower), $pick($digit), $pick($symbol)];
+        while (count($chars) < $len) {
+            $chars[] = $pick($all);
+        }
+        for ($i = count($chars) - 1; $i > 0; $i--) {
+            $j = random_int(0, $i);
+            [$chars[$i], $chars[$j]] = [$chars[$j], $chars[$i]];
+        }
+        return implode('', $chars);
+    }
 }

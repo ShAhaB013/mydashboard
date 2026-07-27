@@ -357,6 +357,17 @@
             </ul>
           </div>
         </div>
+        <div class="field" id="sendCredsField" hidden>
+          <div class="set-toggle-box">
+            <label class="set-switch">
+              <span class="toggle-sw">
+                <input type="checkbox" id="editSendCredentials">
+                <span class="toggle-sw-track"></span>
+              </span>
+              <span class="set-switch-text">ارسال اطلاعات ورود به ایمیل کاربر</span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-foot">

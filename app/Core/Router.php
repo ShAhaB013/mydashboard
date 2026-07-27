@@ -41,6 +41,7 @@ class Router
         'edit_user'     => [UserController::class,         'update'],
         'delete_user'   => [UserController::class,         'delete'],
         'toggle_user'   => [UserController::class,         'toggleActive'],
+        'reset_send_user' => [UserController::class,       'resetAndSend'],
 
         // ── login blocks (rate limit) ────────────────────────
         'list_blocks'   => [UserController::class,         'listBlocks'],
@@ -63,6 +64,7 @@ class Router
         // ── email/SMTP settings ──────────────────────────────
         'save_settings'    => [SettingsController::class, 'save'],
         'test_email'       => [SettingsController::class, 'sendTest'],
+        'test_credentials_email' => [SettingsController::class, 'sendTestCredentials'],
         'save_debug_mode'  => [SettingsController::class, 'saveDebugMode'],
 
         // ── users' active sessions ───────────────────────────
