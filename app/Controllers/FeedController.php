@@ -109,6 +109,8 @@ class FeedController
             'phone'        => $_SESSION['phone'] ?? '',
             'email'        => $_SESSION['email'] ?? '',
             'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
+            'can_view_profile'       => UserSession::canViewProfile(),
+            'can_view_notifications' => UserSession::canViewNotifications(),
         ];
 
         // ETag also includes an identity hash so that editing name/email/role (without

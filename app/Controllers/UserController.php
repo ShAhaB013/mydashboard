@@ -41,9 +41,11 @@ class UserController
         $rows  = $this->model->allPaginated($page, $perPage, $search, $filters);
 
         $sessionCounts = SessionModel::countsByUser();
+        $hiddenByUser  = (new MenuAccessModel())->hiddenByUser();
 
         $result = [];
         foreach ($rows as $u) {
+            $hidden = $hiddenByUser[(int) $u['id']] ?? [];
             $result[] = [
                 'id'           => (int) $u['id'],
                 'username'     => $u['username'] ?? '',
@@ -53,6 +55,8 @@ class UserController
                 'role'         => $u['role'] ?? 'user',
                 'is_active'    => (bool) $u['is_active'],
                 'session_count' => $sessionCounts[(int) $u['id']] ?? 0,
+                'can_view_profile'       => !in_array('profile', $hidden, true),
+                'can_view_notifications' => !in_array('notifications', $hidden, true),
             ];
         }
 
@@ -78,6 +82,8 @@ class UserController
         $email    = trim((string) $this->request->input('email'));
         $password = $this->request->input('password');
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
+        $canViewProfile       = $this->request->input('can_view_profile', '1') !== '';
+        $canViewNotifications = $this->request->input('can_view_notifications', '1') !== '';
 
         if ($fullName === '') {
             Response::error('نام و نام خانوادگی الزامی است', 'full_name');
@@ -127,6 +133,11 @@ class UserController
 
         $id = $this->model->create($firstName, $lastName, $username, $phone, $email, $password, $role);
 
+        $hiddenMenus = [];
+        if (!$canViewProfile)       $hiddenMenus[] = 'profile';
+        if (!$canViewNotifications) $hiddenMenus[] = 'notifications';
+        (new MenuAccessModel())->setHidden($id, $hiddenMenus);
+
         // Seed target_all_users notifications for the new account — the old live query had
         // no user-creation-date filter (every logged-in user saw every target_all_users=1
         // notification regardless of when their account was made), so the materialized
@@ -146,6 +157,8 @@ class UserController
         $email    = trim((string) $this->request->input('email'));
         $password = $this->request->input('password');
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
+        $canViewProfile       = $this->request->input('can_view_profile', '1') !== '';
+        $canViewNotifications = $this->request->input('can_view_notifications', '1') !== '';
 
         if ($id <= 0) {
             Response::error('شناسه کاربر نامعتبر است');
@@ -208,6 +221,11 @@ class UserController
         }
 
         $this->model->update($id, $firstName, $lastName, $username, $phone, $email, $role);
+
+        $hiddenMenus = [];
+        if (!$canViewProfile)       $hiddenMenus[] = 'profile';
+        if (!$canViewNotifications) $hiddenMenus[] = 'notifications';
+        (new MenuAccessModel())->setHidden($id, $hiddenMenus);
 
         // Password change is optional
         if ($password !== '') {

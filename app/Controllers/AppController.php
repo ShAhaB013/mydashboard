@@ -63,6 +63,8 @@ class AppController
             'phone'        => $_SESSION['phone'] ?? '',
             'email'        => $_SESSION['email'] ?? '',
             'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
+            'can_view_profile'       => UserSession::canViewProfile(),
+            'can_view_notifications' => UserSession::canViewNotifications(),
         ];
 
         // tools — admin sees all tools (including private) so they can manage from the same dashboard
@@ -154,6 +156,8 @@ class AppController
             'phone'        => $_SESSION['phone'] ?? '',
             'email'        => $_SESSION['email'] ?? '',
             'is_admin'     => (($_SESSION['role'] ?? 'user') === 'admin'),
+            'can_view_profile'       => UserSession::canViewProfile(),
+            'can_view_notifications' => UserSession::canViewNotifications(),
         ];
         echo json_encode($resp, JSON_UNESCAPED_UNICODE);
     }

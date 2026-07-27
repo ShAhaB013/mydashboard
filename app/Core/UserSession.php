@@ -50,7 +50,7 @@ class UserSession
      * and behind a TLS-terminating proxy it isn't set at all (-> cookie not
      * marked Secure). This method checks all three valid signals.
      */
-    private static function isHttps(): bool
+    public static function isHttps(): bool
     {
         if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
             return true;
@@ -106,6 +106,7 @@ class UserSession
         $_SESSION['phone']        = $row['phone'] ?? '';
         $_SESSION['email']        = $row['email'] ?? '';
         $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
+        $_SESSION['hidden_menus'] = (new MenuAccessModel())->getHidden(self::id());
     }
 
     /**
@@ -139,6 +140,17 @@ class UserSession
     public static function isAdmin(): bool
     {
         return self::role() === 'admin';
+    }
+
+    /** Per-user menu visibility (see MenuAccessModel — opt-out, default visible) */
+    public static function canViewProfile(): bool
+    {
+        return !in_array('profile', $_SESSION['hidden_menus'] ?? [], true);
+    }
+
+    public static function canViewNotifications(): bool
+    {
+        return !in_array('notifications', $_SESSION['hidden_menus'] ?? [], true);
     }
 
     public static function destroy(): void

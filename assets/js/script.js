@@ -87,13 +87,17 @@ const Auth = {
   username:    '',
   email:       '',
   isAdmin:     false,
+  canViewProfile:       true,
+  canViewNotifications: true,
 
-  setLoggedIn(displayName, username = '', isAdmin = false, email = '') {
+  setLoggedIn(displayName, username = '', isAdmin = false, email = '', canViewProfile = true, canViewNotifications = true) {
     this.loggedIn    = true;
     this.displayName = displayName;
     this.username    = username;
     this.email       = email;
     this.isAdmin     = !!isAdmin;
+    this.canViewProfile       = canViewProfile !== false;
+    this.canViewNotifications = canViewNotifications !== false;
     this._updateUI();
   },
   setLoggedOut() {
@@ -102,6 +106,8 @@ const Auth = {
     this.username    = '';
     this.email       = '';
     this.isAdmin     = false;
+    this.canViewProfile       = true;
+    this.canViewNotifications = true;
     this._updateUI();
   },
   _updateUI() {
@@ -124,11 +130,19 @@ const Auth = {
 
       const adminLink = document.getElementById('adminPanelLink');
       if (adminLink) adminLink.style.display = this.isAdmin ? '' : 'none';
+      const profileLink = document.getElementById('profileMenuLink');
+      if (profileLink) profileLink.style.display = this.canViewProfile ? '' : 'none';
+      const notifLink = document.getElementById('notifMenuLink');
+      if (notifLink) notifLink.style.display = this.canViewNotifications ? '' : 'none';
     } else {
       if (authBtn)      authBtn.style.display      = '';
       if (userMenuWrap) userMenuWrap.style.display  = 'none';
       const adminLink = document.getElementById('adminPanelLink');
       if (adminLink) adminLink.style.display = 'none';
+      const profileLink = document.getElementById('profileMenuLink');
+      if (profileLink) profileLink.style.display = 'none';
+      const notifLink = document.getElementById('notifMenuLink');
+      if (notifLink) notifLink.style.display = 'none';
       UserMenu.close();
     }
 
@@ -360,9 +374,11 @@ const NotifPanel = {
           meData.display_name !== Auth.displayName ||
           meData.username     !== Auth.username    ||
           meData.email        !== Auth.email        ||
-          !!meData.is_admin   !== Auth.isAdmin;
+          !!meData.is_admin   !== Auth.isAdmin       ||
+          (meData.can_view_profile !== false)       !== Auth.canViewProfile ||
+          (meData.can_view_notifications !== false) !== Auth.canViewNotifications;
         if (changed) {
-          Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '');
+          Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '', meData.can_view_profile, meData.can_view_notifications);
         }
       }
 
@@ -1285,7 +1301,7 @@ async function init() {
 /* applies the bootstrap response to state */
 function applyBootstrap(data) {
   if (data.me && data.me.logged_in) {
-    Auth.setLoggedIn(data.me.display_name || '', data.me.username || '', data.me.is_admin, data.me.email || '');
+    Auth.setLoggedIn(data.me.display_name || '', data.me.username || '', data.me.is_admin, data.me.email || '', data.me.can_view_profile, data.me.can_view_notifications);
   } else {
     Auth.setLoggedOut();
   }
@@ -1322,7 +1338,7 @@ async function initLegacy() {
     ]);
 
     if (meData.ok && meData.logged_in) {
-      Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '');
+      Auth.setLoggedIn(meData.display_name || '', meData.username || '', meData.is_admin, meData.email || '', meData.can_view_profile, meData.can_view_notifications);
     } else {
       Auth.setLoggedOut();
     }

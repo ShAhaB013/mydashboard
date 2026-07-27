@@ -119,6 +119,22 @@
       flex-wrap:wrap; gap:6px; margin:20px 0 8px;
     }
     .user-pagination.hidden { display:none; }
+
+    /* ── Menu-visibility toggles (same switch component as the settings page) ── */
+    .set-toggle-box {
+      background:var(--bg-2, rgba(127,127,127,.06)); border:1px solid var(--border); border-radius:var(--radius-xs);
+      padding:12px 14px;
+    }
+    .set-switch { display:flex; align-items:center; gap:10px; cursor:pointer; }
+    .set-switch + .set-switch { margin-top:10px; }
+    .set-switch-text { font-size:13.5px; color:var(--text); font-weight:500; }
+    .toggle-sw { position:relative; width:38px; height:22px; flex-shrink:0; display:inline-block; }
+    .toggle-sw input { opacity:0; width:0; height:0; position:absolute; }
+    .toggle-sw-track { position:absolute; inset:0; background:var(--border); border-radius:var(--radius-pill); cursor:pointer; transition:background var(--t); }
+    .toggle-sw input:checked + .toggle-sw-track { background:var(--accent); }
+    .toggle-sw input:focus-visible + .toggle-sw-track { box-shadow:0 0 0 3px var(--accent-bg); }
+    .toggle-sw-track::after { content:''; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:right var(--t); box-shadow:0 1px 3px rgba(0,0,0,.3); }
+    .toggle-sw input:checked + .toggle-sw-track::after { right:18px; }
   </style>
   <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
@@ -295,6 +311,25 @@
             <option value="user">کاربر عادی</option>
             <option value="admin">مدیر (دسترسی به پنل)</option>
           </select>
+        </div>
+        <div class="field">
+          <label>نمایش منوها برای این کاربر</label>
+          <div class="set-toggle-box">
+            <label class="set-switch">
+              <span class="toggle-sw">
+                <input type="checkbox" id="editCanViewProfile" checked>
+                <span class="toggle-sw-track"></span>
+              </span>
+              <span class="set-switch-text">نمایش «حساب کاربری» (شامل نشست‌های فعال)</span>
+            </label>
+            <label class="set-switch">
+              <span class="toggle-sw">
+                <input type="checkbox" id="editCanViewNotifications" checked>
+                <span class="toggle-sw-track"></span>
+              </span>
+              <span class="set-switch-text">نمایش «اعلان‌ها»</span>
+            </label>
+          </div>
         </div>
         <div class="field">
           <label id="editPassLabel">رمز عبور <span class="req">*</span></label>

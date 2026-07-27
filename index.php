@@ -12,6 +12,8 @@ $displayName = UserSession::displayName();
 $username    = (string) ($_SESSION['username'] ?? '');
 $email       = (string) ($_SESSION['email'] ?? '');
 $isAdmin     = UserSession::isAdmin();
+$canViewProfile       = UserSession::canViewProfile();
+$canViewNotifications = UserSession::canViewNotifications();
 $menuName    = $displayName !== '' ? $displayName : $username;
 
 // CSRF token — needed for state-changing requests to api.php (logout / mark_read /
@@ -215,7 +217,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
                 پنل مدیریت
               </a>
 
-              <a href="/notifications" class="user-menu-item" role="menuitem">
+              <a href="/notifications" class="user-menu-item" id="notifMenuLink" role="menuitem"<?= $canViewNotifications ? '' : ' style="display:none;"' ?>>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -223,7 +225,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
                 اعلان‌ها
               </a>
 
-              <a href="/profile" class="user-menu-item" role="menuitem">
+              <a href="/profile" class="user-menu-item" id="profileMenuLink" role="menuitem"<?= $canViewProfile ? '' : ' style="display:none;"' ?>>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>

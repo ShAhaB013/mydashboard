@@ -53,6 +53,7 @@ spl_autoload_register(function (string $class): void {
             'UserModel'              => $mdl . 'UserModel.php',
             'SettingsModel'          => $mdl . 'SettingsModel.php',
             'AccessModel'            => $mdl . 'AccessModel.php',
+            'MenuAccessModel'        => $mdl . 'MenuAccessModel.php',
             'RateLimitModel'         => $mdl . 'RateLimitModel.php',
             'NotificationModel'      => $mdl . 'NotificationModel.php',
             'CategoryModel'          => $mdl . 'CategoryModel.php',
@@ -121,6 +122,25 @@ try {
 // Missing this key in config.php doesn't cause an error; encryption just
 // stays disabled (Crypto acts as a passthrough).
 Crypto::init((string) ($config['crypto']['key'] ?? ''));
+
+// ── Anonymous per-browser device identifier ───────────────
+// A long-lived cookie, independent of login/session, that identifies "this
+// browser" reliably. AuthController::login() uses it (instead of the
+// User-Agent string) to evict a user's own previous session on the same
+// browser — User-Agent alone is often identical across different physical
+// machines with the same browser/OS/version, which would otherwise evict
+// someone else's session under a shared account.
+if (empty($_COOKIE['dash_device'])) {
+    $deviceId = bin2hex(random_bytes(16));
+    setcookie('dash_device', $deviceId, [
+        'expires'  => time() + 31536000, // 1 year
+        'path'     => '/',
+        'secure'   => UserSession::isHttps(),
+        'httponly' => true,
+        'samesite' => 'Strict',
+    ]);
+    $_COOKIE['dash_device'] = $deviceId; // readable immediately within this same request
+}
 
 // ── Session (same user realm) ─────────────────────────────
 UserSession::start();

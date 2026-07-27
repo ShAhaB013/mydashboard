@@ -9,6 +9,10 @@ if (!UserSession::check()) {
     header('Location: /');
     exit;
 }
+if (!UserSession::canViewProfile()) {
+    header('Location: /');
+    exit;
+}
 
 // CSRF token for state-changing requests to api.php (change_password / terminate_my_*)
 $csrfToken = UserSession::ensureCsrfToken();

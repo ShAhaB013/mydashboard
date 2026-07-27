@@ -12,6 +12,10 @@ if (!UserSession::check()) {
     header('Location: /login');
     exit;
 }
+if (!UserSession::canViewNotifications()) {
+    header('Location: /');
+    exit;
+}
 
 $userId  = UserSession::id();
 $isAdmin = UserSession::isAdmin();

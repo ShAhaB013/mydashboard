@@ -62,6 +62,7 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
             ':uid'     => isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null,
             ':ip'      => mb_substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45),
             ':ua'      => mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+            ':did'     => $_COOKIE['dash_device'] ?? null,
             ':payload' => $data,
             ':seen'    => $now,
             ':exp'     => $now + $this->ttl,
@@ -73,11 +74,11 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
             // and doesn't advance with user activity (unlike last_seen, which
             // is still updated to show "last activity").
             DB::run(
-                'INSERT INTO sessions (id, user_id, ip, user_agent, payload, last_seen, expires_at)
-                 VALUES (:id, :uid, :ip, :ua, :payload, :seen, :exp)
+                'INSERT INTO sessions (id, user_id, ip, user_agent, device_id, payload, last_seen, expires_at)
+                 VALUES (:id, :uid, :ip, :ua, :did, :payload, :seen, :exp)
                  ON DUPLICATE KEY UPDATE
                    user_id = VALUES(user_id), ip = VALUES(ip), user_agent = VALUES(user_agent),
-                   payload = VALUES(payload), last_seen = VALUES(last_seen)',
+                   device_id = VALUES(device_id), payload = VALUES(payload), last_seen = VALUES(last_seen)',
                 $params
             );
             return true;
@@ -154,12 +155,14 @@ class DbSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
                user_id     INT UNSIGNED  NULL DEFAULT NULL,
                ip          VARCHAR(45)   NULL DEFAULT NULL,
                user_agent  VARCHAR(255)  NULL DEFAULT NULL,
+               device_id   VARCHAR(64)   NULL DEFAULT NULL,
                payload     MEDIUMBLOB    NOT NULL,
                last_seen   INT UNSIGNED  NOT NULL,
                expires_at  INT UNSIGNED  NOT NULL,
                PRIMARY KEY (id),
                KEY idx_expires (expires_at),
-               KEY idx_user (user_id)
+               KEY idx_user (user_id),
+               KEY idx_user_device (user_id, device_id)
              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
         );
         $this->ensured = true;

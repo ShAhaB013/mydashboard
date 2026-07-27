@@ -64,23 +64,27 @@ class AuthController
             if (password_needs_rehash($row['password_hash'], PASSWORD_BCRYPT, ['cost' => UserModel::BCRYPT_COST])) {
                 (new UserModel())->changePassword((int) $row['id'], $password);
             }
-            // Clean up this user's previous sessions from this same browser (no IP constraint).
-            // Why no IP? On mobile/dynamic networks the user's IP changes frequently;
-            // if IP were part of the key, logging in again from the same browser with a new IP
-            // wouldn't clear the previous session, and that session would live on as a "ghost"
-            // until its TTL expires. The user_id + user_agent key precisely identifies the
-            // same browser and replaces its previous session (instead of piling up duplicates).
-            $uid = (int) $row['id'];
-            $ua  = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
-            try {
-                DB::run(
-                    'DELETE FROM sessions WHERE user_id = :uid AND user_agent = :ua',
-                    [':uid' => $uid, ':ua' => $ua]
-                );
-            } catch (\Throwable $e) {
-                // Best-effort cleanup — login still proceeds either way, but a real
-                // DB problem here shouldn't vanish without a trace.
-                Logger::warning('پاکسازی نشست‌های قبلی هنگام ورود ناموفق بود: ' . $e->getMessage());
+            // Clean up this user's previous session from this same browser, identified by
+            // the anonymous dash_device cookie (see bootstrap.php) — not by User-Agent or
+            // IP. User-Agent alone is frequently IDENTICAL across different physical
+            // machines with the same browser/OS/version (this matters a lot when several
+            // people share one account), and IP changes constantly on mobile/dynamic
+            // networks — either one as the key would either evict a stranger's session or
+            // leave "ghost" sessions lingering until TTL. The device cookie is the only one
+            // of the three that's actually unique per physical browser install.
+            $uid      = (int) $row['id'];
+            $deviceId = (string) ($_COOKIE['dash_device'] ?? '');
+            if ($deviceId !== '') {
+                try {
+                    DB::run(
+                        'DELETE FROM sessions WHERE user_id = :uid AND device_id = :did',
+                        [':uid' => $uid, ':did' => $deviceId]
+                    );
+                } catch (\Throwable $e) {
+                    // Best-effort cleanup — login still proceeds either way, but a real
+                    // DB problem here shouldn't vanish without a trace.
+                    Logger::warning('پاکسازی نشست‌های قبلی هنگام ورود ناموفق بود: ' . $e->getMessage());
+                }
             }
 
             session_regenerate_id(true);
@@ -91,6 +95,7 @@ class AuthController
             $_SESSION['email']        = $row['email'] ?? '';
             $_SESSION['role']         = ($row['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
             $_SESSION['login_time']   = time();
+            $_SESSION['hidden_menus'] = (new MenuAccessModel())->getHidden($uid);
             // CSRF token is generated in this single session (the admin panel reads it from here)
             UserSession::ensureCsrfToken();
             $limiter->reset();
@@ -270,6 +275,7 @@ class AuthController
         $_SESSION['email']        = $user['email'] ?? '';
         $_SESSION['role']         = ($user['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
         $_SESSION['login_time']   = time();
+        $_SESSION['hidden_menus'] = (new MenuAccessModel())->getHidden($uid);
         UserSession::ensureCsrfToken();
 
         echo json_encode([

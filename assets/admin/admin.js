@@ -389,7 +389,9 @@ const UserManager = {
           data-username="${esc(u.username || '')}"
           data-phone="${esc(u.phone || '')}"
           data-email="${esc(u.email || '')}"
-          data-role="${esc(u.role || 'user')}">
+          data-role="${esc(u.role || 'user')}"
+          data-can-view-profile="${u.can_view_profile === false ? 0 : 1}"
+          data-can-view-notifications="${u.can_view_notifications === false ? 0 : 1}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -637,6 +639,8 @@ const UserManager = {
     this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = 'user'; CustomSelect.refresh(roleSel); }
+    document.getElementById('editCanViewProfile').checked = true;
+    document.getElementById('editCanViewNotifications').checked = true;
     Counter.update('editFullName', 60);
     Counter.update('editUsername', 60);
     Counter.update('editPhone', 11);
@@ -646,7 +650,7 @@ const UserManager = {
     this._dirty = false;
     setTimeout(() => document.getElementById('editFullName').focus(), 100);
   },
-  openEdit(id, fullName, username, phone, email, role) {
+  openEdit(id, fullName, username, phone, email, role, canViewProfile = true, canViewNotifications = true) {
     this._wireDirty();
     this._isAdd = false;
     document.getElementById('userModalTitle').textContent = 'ویرایش کاربر';
@@ -662,6 +666,8 @@ const UserManager = {
     this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = (role === 'admin') ? 'admin' : 'user'; CustomSelect.refresh(roleSel); }
+    document.getElementById('editCanViewProfile').checked = !!canViewProfile;
+    document.getElementById('editCanViewNotifications').checked = !!canViewNotifications;
     Counter.update('editFullName', 60);
     Counter.update('editUsername', 60);
     Counter.update('editPhone', 11);
@@ -681,6 +687,8 @@ const UserManager = {
     const email    = document.getElementById('editEmail').value.trim();
     const password = document.getElementById('editUserPassword').value;
     const role     = document.getElementById('editUserRole')?.value || 'user';
+    const canViewProfile       = document.getElementById('editCanViewProfile').checked;
+    const canViewNotifications = document.getElementById('editCanViewNotifications').checked;
     if (!fullName) return FieldErr.set('editFullName', 'نام و نام خانوادگی الزامی است');
     if (!username) return FieldErr.set('editUsername', 'نام‌کاربری الزامی است');
     if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
@@ -692,8 +700,8 @@ const UserManager = {
 
     const action = isAdd ? 'add_user' : 'edit_user';
     const body   = isAdd
-      ? { full_name: fullName, username, phone, email, password, role }
-      : { id: parseInt(idVal), full_name: fullName, username, phone, email, password, role };
+      ? { full_name: fullName, username, phone, email, password, role, can_view_profile: canViewProfile, can_view_notifications: canViewNotifications }
+      : { id: parseInt(idVal), full_name: fullName, username, phone, email, password, role, can_view_profile: canViewProfile, can_view_notifications: canViewNotifications };
     const res = await Api.call(action, body);
     if (res.ok) {
       this.close(true);
@@ -1310,7 +1318,7 @@ function saveDecoEdit()             { DecoEditor.save(); }
 function deleteDeco()               { DecoEditor.delete(); }
 function addNewDeco()               { DecoEditor.add(); }
 function refreshDecoPreview()       { DecoEditor.refreshPreview(); }
-function openEditUserModal(id,n,u,p,e,r){ UserManager.openEdit(id, n, u, p, e, r); }
+function openEditUserModal(id,n,u,p,e,r,cvp,cvn){ UserManager.openEdit(id, n, u, p, e, r, cvp, cvn); }
 function toggleUser(id, btn)        { UserManager.toggle(id, btn); }
 function openDeleteUserModal(id, n) { UserManager.openDelete(id, n); }
 function openAccessModal(id, name, role) { AccessManager.open(id, name, role); }
@@ -2024,7 +2032,7 @@ if (window.Actions) {
     userAdd:            () => UserManager.openAdd(),
     userClose:          () => UserManager.close(),
     userSave:           () => UserManager.save(),
-    userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.email, d.role); },
+    userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.email, d.role, d.canViewProfile !== '0', d.canViewNotifications !== '0'); },
     userToggle:         (el) => toggleUser(+el.dataset.id, el),
     userDelete:         (el) => openDeleteUserModal(+el.dataset.id, el.dataset.name),
     userSearch:         (el) => UserManager.onSearchInput(el.value),
