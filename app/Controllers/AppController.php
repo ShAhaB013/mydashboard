@@ -66,9 +66,13 @@ class AppController
         ];
 
         // tools — admin sees all tools (including private) so they can manage from the same dashboard
+        // TEMPORARY: the guest bypass session also sees every tool (see auth.bypass in
+        // config.example.php) — it has no real per-tool access rows to filter by.
         $toolModel = new ToolModel();
         $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
-        $toolRows  = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
+        $toolRows  = ($isAdmin || UserSession::isGuestBypass())
+            ? $toolModel->all()
+            : $toolModel->allForUser(UserSession::id());
         $tools = ['ok' => true, 'tools' => ToolModel::toFrontend($toolRows)];
 
         // unread (light): the full notification list is no longer carried in bootstrap so the cards
@@ -129,7 +133,9 @@ class AppController
 
         $toolModel = new ToolModel();
         $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
-        $rows      = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
+        $rows      = ($isAdmin || UserSession::isGuestBypass())
+            ? $toolModel->all()
+            : $toolModel->allForUser(UserSession::id());
         $body      = json_encode([
             'ok'    => true,
             'tools' => ToolModel::toFrontend($rows),
