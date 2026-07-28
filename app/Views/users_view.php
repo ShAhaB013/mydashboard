@@ -182,7 +182,7 @@
           ذخیره
         </button>
       </div>
-      <div class="sess-ttl-hint">۱ تا ۷۲۰ ساعت — هر کاربر تا این مدت پس از آخرین فعالیت وارد می‌ماند.</div>
+      <div class="sess-ttl-hint">۱ تا ۷۲۰ ساعت - سشن هر کاربر تا این مدت زمان فعال می‌ماند.</div>
     </div>
 
     <div class="sess-ttl-row">
