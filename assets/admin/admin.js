@@ -881,9 +881,9 @@ const AccessManager = {
     const saveBtn    = document.getElementById('saveAccessBtn');
     if (adminHint) adminHint.classList.toggle('show', this._isAdminTarget);
     if (saveBtn) {
-      saveBtn.disabled = this._isAdminTarget;
+      saveBtn.disabled = false;
       saveBtn.removeAttribute('data-tip');
-      saveBtn.title = this._isAdminTarget ? 'کاربر مدیر همیشه به همه بخش‌ها دسترسی کامل دارد و نیازی به ذخیره ندارد' : '';
+      saveBtn.title = '';
     }
     badgesGrid.innerHTML = SKELETON_BADGE_CHIP.repeat(4);
     toolsList.innerHTML  = SKELETON_TABLE_ROW.repeat(4);
@@ -903,12 +903,11 @@ const AccessManager = {
     }
 
     const availableBadges = badgesRes.badges || [];
-    // Admins bypass the access tables entirely (they always see every tool — see
-    // AppController::isAdmin branch), so tool_access/category_access rows for an
-    // admin account are stale and would render as "nothing checked", implying the
-    // admin has no access when really they have all of it. Show it as such instead.
-    const selectedToolIds = this._isAdminTarget ? TOOLS_RAW.map(t => t.id) : (accessRes.tool_ids || []);
-    const selectedBadges  = this._isAdminTarget ? availableBadges.slice()  : (accessRes.badges   || []);
+    // Admins are no longer a special case: their dashboard cards come from the same
+    // tool_access/category_access rows as everyone else (AppController::allForUser),
+    // so the stored rows are the truth for every role.
+    const selectedToolIds = accessRes.tool_ids || [];
+    const selectedBadges  = accessRes.badges   || [];
 
     this._currentBadges = selectedBadges;
     await Skeleton.wait(badgesGrid);
@@ -924,9 +923,9 @@ const AccessManager = {
       availableBadges.forEach(badge => {
         const checked = selectedBadges.includes(badge);
         const label = document.createElement('label');
-        label.className = 'access-badge-label' + (this._isAdminTarget ? ' disabled' : '');
+        label.className = 'access-badge-label';
         label.innerHTML = `
-          <input type="checkbox" class="access-badge-cb" value="${esc(badge)}" ${checked ? 'checked' : ''} ${this._isAdminTarget ? 'disabled' : ''}>
+          <input type="checkbox" class="access-badge-cb" value="${esc(badge)}" ${checked ? 'checked' : ''}>
           <span>${esc(badge)}</span>
         `;
         label.querySelector('input').addEventListener('change', () => {
@@ -952,7 +951,7 @@ const AccessManager = {
     TOOLS_RAW.forEach(tool => {
       const inBadge    = selectedBadges.includes(tool.badge || '');
       const isChecked  = selectedToolIds.includes(tool.id) || inBadge;
-      const isDisabled = inBadge || this._isAdminTarget;
+      const isDisabled = inBadge;
 
       const row = document.createElement('div');
       row.className = 'access-tool-row';

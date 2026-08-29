@@ -25,6 +25,29 @@ class ToolModel
         )->fetchAll();
     }
 
+    /**
+     * How many tools this user can reach, vs how many exist. Used to decide whether an
+     * admin may reorder from the dashboard: reorderByIds() only accepts the complete id
+     * set, so an admin whose own access has been restricted must not be offered the
+     * control (the save would just fail).
+     */
+    public function countForUser(int $userId): int
+    {
+        return (int) DB::run(
+            'SELECT COUNT(DISTINCT t.id)
+             FROM tools t
+             LEFT JOIN tool_access ta ON ta.tool_id = t.id AND ta.user_id = :uid
+             LEFT JOIN category_access ca ON ca.category_id = t.category_id AND ca.user_id = :uid2
+             WHERE ta.user_id IS NOT NULL OR ca.user_id IS NOT NULL',
+            [':uid' => $userId, ':uid2' => $userId]
+        )->fetchColumn();
+    }
+
+    public function countAll(): int
+    {
+        return (int) DB::run('SELECT COUNT(*) FROM tools')->fetchColumn();
+    }
+
     /** All tools (admin panel only) */
     public function all(): array
     {

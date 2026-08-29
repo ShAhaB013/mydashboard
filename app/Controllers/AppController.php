@@ -67,10 +67,12 @@ class AppController
             'can_view_notifications' => UserSession::canViewNotifications(),
         ];
 
-        // tools — admin sees all tools (including private) so they can manage from the same dashboard
+        // tools — the dashboard grid is access-driven for EVERY role, admins included:
+        // an admin's cards come from their own tool_access/category_access rows, so the
+        // access modal can restrict them too. Panel privileges (admin.php) are unaffected.
         $toolModel = new ToolModel();
         $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
-        $toolRows  = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
+        $toolRows  = $toolModel->allForUser(UserSession::id());
         $tools = ['ok' => true, 'tools' => ToolModel::toFrontend($toolRows)];
 
         // unread (light): the full notification list is no longer carried in bootstrap so the cards
@@ -129,9 +131,9 @@ class AppController
     {
         if (!$this->requireLogin()) return;
 
+        // Access-driven for every role — see the bootstrap() note above.
         $toolModel = new ToolModel();
-        $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
-        $rows      = $isAdmin ? $toolModel->all() : $toolModel->allForUser(UserSession::id());
+        $rows      = $toolModel->allForUser(UserSession::id());
         $body      = json_encode([
             'ok'    => true,
             'tools' => ToolModel::toFrontend($rows),

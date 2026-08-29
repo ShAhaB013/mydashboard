@@ -53,5 +53,34 @@ Assert::test('کاربری که فقط category_access گروهی دارد (بد
     Assert::true(in_array($toolId, $ids, true), 'کاربر با category_access گروهی باید کارت را ببیند');
 });
 
+// Admins are not exempt from the access tables any more: their dashboard grid comes
+// from the same allForUser() query as everyone else, so the access modal can restrict
+// them too. Panel privileges (admin.php) stay untouched — only the cards are filtered.
+Assert::test('کاربر مدیر بدون دسترسی به کارت → آن را در داشبورد نمی‌بیند', function () use ($BASE, $toolId) {
+    $uid = Fixtures::createUser(['role' => 'admin']);
+    $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
+    $http = new HttpClient($BASE);
+    $http->loginAs($row['username'], 'ZzTest!Fixture2026');
+    $res = $http->get('/api.php?action=tools');
+    Assert::jsonOk($res, 'tools باید ok:true بدهد');
+    $ids = array_map(fn($t) => (int) $t['id'], $res['json']['tools'] ?? []);
+    Assert::true(!in_array($toolId, $ids, true), 'مدیر بدون دسترسی هم نباید کارت را ببیند');
+});
+
+Assert::test('کاربر مدیر با tool_access → کارت را می‌بیند', function () use ($BASE, $ACC, $toolId) {
+    $uid = Fixtures::createUser(['role' => 'admin']);
+    $admin = admin_http($BASE, $ACC);
+    $setRes = $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [$toolId], 'badges' => []]);
+    Assert::jsonOk($setRes, 'set_access برای کاربر مدیر باید موفق باشد');
+
+    $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
+    $http = new HttpClient($BASE);
+    $http->loginAs($row['username'], 'ZzTest!Fixture2026');
+    $res = $http->get('/api.php?action=tools');
+    Assert::jsonOk($res, 'tools باید ok:true بدهد');
+    $ids = array_map(fn($t) => (int) $t['id'], $res['json']['tools'] ?? []);
+    Assert::true(in_array($toolId, $ids, true), 'مدیر با tool_access باید کارت را ببیند');
+});
+
 Fixtures::deleteToolsByPrefix();
 Fixtures::deleteUsersByPrefix(false);

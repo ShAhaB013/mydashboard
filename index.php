@@ -12,6 +12,13 @@ $displayName = UserSession::displayName();
 $username    = (string) ($_SESSION['username'] ?? '');
 $email       = (string) ($_SESSION['email'] ?? '');
 $isAdmin     = UserSession::isAdmin();
+// Dashboard cards are access-filtered for admins too, but reorder submits the complete
+// id set (ToolModel::reorderByIds) — so only offer it to an admin who can see every tool.
+$canReorder  = $isAdmin
+    && (function (): bool {
+        $tm = new ToolModel();
+        return $tm->countForUser(UserSession::id()) === $tm->countAll();
+    })();
 $canViewProfile       = UserSession::canViewProfile();
 $canViewNotifications = UserSession::canViewNotifications();
 $menuName    = $displayName !== '' ? $displayName : $username;
@@ -281,7 +288,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
     <div class="section-header">
       <span class="section-title">ابزارها</span>
       <span class="section-count" id="toolCount">0</span>
-<?php if ($isAdmin): ?>
+<?php if ($canReorder): ?>
       <button type="button" class="reorder-toggle" id="reorderToggle" title="مرتب‌سازی کارت‌ها" aria-label="مرتب‌سازی کارت‌ها">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
@@ -291,7 +298,7 @@ $v_theme = asset_v(__DIR__ . '/assets/js/theme.js');
       </button>
 <?php endif; ?>
     </div>
-<?php if ($isAdmin): ?>
+<?php if ($canReorder): ?>
     <div class="reorder-bar" id="reorderBar" hidden>
       <span class="reorder-bar-msg">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
