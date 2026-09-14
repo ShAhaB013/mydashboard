@@ -1,0 +1,204 @@
+/* ═══════════════════════════════════════════════════════════
+   logs.css — shared styles for the admin log viewers
+   (page=logs error log, page=email_logs email log)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Level badge (shared coloring: table cells, chips, detail modal) ── */
+.log-level { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700;
+  padding:3px 9px; border-radius:var(--radius-xs); line-height:1.6; flex-shrink:0; white-space:nowrap; }
+.log-level::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.log-level.error   { background:var(--danger-bg);  color:#f85149; border:1px solid rgba(248,81,73,.3); }
+.log-level.warning { background:rgba(217,119,6,.12); color:#d97706; border:1px solid rgba(217,119,6,.3); }
+.log-level.info    { background:rgba(88,166,255,.12); color:#58a6ff; border:1px solid rgba(88,166,255,.3); }
+.log-level.debug   { background:rgba(127,127,127,.12); color:var(--text-3); border:1px solid var(--border); }
+
+/* ── Toolbar: level chips + search ── */
+.log-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+.log-chips { display:flex; gap:7px; flex-wrap:wrap; }
+.log-chip {
+  display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700;
+  padding:6px 12px; border-radius:var(--radius-xs); cursor:pointer; background:none;
+  transition:transform var(--t-bounce), filter var(--t); font-family:'DashboardFont',sans-serif;
+}
+.log-chip:hover { filter:brightness(1.08); }
+.log-chip:active { transform:scale(.96); }
+.log-chip:disabled { opacity:.5; cursor:not-allowed; filter:none; transform:none; }
+.log-chip .log-chip-count { font-variant-numeric:tabular-nums; opacity:.85; }
+.log-chip.active { color:#fff; border-color:transparent; }
+.log-chip.active::before { background:#fff; }
+.log-chip.all           { background:var(--bg-input); color:var(--text-2); border:1px solid var(--border); }
+.log-chip.all.active    { background:var(--accent); color:#fff; }
+.log-chip.all::before   { display:none; }
+.log-chip.error.active   { background:#f85149; }
+.log-chip.warning.active { background:#d97706; }
+.log-chip.info.active    { background:#58a6ff; }
+.log-chip.debug.active   { background:var(--text-3); }
+
+.log-search { position:relative; flex:1 1 240px; max-width:320px; margin-bottom:0; }
+.log-search-icon {
+  position:absolute; top:50%; right:13px; transform:translateY(-50%);
+  width:16px; height:16px; color:var(--text-3); pointer-events:none;
+}
+.log-search input {
+  width:100%; box-sizing:border-box;
+  font-family:'DashboardFont',sans-serif; font-size:13px;
+  background:var(--bg-card); color:var(--text);
+  border:1px solid var(--border); border-radius:var(--radius-xs);
+  padding:9px 38px 9px 34px; outline:none;
+  transition:border-color var(--t), box-shadow var(--t);
+}
+.log-search input:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--accent-bg); }
+.log-search input:disabled { opacity:.5; cursor:not-allowed; }
+.log-search-clear {
+  position:absolute; top:50%; left:8px; transform:translateY(-50%);
+  width:22px; height:22px; border-radius:50%; border:none;
+  background:var(--bg-card); color:var(--text-3); cursor:pointer;
+  display:none; align-items:center; justify-content:center;
+  transition:background var(--t), color var(--t);
+}
+.log-search-clear svg { width:12px; height:12px; }
+.log-search-clear:hover { background:var(--danger-bg); color:var(--danger); }
+.log-search.has-value .log-search-clear { display:flex; }
+
+/* ── Advanced filter (date range) — same pattern as the notifications page ── */
+.log-adv-toggle {
+  display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+  font-family:'DashboardFont',sans-serif; font-size:13px; font-weight:600;
+  padding:0 16px; height:38px; cursor:pointer; white-space:nowrap;
+  color:var(--text-2); background:var(--bg-card);
+  border:1px solid var(--border); border-radius:var(--radius-xs);
+  transition:border-color var(--t), color var(--t), background var(--t);
+}
+.log-adv-toggle svg { width:15px; height:15px; flex-shrink:0; }
+.log-adv-toggle:hover { border-color:var(--accent); color:var(--accent); }
+.log-adv-toggle.active, .log-adv-toggle.has-filters { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+.log-adv-toggle:disabled { opacity:.5; cursor:not-allowed; }
+.log-adv-panel {
+  display:none; flex-wrap:wrap; gap:14px; align-items:flex-end;
+  margin-bottom:14px; padding:16px 18px;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);
+}
+.log-adv-panel.open { display:flex; }
+.log-adv-field { display:flex; flex-direction:column; gap:6px; flex:1; min-width:150px; }
+.log-adv-field label { font-size:12px; font-weight:600; color:var(--text-2); }
+.log-adv-field .tdp-trigger { min-height:42px; border-radius:var(--radius-xs); }
+.log-adv-actions { display:flex; gap:8px; align-items:center; }
+.log-adv-actions .btn { height:42px; border-radius:var(--radius-xs); }
+@media (max-width:560px) { .log-adv-field { min-width:120px; } .log-adv-actions { width:100%; justify-content:flex-end; } }
+
+/* ── Table ── */
+.log-table { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.log-table-head, .log-table-row {
+  display:grid; grid-template-columns:110px 150px 1fr 46px; gap:14px; align-items:center;
+  padding:11px 16px;
+}
+.log-table-head {
+  font-size:11px; font-weight:700; color:var(--text-3); letter-spacing:.3px;
+  border-bottom:1px solid var(--border); background:var(--bg-hover);
+}
+.log-sort-btn {
+  display:inline-flex; align-items:center; gap:4px; background:none; border:none; padding:0;
+  font-family:'DashboardFont',sans-serif; font-size:11px; font-weight:700; letter-spacing:.3px;
+  color:var(--text-3); cursor:pointer; transition:color var(--t);
+}
+.log-sort-btn:hover, .log-sort-btn.active { color:var(--text); }
+.log-sort-btn svg { width:11px; height:11px; opacity:.4; transition:transform var(--t), opacity var(--t); }
+.log-sort-btn.active svg { opacity:1; }
+.log-sort-btn.active.dir-asc svg { transform:rotate(180deg); }
+.log-sort-btn:disabled { opacity:.4; cursor:not-allowed; }
+.log-table-row { border-bottom:1px solid var(--border); cursor:pointer; transition:background var(--t); }
+.log-table-row:last-child { border-bottom:none; }
+.log-table-row:hover { background:var(--bg-hover); }
+.log-table-time { font-size:12px; color:var(--text-3); font-family:monospace; direction:ltr; text-align:left; }
+.log-table-msg { font-family:'DashboardFont',sans-serif; font-size:13px; color:var(--text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.log-table-del {
+  width:30px; height:30px; border-radius:var(--radius-xs); border:none; cursor:pointer;
+  background:none; color:var(--text-3); display:flex; align-items:center; justify-content:center;
+  transition:background var(--t), color var(--t); flex-shrink:0;
+}
+.log-table-del:hover { background:var(--danger-bg); color:var(--danger); }
+.log-table-del svg { width:15px; height:15px; }
+.log-empty { padding:44px 16px; text-align:center; color:var(--text-3); font-size:13.5px; }
+@media (max-width:640px) {
+  .log-table-head { display:none; }
+  .log-table-row { grid-template-columns:1fr 30px; grid-template-areas:"level del" "msg msg" "time time"; row-gap:6px; }
+  .log-table-row .log-level { grid-area:level; }
+  .log-table-del { grid-area:del; }
+  .log-table-msg { grid-area:msg; white-space:normal; }
+  .log-table-time { grid-area:time; text-align:right; }
+}
+
+/* ── Detail modal ── */
+.log-detail-modal { max-width:620px; }
+.log-detail-body { display:block; padding:20px 22px 8px; overflow-y:auto;
+  user-select:text; -webkit-user-select:text; }
+.log-detail-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+.log-detail-time { font-size:12px; color:var(--text-3); font-family:monospace; direction:ltr;
+  user-select:text; -webkit-user-select:text; }
+.log-detail-msg {
+  font-family:'DashboardFont',sans-serif; font-size:13.5px; color:var(--text); line-height:1.85;
+  background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-xs);
+  padding:12px 14px; margin-bottom:16px; word-break:break-word; white-space:pre-wrap;
+  user-select:text; -webkit-user-select:text; cursor:text;
+}
+.log-detail-meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px 16px; margin-bottom:6px; }
+.log-detail-meta-item { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.log-detail-meta-label { font-size:10.5px; font-weight:700; color:var(--text-3); letter-spacing:.4px; }
+.log-detail-meta-value { font-size:12.5px; color:var(--text); font-family:monospace; direction:ltr; text-align:left;
+  word-break:break-all; user-select:text; -webkit-user-select:text; cursor:text; }
+.log-detail-trace { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+.log-detail-trace-btn {
+  display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--accent);
+  background:none; border:none; cursor:pointer; padding:4px 0; font-family:'DashboardFont',sans-serif;
+}
+.log-detail-trace-btn svg { width:12px; height:12px; transition:transform var(--t); }
+.log-detail-trace-btn.open svg { transform:rotate(180deg); }
+.log-detail-pre { direction:ltr; text-align:left; font-family:monospace; font-size:11.5px; white-space:pre-wrap;
+  word-break:break-all; background:var(--bg-input); border:1px solid var(--border);
+  border-radius:var(--radius-xs); padding:12px; max-height:280px; overflow:auto; margin-top:10px;
+  user-select:text; -webkit-user-select:text; cursor:text; }
+
+/* ═══ Email log (page=email_logs) ═══════════════════════════ */
+
+/* Status badge + chip colors */
+.log-level.sent   { background:rgba(63,185,80,.12); color:var(--success); border:1px solid rgba(63,185,80,.3); }
+.log-level.failed { background:var(--danger-bg); color:var(--danger); border:1px solid rgba(var(--danger-rgb),.3); }
+.log-chip.sent.active   { background:var(--success); }
+.log-chip.failed.active { background:var(--danger); }
+
+/* Table: status | time | purpose | recipient + subject | delete */
+.mail-log-table .log-table-head,
+.mail-log-table .log-table-row { grid-template-columns:100px 150px 150px 1fr 46px; }
+.mail-log-purpose {
+  font-family:'DashboardFont',sans-serif; font-size:12px; color:var(--text-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
+}
+.mail-log-main { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.mail-log-to {
+  font-family:'DashboardFont',sans-serif; font-size:13px; color:var(--text); direction:ltr; text-align:right;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.mail-log-sub {
+  font-family:'DashboardFont',sans-serif; font-size:11.5px; color:var(--text-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.mail-log-sub.is-error { color:var(--danger); }
+.mail-log-table .log-table-time { font-family:'DashboardFont',sans-serif; }
+@media (max-width:640px) {
+  .mail-log-table .log-table-row {
+    grid-template-columns:auto 1fr 30px;
+    grid-template-areas:"level purpose del" "main main main" "time time time";
+  }
+  .mail-log-table .mail-log-purpose { grid-area:purpose; }
+  .mail-log-table .mail-log-main { grid-area:main; }
+}
+
+/* Detail modal */
+.mail-log-detail .log-detail-time,
+.mail-log-detail .log-detail-meta-value { font-family:'DashboardFont',sans-serif; }
+/* Values mix Persian text with emails/SMTP replies — let each value pick its own direction */
+.mail-log-detail .log-detail-meta-value,
+.mail-log-detail .log-detail-msg { direction:rtl; text-align:right; unicode-bidi:plaintext; }
+.mail-log-detail .log-detail-msg.is-error { border-color:rgba(var(--danger-rgb),.35); color:var(--danger); }
+.mail-log-hint { font-size:12px; color:var(--text-3); line-height:1.9; margin-top:12px; }

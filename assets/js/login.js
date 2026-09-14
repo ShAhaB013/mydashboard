@@ -204,9 +204,12 @@
     fpBack.addEventListener('click', fpGoBack);
     if (location.hash === '#forgot') showForgot();
 
-    // Digits only in the code field
+    // Digits only in the code field (Persian/Arabic-Indic digits from mobile keyboards are converted, not dropped)
     document.getElementById('fpCode').addEventListener('input', function () {
-      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+      this.value = this.value
+        .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0))
+        .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
+        .replace(/\D/g, '').slice(0, 6);
     });
 
     const regEmailValid = (v) => /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(v);

@@ -97,11 +97,7 @@ class SettingsController
             return;
         }
 
-        $res = Mailer::send(
-            $to,
-            'ایمیل آزمایشی — داشبورد ابزارها',
-            "این یک ایمیل آزمایشی است.\nاگر آن را دریافت کردید، تنظیمات SMTP درست است."
-        );
+        $res = Mailer::sendTest($to);
 
         if ($res['ok']) {
             Response::ok(['msg' => 'ایمیل آزمایشی ارسال شد']);
@@ -128,7 +124,7 @@ class SettingsController
             return;
         }
 
-        $res = Mailer::sendCredentials($to, 'sample_user', PasswordPolicy::generate());
+        $res = Mailer::sendCredentials($to, 'sample_user', PasswordPolicy::generate(), 'test_credentials');
 
         if ($res['ok']) {
             Response::ok(['msg' => 'نمونه ایمیل اطلاعات ورود ارسال شد']);

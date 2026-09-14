@@ -59,6 +59,7 @@ spl_autoload_register(function (string $class): void {
             'CategoryModel'          => $mdl . 'CategoryModel.php',
             'SessionModel'           => $mdl . 'SessionModel.php',
             'LogModel'               => $mdl . 'LogModel.php',
+            'EmailLogModel'          => $mdl . 'EmailLogModel.php',
             // ── Controllers (admin panel) ──────────────────
             'ToolController'         => $ctl . 'ToolController.php',
             'IconController'         => $ctl . 'IconController.php',
@@ -70,6 +71,7 @@ spl_autoload_register(function (string $class): void {
             'SettingsController'     => $ctl . 'SettingsController.php',
             'CategoryController'     => $ctl . 'CategoryController.php',
             'LogController'          => $ctl . 'LogController.php',
+            'EmailLogController'     => $ctl . 'EmailLogController.php',
             // ── Controllers (public — api.php) ────────────
             'AppController'          => $ctl . 'AppController.php',
             'AuthController'         => $ctl . 'AuthController.php',

@@ -147,7 +147,7 @@ class UserController
 
         $result = ['id' => $id];
         if ($sendCredentials) {
-            $mail = Mailer::sendCredentials($email, $username, $password);
+            $mail = Mailer::sendCredentials($email, $username, $password, 'credentials_new');
             $result['mail_sent']  = $mail['ok'];
             $result['mail_error'] = $mail['ok'] ? '' : $mail['error'];
         }
@@ -330,7 +330,7 @@ class UserController
         $this->model->changePassword($id, $newPassword);
         SessionModel::terminateUser($id);
 
-        $mail = Mailer::sendCredentials($email, (string) $user['username'], $newPassword);
+        $mail = Mailer::sendCredentials($email, (string) $user['username'], $newPassword, 'credentials_reset');
 
         Response::ok([
             'mail_sent'  => $mail['ok'],

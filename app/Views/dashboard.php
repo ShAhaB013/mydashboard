@@ -121,6 +121,20 @@
       <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </a>
 
+    <a href="/admin?page=email_logs" class="admin-tile">
+      <span class="admin-tile-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8"/><path d="m2 7 10 6 10-6"/>
+          <circle cx="18" cy="18" r="4"/><path d="M18 16.5V18l1 1"/>
+        </svg>
+      </span>
+      <span class="admin-tile-info">
+        <span class="admin-tile-title">گزارش ایمیل‌ها</span>
+        <span class="admin-tile-count">وضعیت ارسال ایمیل‌ها و خطاهای SMTP</span>
+      </span>
+      <svg class="admin-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+
     <button type="button" class="admin-tile" data-act="togglePanel" data-panel="iconsBox">
       <span class="admin-tile-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

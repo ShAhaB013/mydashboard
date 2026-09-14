@@ -1,6 +1,6 @@
 <?php
 // ═══════════════════════════════════════════════════════════
-// View: logs_view.php — error/debug log viewer (list/filter/search/delete/clear)
+// View: email_logs_view.php — outgoing email log (list/filter/search/delete/clear)
 // ═══════════════════════════════════════════════════════════
 ?>
 <!DOCTYPE html>
@@ -8,7 +8,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>گزارش خطاها — پنل مدیریت</title>
+  <title>گزارش ایمیل‌ها — پنل مدیریت</title>
   <script nonce="<?= csp_nonce() ?>">
     (function(){
       const t = localStorage.getItem('theme');
@@ -21,18 +21,6 @@
   <link rel="stylesheet" href="/assets/css/datepicker.css?v=<?= asset_v(__DIR__ . '/../../assets/css/datepicker.css') ?>">
   <link rel="stylesheet" href="/assets/css/pagination.css?v=<?= asset_v(__DIR__ . '/../../assets/css/pagination.css') ?>">
   <link rel="stylesheet" href="/assets/admin/logs.css?v=<?= asset_v(__DIR__ . '/../../assets/admin/logs.css') ?>">
-  <style>
-    /* ── Debug-mode toggle (same widget as the settings page's SMTP switch) ──
-       This box stands alone directly on the page background (not nested inside
-       a card like the settings/users-modal versions), so it overrides the
-       shared .set-toggle-box default to look like a full card itself. */
-    .set-hint { font-size:12px; color:var(--text-3); margin-top:4px; line-height:1.6; }
-    .set-toggle-box {
-      background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);
-      padding:14px 16px; margin-bottom:14px;
-    }
-
-  </style>
   <!-- Preload internal pages for fast navigation (on hover/click intent) -->
   <script type="speculationrules" nonce="<?= csp_nonce() ?>">
   {
@@ -53,7 +41,7 @@
 <header class="app-header">
   <div class="app-header__inner">
     <div class="app-header__lead">
-      <h1 class="app-header__title">گزارش خطاها</h1>
+      <h1 class="app-header__title">گزارش ایمیل‌ها</h1>
       <span class="app-header__count" id="logCountBadge">0</span>
     </div>
     <div class="app-header__actions">
@@ -69,75 +57,60 @@
 
 <div class="admin-wrap">
 
-  <div class="set-toggle-box">
-    <label class="set-switch">
-      <span class="toggle-sw">
-        <input type="checkbox" id="setDebugMode" data-change="logDebugModeChange" <?= ($debugMode ?? '0') === '1' ? 'checked' : '' ?>>
-        <span class="toggle-sw-track"></span>
-      </span>
-      <span class="set-switch-text">حالت دیباگ — نمایش جزئیات کامل خطا در پاسخ سرور</span>
-    </label>
-    <div class="set-hint">
-      در حالت فعال، پیام خطا همراه با جزئیات کامل در پاسخ نمایش داده می‌شود — فقط برای محیط توسعه یا عیب‌یابی موقت استفاده شود، نه محیط نهایی.
-      صرف‌نظر از این تنظیم، جزئیات کامل هر خطا همیشه در همین صفحه ثبت می‌شود.
-    </div>
-  </div>
-
   <div class="log-toolbar">
     <div class="log-chips" id="logChips"></div>
     <div class="log-search">
       <svg class="log-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" id="logSearchInput" placeholder="جستجو در پیام خطا..." data-input="logSearch" autocomplete="off">
-      <button type="button" class="log-search-clear" id="logSearchClear" data-act="logClearSearch" title="پاک کردن">
+      <input type="text" id="logSearchInput" placeholder="جستجوی گیرنده یا موضوع..." data-input="mailLogSearch" autocomplete="off">
+      <button type="button" class="log-search-clear" id="logSearchClear" data-act="mailLogClearSearch" title="پاک کردن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
-    <button type="button" class="log-adv-toggle" id="logAdvToggle" data-act="logToggleAdvanced"
+    <button type="button" class="log-adv-toggle" id="logAdvToggle" data-act="mailLogToggleAdvanced"
             aria-expanded="false" aria-controls="logAdvPanel" title="فیلتر بازه زمانی">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
       </svg>
       <span>فیلتر تاریخ</span>
     </button>
-    <button type="button" class="btn btn-danger btn-sm" id="logClearBtn" data-act="logOpenClear" disabled aria-disabled="true">
+    <button type="button" class="btn btn-danger btn-sm" id="logClearBtn" data-act="mailLogOpenClear" disabled aria-disabled="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <polyline points="3 6 5 6 21 6"/>
         <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
       </svg>
-      پاک‌سازی لاگ‌ها
+      پاک‌سازی گزارش‌ها
     </button>
   </div>
 
   <div class="log-adv-panel" id="logAdvPanel">
     <div class="log-adv-field">
       <label for="log-df">از تاریخ</label>
-      <input type="date" id="log-df" dir="ltr" class="datetime-ltr" data-input="logDateFieldChange" data-change="logDateFieldChange">
+      <input type="date" id="log-df" dir="ltr" class="datetime-ltr" data-input="mailLogDateFieldChange" data-change="mailLogDateFieldChange">
     </div>
     <div class="log-adv-field">
       <label for="log-dt">تا تاریخ</label>
-      <input type="date" id="log-dt" dir="ltr" class="datetime-ltr" data-input="logDateFieldChange" data-change="logDateFieldChange">
+      <input type="date" id="log-dt" dir="ltr" class="datetime-ltr" data-input="mailLogDateFieldChange" data-change="mailLogDateFieldChange">
     </div>
     <div class="log-adv-actions">
-      <button type="button" class="btn btn-primary btn-sm" id="logApplyBtn" data-act="logApplyFilters" disabled aria-disabled="true">اعمال</button>
-      <button type="button" class="btn btn-secondary btn-sm" id="logResetBtn" data-act="logResetFilters" disabled aria-disabled="true">حذف فیلترها</button>
+      <button type="button" class="btn btn-primary btn-sm" id="logApplyBtn" data-act="mailLogApplyFilters" disabled aria-disabled="true">اعمال</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="logResetBtn" data-act="mailLogResetFilters" disabled aria-disabled="true">حذف فیلترها</button>
     </div>
   </div>
 
-  <div class="log-table">
+  <div class="log-table mail-log-table">
     <div class="log-table-head">
-      <button type="button" class="log-sort-btn" id="logSortLevel" data-act="logSortBy" data-key="level">
-        سطح
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <button type="button" class="log-sort-btn active dir-desc" id="logSortTime" data-act="logSortBy" data-key="created_at">
+      <span>وضعیت</span>
+      <button type="button" class="log-sort-btn active dir-desc" id="logSortTime" data-act="mailLogToggleSort">
         زمان
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <span>پیام</span><span></span>
+      <span>نوع ایمیل</span>
+      <span>گیرنده و موضوع</span>
+      <span></span>
     </div>
     <div id="logList"></div>
   </div>
@@ -149,9 +122,9 @@
 
 <!-- Detail modal (read-only) -->
 <div class="modal-overlay" id="logDetailModal" role="dialog" aria-modal="true" aria-labelledby="logDetailTitle">
-  <div class="modal log-detail-modal">
+  <div class="modal log-detail-modal mail-log-detail">
     <div class="modal-head">
-      <h3 id="logDetailTitle">جزئیات لاگ</h3>
+      <h3 id="logDetailTitle">جزئیات ارسال ایمیل</h3>
       <button class="modal-close" data-act="closeModal" data-modal="logDetailModal" aria-label="بستن">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -165,13 +138,10 @@
       </div>
       <div class="log-detail-msg" id="logDetailMsg"></div>
       <div class="log-detail-meta" id="logDetailMeta"></div>
-      <div class="log-detail-trace" id="logDetailTraceBlock" hidden>
-        <button type="button" class="log-detail-trace-btn" data-act="logToggleTrace">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          نمایش جزئیات دقیق‌تر
-        </button>
-        <pre class="log-detail-pre" id="logDetailTrace" hidden></pre>
-      </div>
+      <p class="mail-log-hint" id="logDetailHint" hidden>
+        «ارسال شده» یعنی سرور ایمیل پیام را تحویل گرفته است؛ اگر کاربر آن را دریافت نکرده، پوشه اسپم را بررسی کند.
+        با «شناسه پیام» و «پاسخ سرور» می‌توانید از پشتیبانی هاست وضعیت تحویل را پیگیری کنید.
+      </p>
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary btn-sm" data-act="closeModal" data-modal="logDetailModal">بستن</button>
@@ -225,6 +195,6 @@
 <script src="/assets/js/actions.js?v=<?= asset_v(__DIR__ . '/../../assets/js/actions.js') ?>"></script>
 <script src="/assets/js/datepicker.js?v=<?= asset_v(__DIR__ . '/../../assets/js/datepicker.js') ?>"></script>
 <script src="/assets/admin/admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/admin.js') ?>"></script>
-<script src="/assets/admin/logs-admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/logs-admin.js') ?>"></script>
+<script src="/assets/admin/email-logs-admin.js?v=<?= asset_v(__DIR__ . '/../../assets/admin/email-logs-admin.js') ?>"></script>
 </body>
 </html>

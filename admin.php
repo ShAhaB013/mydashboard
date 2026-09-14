@@ -101,6 +101,7 @@ if ($isApi) {
     $sessionCtrl  = new SessionController($request);
     $categoryCtrl = new CategoryController($categoryModel, $request);
     $logCtrl      = new LogController($logModel, $request);
+    $emailLogCtrl = new EmailLogController(new EmailLogModel(), $request);
 
     $router = new Router(
         $request,
@@ -113,7 +114,8 @@ if ($isApi) {
         $settingsCtrl,
         $sessionCtrl,
         $categoryCtrl,
-        $logCtrl
+        $logCtrl,
+        $emailLogCtrl
     );
     $router->dispatch();
     exit;
@@ -158,6 +160,13 @@ if ($page === 'logs') {
     $debugMode = SettingsModel::get('debug_mode', '0');
     $csrfToken = $_SESSION['csrf_token'] ?? '';
     require __DIR__ . '/app/Views/logs_view.php';
+    exit;
+}
+
+if ($page === 'email_logs') {
+    // List is loaded via AJAX (list_email_logs) — server only builds initial page data.
+    $csrfToken = $_SESSION['csrf_token'] ?? '';
+    require __DIR__ . '/app/Views/email_logs_view.php';
     exit;
 }
 

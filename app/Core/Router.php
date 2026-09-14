@@ -18,6 +18,7 @@ class Router
     private SessionController      $sessionCtrl;
     private CategoryController     $categoryCtrl;
     private LogController          $logCtrl;
+    private EmailLogController     $emailLogCtrl;
 
     private const ROUTES = [
         // ── tools ────────────────────────────────────────────
@@ -83,6 +84,11 @@ class Router
         'list_logs'   => [LogController::class, 'list'],
         'delete_log'  => [LogController::class, 'delete'],
         'clear_logs'  => [LogController::class, 'clear'],
+
+        // ── email logs ───────────────────────────────────────
+        'list_email_logs'   => [EmailLogController::class, 'list'],
+        'delete_email_log'  => [EmailLogController::class, 'delete'],
+        'clear_email_logs'  => [EmailLogController::class, 'clear'],
     ];
 
     public function __construct(
@@ -96,7 +102,8 @@ class Router
         SettingsController     $settingsCtrl,
         SessionController      $sessionCtrl,
         CategoryController     $categoryCtrl,
-        LogController          $logCtrl
+        LogController          $logCtrl,
+        EmailLogController     $emailLogCtrl
     ) {
         $this->request      = $request;
         $this->toolCtrl     = $toolCtrl;
@@ -109,6 +116,7 @@ class Router
         $this->sessionCtrl  = $sessionCtrl;
         $this->categoryCtrl = $categoryCtrl;
         $this->logCtrl      = $logCtrl;
+        $this->emailLogCtrl = $emailLogCtrl;
     }
 
     public function dispatch(): void
@@ -138,6 +146,7 @@ class Router
             SessionController::class      => $this->sessionCtrl,
             CategoryController::class     => $this->categoryCtrl,
             LogController::class          => $this->logCtrl,
+            EmailLogController::class     => $this->emailLogCtrl,
             default => (function () {
                 Response::error('کنترلر یافت نشد');
                 exit;
