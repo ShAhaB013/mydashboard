@@ -164,8 +164,10 @@
 /* Status badge + chip colors */
 .log-level.sent   { background:rgba(63,185,80,.12); color:var(--success); border:1px solid rgba(63,185,80,.3); }
 .log-level.failed { background:var(--danger-bg); color:var(--danger); border:1px solid rgba(var(--danger-rgb),.3); }
-.log-chip.sent.active   { background:var(--success); }
-.log-chip.failed.active { background:var(--danger); }
+/* These badge colors come after .log-chip.active in this file, so the active
+   chip must restate its white text/transparent border or it inherits the badge color */
+.log-chip.sent.active   { background:var(--success); color:#fff; border-color:transparent; }
+.log-chip.failed.active { background:var(--danger);  color:#fff; border-color:transparent; }
 
 /* Table: status | time | purpose | recipient + subject | delete */
 .mail-log-table .log-table-head,

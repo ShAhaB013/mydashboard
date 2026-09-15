@@ -100,7 +100,7 @@ HTML;
         $rows .= self::noticeRow($notice);
 
         $html = self::htmlLayout($subject, $e($intro), $rows, $brand);
-        return self::send($to, $subject, $text, $html, $purpose);
+        return self::send($to, self::withBrand($subject), $text, $html, $purpose);
     }
 
     /**
@@ -141,11 +141,14 @@ HTML;
             </td>
           </tr>
 HTML;
+        // Login address as plain text, deliberately not a button: credentials + a "log in"
+        // call-to-action is the classic phishing pattern mailbox filters look for.
         if ($loginUrl !== '') {
             $rows .= <<<HTML
           <tr>
-            <td style="padding:12px 28px 20px;text-align:center;">
-              <a href="{$e($loginUrl)}" style="{$f}display:inline-block;background-color:#3e7de7;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:10px;padding:10px 28px;">ورود به داشبورد</a>
+            <td style="padding:12px 28px 4px;text-align:right;">
+              <p style="{$f}margin:0 0 4px;font-size:13px;line-height:2;color:#4b5563;">برای ورود به داشبورد از نشانی زیر استفاده کنید:</p>
+              <p dir="ltr" style="{$lf}margin:0;font-size:14px;color:#1f2937;text-align:right;word-break:break-all;">{$e($loginUrl)}</p>
             </td>
           </tr>
 HTML;
@@ -153,7 +156,7 @@ HTML;
         $rows .= self::noticeRow($notice);
 
         $html = self::htmlLayout($subject, $e($intro), $rows, $brand);
-        return self::send($to, $subject, $text, $html, $purpose);
+        return self::send($to, self::withBrand($subject), $text, $html, $purpose);
     }
 
     /**
@@ -164,7 +167,7 @@ HTML;
     public static function sendTest(string $to): array
     {
         $brand   = self::brand();
-        $subject = "ایمیل آزمایشی {$brand}";
+        $subject = 'ایمیل آزمایشی';
         $intro   = 'این یک ایمیل آزمایشی است که از بخش تنظیمات داشبورد ارسال شده است.';
         $body    = 'اگر این ایمیل را دریافت کرده‌اید، تنظیمات SMTP به درستی کار می‌کند.';
 
@@ -175,10 +178,19 @@ HTML;
             self::noticeRow($body),
             $brand
         );
-        return self::send($to, $subject, $text, $html, 'test');
+        return self::send($to, self::withBrand($subject), $text, $html, 'test');
     }
 
     // ── Templates ────────────────────────────────────────────
+
+    /**
+     * Subject line with the brand appended ("title | brand"). A bare generic subject such as
+     * "password recovery code" matches phishing patterns; naming the sender helps recognition.
+     */
+    private static function withBrand(string $title): string
+    {
+        return $title . ' | ' . self::brand();
+    }
 
     /** Sender display name, used as the brand in templates */
     private static function brand(): string
