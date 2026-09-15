@@ -9,19 +9,20 @@ class ToolModel
 {
     // ── Public queries ──────────────────────────────────────
 
+    /** Tools reachable through the user's access role (directly, or via one of the role's categories) */
     public function allForUser(int $userId): array
     {
         return DB::run(
-            'SELECT DISTINCT t.*, c.name AS badge
-             FROM tools t
+            'SELECT t.*, c.name AS badge
+             FROM users u
+             JOIN tools t
              LEFT JOIN categories c ON c.id = t.category_id
-             LEFT JOIN tool_access ta ON ta.tool_id = t.id AND ta.user_id = :uid
-             LEFT JOIN category_access ca ON ca.category_id = t.category_id AND ca.user_id = :uid2
-             WHERE
-                 ta.user_id IS NOT NULL
-                 OR ca.user_id IS NOT NULL
+             LEFT JOIN role_tool_access rta ON rta.role_id = u.access_role_id AND rta.tool_id = t.id
+             LEFT JOIN role_category_access rca ON rca.role_id = u.access_role_id AND rca.category_id = t.category_id
+             WHERE u.id = :uid
+               AND (rta.role_id IS NOT NULL OR rca.role_id IS NOT NULL)
              ORDER BY t.sort_order ASC',
-            [':uid' => $userId, ':uid2' => $userId]
+            [':uid' => $userId]
         )->fetchAll();
     }
 
@@ -34,12 +35,14 @@ class ToolModel
     public function countForUser(int $userId): int
     {
         return (int) DB::run(
-            'SELECT COUNT(DISTINCT t.id)
-             FROM tools t
-             LEFT JOIN tool_access ta ON ta.tool_id = t.id AND ta.user_id = :uid
-             LEFT JOIN category_access ca ON ca.category_id = t.category_id AND ca.user_id = :uid2
-             WHERE ta.user_id IS NOT NULL OR ca.user_id IS NOT NULL',
-            [':uid' => $userId, ':uid2' => $userId]
+            'SELECT COUNT(*)
+             FROM users u
+             JOIN tools t
+             LEFT JOIN role_tool_access rta ON rta.role_id = u.access_role_id AND rta.tool_id = t.id
+             LEFT JOIN role_category_access rca ON rca.role_id = u.access_role_id AND rca.category_id = t.category_id
+             WHERE u.id = :uid
+               AND (rta.role_id IS NOT NULL OR rca.role_id IS NOT NULL)',
+            [':uid' => $userId]
         )->fetchColumn();
     }
 
@@ -184,7 +187,7 @@ class ToolModel
         );
 
         if ((int) $tool['category_id'] !== (int) $categoryId) {
-            $this->refreshRecipientsForToolAccess((int) $tool['id']);
+            $this->refreshRecipients($this->usersWithToolGrant((int) $tool['id']));
         }
 
         return true;
@@ -219,7 +222,7 @@ class ToolModel
         );
 
         if ((int) $oldCategoryId !== (int) $categoryId) {
-            $this->refreshRecipientsForToolAccess($id);
+            $this->refreshRecipients($this->usersWithToolGrant($id));
         }
 
         return true;
@@ -231,34 +234,39 @@ class ToolModel
         $tool = $this->find($index);
         if (!$tool) return false;
 
-        DB::run('DELETE FROM tools WHERE id = :id', [':id' => $tool['id']]);
-        return true;
+        return $this->deleteById((int) $tool['id']);
     }
 
     /** Delete a tool directly by ID */
     public function deleteById(int $id): bool
     {
-        $this->refreshRecipientsForToolAccess($id); // capture affected users BEFORE tool_access cascades away
+        // Capture affected users BEFORE role_tool_access cascades away, recompute AFTER the
+        // tool is gone (recomputing first would still count the deleted tool's category path)
+        $userIds = $this->usersWithToolGrant($id);
         DB::run('DELETE FROM tools WHERE id = :id', [':id' => $id]);
+        $this->refreshRecipients($userIds);
         return true;
     }
 
     /**
-     * Recomputes notification visibility for every user with tool_access to this tool —
-     * called BEFORE any change that alters or removes that access (tool deleted or
-     * re-categorized), since it reads tool_access itself to find who's affected.
-     * A tool's category assignment (and who holds tool_access to it) determines which
-     * notifications those users can reach via NotificationModel's tool-access path; see
-     * refreshRecipientsForUser() there for the full per-user recompute.
+     * Users whose access role grants this tool directly (role_tool_access). A tool's
+     * category decides which category-badged notifications those users reach through
+     * NotificationModel's tool path, so they need a recompute when the tool is
+     * re-categorized or deleted. (Category-level grants don't depend on the tool.)
      */
-    private function refreshRecipientsForToolAccess(int $toolId): void
+    private function usersWithToolGrant(int $toolId): array
     {
-        $userIds = array_column(
-            DB::run('SELECT user_id FROM tool_access WHERE tool_id = :id', [':id' => $toolId])->fetchAll(),
-            'user_id'
-        );
-        if (empty($userIds)) return;
+        return array_map('intval', array_column(DB::run(
+            'SELECT u.id FROM users u
+             JOIN role_tool_access rta ON rta.role_id = u.access_role_id
+             WHERE rta.tool_id = :id',
+            [':id' => $toolId]
+        )->fetchAll(), 'id'));
+    }
 
+    /** Full notification-visibility recompute for each given user */
+    private function refreshRecipients(array $userIds): void
+    {
         $nm = new NotificationModel();
         foreach ($userIds as $uid) {
             $nm->refreshRecipientsForUser((int) $uid);

@@ -82,7 +82,9 @@ class UserModel
         $filterSql = $this->buildAdminFilters($filters, $params);
 
         return DB::run(
-            'SELECT id, username, first_name, last_name, display_name, phone, email, role, is_active, created_at
+            'SELECT id, username, first_name, last_name, display_name, phone, email, role, is_active, created_at,
+                    access_role_id,
+                    (SELECT ar.name FROM access_roles ar WHERE ar.id = users.access_role_id) AS access_role_name
              FROM users
              WHERE (:search = \'\'
                     OR display_name LIKE :like OR first_name LIKE :like2 OR last_name LIKE :like3
@@ -114,7 +116,7 @@ class UserModel
     public function findById(int $id): ?array
     {
         $row = DB::run(
-            'SELECT id, username, first_name, last_name, display_name, phone, email, role, is_active, created_at
+            'SELECT id, username, first_name, last_name, display_name, phone, email, role, access_role_id, is_active, created_at
              FROM users WHERE id = :id',
             [':id' => $id]
         )->fetch();
@@ -172,12 +174,12 @@ class UserModel
     }
 
     /** Add a new user (username and phone number are set by the admin) */
-    public function create(string $firstName, string $lastName, string $username, string $phone, string $email, string $password, string $role = 'user'): int
+    public function create(string $firstName, string $lastName, string $username, string $phone, string $email, string $password, string $role = 'user', ?int $accessRoleId = null): int
     {
         $displayName = trim($firstName . ' ' . $lastName);
         DB::run(
-            'INSERT INTO users (username, password_hash, first_name, last_name, display_name, phone, email, role, is_active)
-             VALUES (:u, :h, :f, :l, :d, :p, :e, :r, 1)',
+            'INSERT INTO users (username, password_hash, first_name, last_name, display_name, phone, email, role, access_role_id, is_active)
+             VALUES (:u, :h, :f, :l, :d, :p, :e, :r, :ar, 1)',
             [
                 ':u' => $username,
                 ':h' => password_hash($password, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]),
@@ -187,16 +189,17 @@ class UserModel
                 ':p' => ($phone === '' ? null : $phone),   // empty → NULL (compatible with the UNIQUE index)
                 ':e' => $email,
                 ':r' => self::normalizeRole($role),
+                ':ar' => $accessRoleId ?: null,
             ]
         );
         return (int) DB::get()->lastInsertId();
     }
 
-    /** Edit user info (first/last name/username/phone/email/role, without changing password) */
-    public function update(int $id, string $firstName, string $lastName, string $username, string $phone, string $email, string $role = 'user'): bool
+    /** Edit user info (first/last name/username/phone/email/role/access role, without changing password) */
+    public function update(int $id, string $firstName, string $lastName, string $username, string $phone, string $email, string $role = 'user', ?int $accessRoleId = null): bool
     {
         DB::run(
-            'UPDATE users SET first_name = :f, last_name = :l, display_name = :d, username = :u, phone = :p, email = :e, role = :r WHERE id = :id',
+            'UPDATE users SET first_name = :f, last_name = :l, display_name = :d, username = :u, phone = :p, email = :e, role = :r, access_role_id = :ar WHERE id = :id',
             [
                 ':f'  => $firstName,
                 ':l'  => $lastName,
@@ -205,6 +208,7 @@ class UserModel
                 ':p'  => ($phone === '' ? null : $phone),   // empty → NULL (compatible with the UNIQUE index)
                 ':e'  => $email,
                 ':r'  => self::normalizeRole($role),
+                ':ar' => $accessRoleId ?: null,
                 ':id' => $id,
             ]
         );
@@ -244,7 +248,7 @@ class UserModel
         return true;
     }
 
-    /** Delete user (cascades to tool_access and category_access) */
+    /** Delete user (cascades to notification_reads and notification_recipients) */
     public function delete(int $id): bool
     {
         DB::run('DELETE FROM users WHERE id = :id', [':id' => $id]);

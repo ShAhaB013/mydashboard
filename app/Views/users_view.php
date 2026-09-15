@@ -320,22 +320,19 @@
           </select>
         </div>
         <div class="field">
-          <label>نمایش منوها برای این کاربر</label>
-          <div class="set-toggle-box">
-            <label class="set-switch">
-              <span class="toggle-sw">
-                <input type="checkbox" id="editCanViewProfile" checked>
-                <span class="toggle-sw-track"></span>
-              </span>
-              <span class="set-switch-text">نمایش «حساب کاربری» (شامل نشست‌های فعال)</span>
-            </label>
-            <label class="set-switch">
-              <span class="toggle-sw">
-                <input type="checkbox" id="editCanViewNotifications" checked>
-                <span class="toggle-sw-track"></span>
-              </span>
-              <span class="set-switch-text">نمایش «اعلان‌ها»</span>
-            </label>
+          <label for="editAccessRole">نقش دسترسی <span class="req">*</span></label>
+          <select id="editAccessRole">
+            <option value="">انتخاب نقش...</option>
+            <?php foreach ($accessRoles as $ar): ?>
+              <option value="<?= (int) $ar['id'] ?>"><?= htmlspecialchars($ar['name'], ENT_QUOTES, 'UTF-8') ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="field-hint field-hint--link">
+            <span>ابزارها، دسته‌ها و منوهایی که کاربر می‌بیند را نقش تعیین می‌کند.</span>
+            <a href="/admin?page=roles" class="field-hint-link">
+              مدیریت نقش‌ها
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </a>
           </div>
         </div>
         <div class="field">
@@ -444,66 +441,6 @@
   </div>
 </div>
 
-<!-- ── Two-tier access modal ── -->
-<div class="modal-overlay" id="accessModal" role="dialog" aria-modal="true">
-  <div class="modal" style="max-width:580px;">
-    <div class="modal-head">
-      <h3 id="accessModalTitle">تنظیم دسترسی</h3>
-      <button class="modal-close" data-act="accessClose" aria-label="بستن">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="modal-body" style="display:block;padding:20px;overflow-y:auto;max-height:65vh;">
-      <input type="hidden" id="accessUserId">
-
-      <div class="access-admin-hint" id="accessAdminHint">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <span>این کاربر مدیر سیستم است. این تنظیمات فقط کارت‌های داشبورد او را محدود می‌کند و دسترسی او به پنل مدیریت را نمی‌بندد.</span>
-      </div>
-
-      <div class="access-section">
-        <div class="access-section-title">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
-            <line x1="7" y1="7" x2="7.01" y2="7"/>
-          </svg>
-          دسته‌بندی‌ها
-          <span style="font-size:11px;color:var(--text-3);font-weight:400;">(دسترسی گروهی به همه ابزارهای یک دسته)</span>
-        </div>
-        <div class="access-badges-grid" id="accessBadgesGrid">
-          <div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>
-        </div>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:18px 0;"></div>
-
-      <div class="access-section">
-        <div class="access-section-title">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2"/>
-            <line x1="8" y1="21" x2="16" y2="21"/>
-            <line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
-          ابزارهای خاص
-          <span style="font-size:11px;color:var(--text-3);font-weight:400;">(دسترسی مستقیم به ابزار مشخص)</span>
-        </div>
-        <div class="access-tools-list" id="accessToolsList">
-          <div style="color:var(--text-3);font-size:13px;">در حال بارگذاری...</div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" data-act="accessClose">انصراف</button>
-      <button class="btn btn-primary btn-sm" id="saveAccessBtn" data-act="saveAccess">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        ذخیره دسترسی‌ها
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- ── Delete confirmation modal ── -->
 <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="modal confirm-modal">
@@ -541,8 +478,8 @@
 <script nonce="<?= csp_nonce() ?>">
   const CSRF_TOKEN = '<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>';
   window.CSRF_TOKEN = CSRF_TOKEN; // needed to send the X-CSRF-Token header in admin.js
-  // The access modal needs "all tools" → lite version (id/title/badge)
-  const TOOLS_RAW  = <?= $toolsLite ?>;
+  // Tools-dashboard data isn't used on this page but is defined for compatibility with admin.js
+  const TOOLS_RAW  = [];
   const tools      = TOOLS_RAW;
   window.tools     = tools;
   // Tools-dashboard variables aren't used on this page but are defined for compatibility

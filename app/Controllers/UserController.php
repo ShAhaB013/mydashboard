@@ -41,11 +41,9 @@ class UserController
         $rows  = $this->model->allPaginated($page, $perPage, $search, $filters);
 
         $sessionCounts = SessionModel::countsByUser();
-        $hiddenByUser  = (new MenuAccessModel())->hiddenByUser();
 
         $result = [];
         foreach ($rows as $u) {
-            $hidden = $hiddenByUser[(int) $u['id']] ?? [];
             $result[] = [
                 'id'           => (int) $u['id'],
                 'username'     => $u['username'] ?? '',
@@ -55,8 +53,8 @@ class UserController
                 'role'         => $u['role'] ?? 'user',
                 'is_active'    => (bool) $u['is_active'],
                 'session_count' => $sessionCounts[(int) $u['id']] ?? 0,
-                'can_view_profile'       => !in_array('profile', $hidden, true),
-                'can_view_notifications' => !in_array('notifications', $hidden, true),
+                'access_role_id'   => $u['access_role_id'] !== null ? (int) $u['access_role_id'] : null,
+                'access_role_name' => $u['access_role_name'] ?? '',
             ];
         }
 
@@ -82,9 +80,8 @@ class UserController
         $email    = trim((string) $this->request->input('email'));
         $password = $this->request->input('password');
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
-        $canViewProfile       = $this->request->input('can_view_profile', '1') !== '';
-        $canViewNotifications = $this->request->input('can_view_notifications', '1') !== '';
-        $sendCredentials      = $this->request->input('send_credentials', '') !== '';
+        $accessRoleId    = $this->request->inputInt('access_role_id');
+        $sendCredentials = $this->request->input('send_credentials', '') !== '';
 
         if ($fullName === '') {
             Response::error('نام و نام خانوادگی الزامی است', 'full_name');
@@ -113,6 +110,10 @@ class UserController
             Response::error($err, 'email');
             return;
         }
+        if (!(new AccessRoleModel())->exists($accessRoleId)) {
+            Response::error('نقش دسترسی را انتخاب کنید', 'access_role_id');
+            return;
+        }
 
         if (!PasswordPolicy::isAcceptable($password)) {
             Response::error(PasswordPolicy::errorMessage(), 'password');
@@ -132,14 +133,9 @@ class UserController
             return;
         }
 
-        $id = $this->model->create($firstName, $lastName, $username, $phone, $email, $password, $role);
+        $id = $this->model->create($firstName, $lastName, $username, $phone, $email, $password, $role, $accessRoleId);
 
-        $hiddenMenus = [];
-        if (!$canViewProfile)       $hiddenMenus[] = 'profile';
-        if (!$canViewNotifications) $hiddenMenus[] = 'notifications';
-        (new MenuAccessModel())->setHidden($id, $hiddenMenus);
-
-        // Seed target_all_users notifications for the new account — the old live query had
+        // Seed the new account's notifications (its role's categories/tools + target_all_users) — the old live query had
         // no user-creation-date filter (every logged-in user saw every target_all_users=1
         // notification regardless of when their account was made), so the materialized
         // fan-out table must replicate that from the first moment the account exists.
@@ -165,8 +161,7 @@ class UserController
         $email    = trim((string) $this->request->input('email'));
         $password = $this->request->input('password');
         $role     = UserModel::normalizeRole($this->request->input('role', 'user'));
-        $canViewProfile       = $this->request->input('can_view_profile', '1') !== '';
-        $canViewNotifications = $this->request->input('can_view_notifications', '1') !== '';
+        $accessRoleId = $this->request->inputInt('access_role_id');
 
         if ($id <= 0) {
             Response::error('شناسه کاربر نامعتبر است');
@@ -200,6 +195,10 @@ class UserController
             Response::error($err, 'email');
             return;
         }
+        if (!(new AccessRoleModel())->exists($accessRoleId)) {
+            Response::error('نقش دسترسی را انتخاب کنید', 'access_role_id');
+            return;
+        }
 
         $existing = $this->model->findById($id);
         if (!$existing) {
@@ -228,12 +227,12 @@ class UserController
             return;
         }
 
-        $this->model->update($id, $firstName, $lastName, $username, $phone, $email, $role);
+        $this->model->update($id, $firstName, $lastName, $username, $phone, $email, $role, $accessRoleId);
 
-        $hiddenMenus = [];
-        if (!$canViewProfile)       $hiddenMenus[] = 'profile';
-        if (!$canViewNotifications) $hiddenMenus[] = 'notifications';
-        (new MenuAccessModel())->setHidden($id, $hiddenMenus);
+        // A different access role means different categories/tools → different visible notifications
+        if ((int) ($existing['access_role_id'] ?? 0) !== $accessRoleId) {
+            (new NotificationModel())->refreshRecipientsForUser($id);
+        }
 
         // Password change is optional
         if ($password !== '') {

@@ -23,11 +23,9 @@ $createRes  = $admin->postJson('/admin.php?api=create_notification', [
 Assert::jsonOk($createRes, 'ایجاد اعلان دسته‌بندی‌شده باید موفق باشد');
 $notifId = (int) DB::run('SELECT id FROM notifications WHERE title=:t', [':t' => $notifTitle])->fetchColumn();
 
-Assert::test('کاربری که فقط از طریق tool_access به یک کارت با این دسته دسترسی دارد (بدون category_access) → اعلان را می‌بیند', function () use ($BASE, $ACC, $toolId, $notifId) {
+Assert::test('کاربری که نقشش فقط یک کارت با این دسته را دارد (بدون خود دسته) → اعلان را می‌بیند', function () use ($BASE, $toolId, $notifId) {
     $uid = Fixtures::createUser();
-    $admin2 = admin_http($BASE, $ACC);
-    $setRes = $admin2->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [$toolId], 'badges' => []]);
-    Assert::jsonOk($setRes, 'set_access (فقط tool_access) باید موفق باشد');
+    Fixtures::assignRole($uid, Fixtures::createRole([], [$toolId]));
 
     $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
     $http = new HttpClient($BASE);
@@ -35,14 +33,12 @@ Assert::test('کاربری که فقط از طریق tool_access به یک کا�
     $res = $http->get('/api.php?action=notifications');
     Assert::jsonOk($res, 'notifications باید ok:true بدهد');
     $ids = array_map(fn($n) => (int) $n['id'], $res['json']['notifications'] ?? []);
-    Assert::true(in_array($notifId, $ids, true), 'کاربر با دسترسی فقط به کارت (tool_access) باید اعلان دسته‌ی همان کارت را ببیند');
+    Assert::true(in_array($notifId, $ids, true), 'کاربر با دسترسی فقط به کارت (ابزار مستقیم در نقش) باید اعلان دسته‌ی همان کارت را ببیند');
 });
 
-Assert::test('کاربری که فقط از طریق category_access دسترسی گروهی دارد (بدون tool_access) → همچنان اعلان را می‌بیند', function () use ($BASE, $ACC, $notifId, $categoryName) {
+Assert::test('کاربری که نقشش فقط خود دسته را دارد (بدون ابزار مستقیم) → همچنان اعلان را می‌بیند', function () use ($BASE, $notifId, $categoryName) {
     $uid = Fixtures::createUser();
-    $admin2 = admin_http($BASE, $ACC);
-    $setRes = $admin2->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [], 'badges' => [$categoryName]]);
-    Assert::jsonOk($setRes, 'set_access (فقط category_access) باید موفق باشد');
+    Fixtures::assignRole($uid, Fixtures::createRole([$categoryName]));
 
     $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
     $http = new HttpClient($BASE);
@@ -50,7 +46,7 @@ Assert::test('کاربری که فقط از طریق category_access دسترس�
     $res = $http->get('/api.php?action=notifications');
     Assert::jsonOk($res, 'notifications باید ok:true بدهد');
     $ids = array_map(fn($n) => (int) $n['id'], $res['json']['notifications'] ?? []);
-    Assert::true(in_array($notifId, $ids, true), 'کاربر با دسترسی گروهی به دسته (category_access) باید اعلان را ببیند');
+    Assert::true(in_array($notifId, $ids, true), 'کاربر با دسته در نقشش باید اعلان را ببیند');
 });
 
 Assert::test('کاربری که هیچ‌کدام از دو نوع دسترسی را ندارد → اعلان را نمی‌بیند', function () use ($BASE, $notifId) {
@@ -65,5 +61,6 @@ Assert::test('کاربری که هیچ‌کدام از دو نوع دسترسی 
 });
 
 DB::run('DELETE FROM notifications WHERE id=:id', [':id' => $notifId]);
-Fixtures::deleteToolsByPrefix();
 Fixtures::deleteUsersByPrefix(false);
+Fixtures::deleteRolesByPrefix();
+Fixtures::deleteToolsByPrefix();

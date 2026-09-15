@@ -82,10 +82,13 @@ Assert::test('ETag: تغییر داده باعث تغییر ETag و بازگشت
 
     $id = Fixtures::createTool();
     $userRow = Fixtures::findUserByUsername($ACC['user']['username']);
-    DB::run('INSERT INTO tool_access (user_id, tool_id) VALUES (:uid, :tid)', [':uid' => $userRow['id'], ':tid' => $id]);
+    $prevRoleId = $userRow['access_role_id'] !== null ? (int) $userRow['access_role_id'] : null;
+    Fixtures::assignRole((int) $userRow['id'], Fixtures::createRole([], [$id]));
     $res2 = $http->get('/api.php?action=tools', ['If-None-Match: ' . $etag1]);
     Assert::statusEq($res2, 200, 'بعد از تغییر داده، If-None-Match قدیمی نباید 304 بگیرد');
+    Fixtures::assignRole((int) $userRow['id'], $prevRoleId); // restore the fixed account's role
     DB::run('DELETE FROM tools WHERE id=:id', [':id' => $id]);
+    Fixtures::deleteRolesByPrefix();
 });
 
 Fixtures::deleteToolsByPrefix();

@@ -70,7 +70,6 @@ $toolModel         = new ToolModel();
 $iconModel         = new IconModel($iconDb, $config['protected_icons']);
 $decoModel         = new DecoModel($decoDb, $config['protected_decos']);
 $userModel         = new UserModel();
-$accessModel       = new AccessModel();
 $notificationModel = new NotificationModel();
 $categoryModel     = new CategoryModel();
 $logModel          = new LogModel();
@@ -95,7 +94,7 @@ if ($isApi) {
     $iconCtrl   = new IconController($iconModel, $toolModel, $request);
     $decoCtrl   = new DecoController($decoModel, $toolModel, $request);
     $userCtrl   = new UserController($userModel, $request);
-    $accessCtrl = new AccessController($accessModel, $request);
+    $accessRoleCtrl = new AccessRoleController(new AccessRoleModel(), $request);
     $notifCtrl  = new NotificationController($notificationModel, $request);
     $settingsCtrl = new SettingsController($request);
     $sessionCtrl  = new SessionController($request);
@@ -109,7 +108,7 @@ if ($isApi) {
         $iconCtrl,
         $decoCtrl,
         $userCtrl,
-        $accessCtrl,
+        $accessRoleCtrl,
         $notifCtrl,
         $settingsCtrl,
         $sessionCtrl,
@@ -135,10 +134,18 @@ if ($page === 'notifications') {
 if ($page === 'users') {
     // User list is loaded via AJAX (list_users) — server only builds initial page data.
     $sessionTtlHours = SettingsModel::getInt('session_ttl_hours', 1, 720, 24);
-    // Access modal needs "all tools" — a lite version is injected
-    $toolsLite  = json_encode(ToolModel::toLite($toolModel->all()), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+    // The user modal's required "access role" select
+    $accessRoles = (new AccessRoleModel())->allNames();
     $csrfToken  = $_SESSION['csrf_token'] ?? '';
     require __DIR__ . '/app/Views/users_view.php';
+    exit;
+}
+
+if ($page === 'roles') {
+    // Roles are loaded via AJAX (list_access_roles); the role modal needs "all tools" — lite version injected
+    $toolsLite = json_encode(ToolModel::toLite($toolModel->all()), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+    $csrfToken = $_SESSION['csrf_token'] ?? '';
+    require __DIR__ . '/app/Views/roles_view.php';
     exit;
 }
 

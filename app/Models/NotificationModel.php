@@ -14,7 +14,7 @@ class NotificationModel
 
     // ── Fan-out (notification_recipients) ───────────────────
     //
-    // "Who can see what" (target_all_users ∪ category_access ∪ tool_access) used to be
+    // "Who can see what" (target_all_users ∪ the user's access-role categories ∪ role tools) used to be
     // computed live, via a 3-branch UNION, on every single read (every bell poll, every
     // history page load, for every user). That's a fan-out-on-read design applied to a
     // fan-out-on-write-shaped workload: notifications are created rarely (an admin action)
@@ -61,12 +61,14 @@ class NotificationModel
         DB::run(
             'INSERT INTO notification_recipients (notification_id, user_id, created_at)
              SELECT :nid1, x.user_id, :created_at FROM (
-                 SELECT ca.user_id FROM category_access ca
-                   JOIN notification_badges nb ON nb.category_id = ca.category_id
+                 SELECT u.id AS user_id FROM users u
+                   JOIN role_category_access rca ON rca.role_id = u.access_role_id
+                   JOIN notification_badges nb ON nb.category_id = rca.category_id
                   WHERE nb.notification_id = :nid2
                  UNION
-                 SELECT ta.user_id FROM tool_access ta
-                   JOIN tools t ON t.id = ta.tool_id
+                 SELECT u2.id AS user_id FROM users u2
+                   JOIN role_tool_access rta ON rta.role_id = u2.access_role_id
+                   JOIN tools t ON t.id = rta.tool_id
                    JOIN notification_badges nb2 ON nb2.category_id = t.category_id
                   WHERE nb2.notification_id = :nid3
              ) x',
@@ -78,11 +80,11 @@ class NotificationModel
     }
 
     /**
-     * Full recompute of what ONE user can see — call after their category_access/
-     * tool_access changes, after a new user is created (to seed target_all_users rows —
-     * those apply regardless of account age, same as the old live query had no
-     * user-creation-date filter), or after a tool's category/access changes affect
-     * whichever users hold tool_access to it.
+     * Full recompute of what ONE user can see — call after their access role changes
+     * (or their role's grants are edited), after a new user is created (to seed
+     * target_all_users rows — those apply regardless of account age, same as the old
+     * live query had no user-creation-date filter), or after a tool's category changes
+     * affect the users whose role grants that tool.
      */
     public function refreshRecipientsForUser(int $userId): void
     {
@@ -94,12 +96,14 @@ class NotificationModel
              UNION
              SELECT n.id, :uid2, n.created_at FROM notifications n
                JOIN notification_badges nb ON nb.notification_id = n.id
-               JOIN category_access ca ON ca.category_id = nb.category_id AND ca.user_id = :uid3
+               JOIN role_category_access rca ON rca.category_id = nb.category_id
+               JOIN users u ON u.access_role_id = rca.role_id AND u.id = :uid3
              UNION
              SELECT n.id, :uid4, n.created_at FROM notifications n
                JOIN notification_badges nb2 ON nb2.notification_id = n.id
                JOIN tools t ON t.category_id = nb2.category_id
-               JOIN tool_access ta ON ta.tool_id = t.id AND ta.user_id = :uid5',
+               JOIN role_tool_access rta ON rta.tool_id = t.id
+               JOIN users u2 ON u2.access_role_id = rta.role_id AND u2.id = :uid5',
             [':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId, ':uid4' => $userId, ':uid5' => $userId]
         );
     }

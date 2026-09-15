@@ -5,8 +5,8 @@ declare(strict_types=1);
 // 66_notification_recipients_fanout.php — the notification_recipients materialized
 // table (fan-out-on-write; see NotificationModel::refreshRecipientsForNotification/
 // refreshRecipientsForUser) must stay in sync with every mutation that can change
-// notification visibility: new users, access grants/revokes, tool re-categorization,
-// and category deletion. A drift here is a correctness/security regression (a user
+// notification visibility: new users, role edits, user role changes, tool
+// re-categorization, and category deletion. A drift here is a correctness/security regression (a user
 // seeing — or failing to see — notifications they shouldn't/should), so this is
 // checked directly against the DB, not just via API responses.
 // ═══════════════════════════════════════════════════════════
@@ -33,6 +33,7 @@ Assert::test('کاربر تازه‌ساز، اعلان‌های target_all_user
     $res = $admin->postJson('/admin.php?api=add_user', [
         'full_name' => 'کاربر تست', 'username' => $username, 'phone' => '',
         'email' => $username . '@example.com', 'password' => 'NewUser!Pass2026', 'role' => 'user',
+        'access_role_id' => Fixtures::createRole(),
     ]);
     Assert::jsonOk($res, 'ایجاد کاربر باید موفق باشد');
     $newUserId = (int) DB::run('SELECT id FROM users WHERE username=:u', [':u' => $username])->fetchColumn();
@@ -41,9 +42,10 @@ Assert::test('کاربر تازه‌ساز، اعلان‌های target_all_user
 
     DB::run('DELETE FROM notifications WHERE id=:id', [':id' => $broadcastId]);
     DB::run('DELETE FROM users WHERE id=:id', [':id' => $newUserId]);
+    Fixtures::deleteRolesByPrefix();
 });
 
-Assert::test('اعطای category_access → دسترسی به اعلان‌های موجود آن دسته بلافاصله اضافه می‌شود (recipients)', function () use ($BASE, $ACC) {
+Assert::test('ویرایش نقش (افزودن/حذف دسته) → recipients همه اعضا بلافاصله بازمحاسبه می‌شود', function () use ($BASE, $ACC) {
     $categoryName = Fixtures::uniqCategory('cat');
     Fixtures::createTool(['badge' => $categoryName]);
     $admin = admin_http($BASE, $ACC);
@@ -54,24 +56,27 @@ Assert::test('اعطای category_access → دسترسی به اعلان‌ها
     Assert::jsonOk($notifRes, 'ایجاد اعلان دسته‌بندی‌شده باید موفق باشد');
     $notifId = (int) ($notifRes['json']['id'] ?? 0);
 
+    $roleId = Fixtures::createRole();
+    $roleName = (string) DB::run('SELECT name FROM access_roles WHERE id=:id', [':id' => $roleId])->fetchColumn();
     $uid = Fixtures::createUser();
+    Fixtures::assignRole($uid, $roleId);
     Assert::true(!recipientRow($notifId, $uid), 'قبل از دسترسی، کاربر نباید رکورد recipient داشته باشد');
 
-    $setRes = $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [], 'badges' => [$categoryName]]);
-    Assert::jsonOk($setRes, 'set_access باید موفق باشد');
-    Assert::true(recipientRow($notifId, $uid), 'بعد از اعطای category_access، رکورد recipient باید بلافاصله اضافه شده باشد');
+    $setRes = $admin->postJson('/admin.php?api=save_access_role', ['id' => $roleId, 'name' => $roleName, 'badges' => [$categoryName]]);
+    Assert::jsonOk($setRes, 'افزودن دسته به نقش باید موفق باشد');
+    Assert::true(recipientRow($notifId, $uid), 'بعد از افزودن دسته به نقش، رکورد recipient عضو باید بلافاصله اضافه شده باشد');
 
     // revoke → must disappear immediately too (access-control correctness, not just addition)
-    $revokeRes = $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [], 'badges' => []]);
-    Assert::jsonOk($revokeRes, 'لغو دسترسی باید موفق باشد');
-    Assert::true(!recipientRow($notifId, $uid), 'بعد از لغو category_access، رکورد recipient باید بلافاصله حذف شده باشد');
+    $revokeRes = $admin->postJson('/admin.php?api=save_access_role', ['id' => $roleId, 'name' => $roleName, 'badges' => []]);
+    Assert::jsonOk($revokeRes, 'حذف دسته از نقش باید موفق باشد');
+    Assert::true(!recipientRow($notifId, $uid), 'بعد از حذف دسته از نقش، رکورد recipient عضو باید بلافاصله حذف شده باشد');
 
     DB::run('DELETE FROM notifications WHERE id=:id', [':id' => $notifId]);
     Fixtures::deleteUsersByPrefix(false);
     Fixtures::deleteToolsByPrefix();
 });
 
-Assert::test('تغییر دسته‌بندی یک ابزار → recipients کاربران دارای tool_access به آن ابزار بازمحاسبه می‌شود', function () use ($BASE, $ACC) {
+Assert::test('تغییر دسته‌بندی یک ابزار → recipients کاربرانی که نقششان آن ابزار را دارد بازمحاسبه می‌شود', function () use ($BASE, $ACC) {
     $catA = Fixtures::uniqCategory('catA');
     $catB = Fixtures::uniqCategory('catB');
     $toolId = Fixtures::createTool(['badge' => $catA]);
@@ -94,10 +99,9 @@ Assert::test('تغییر دسته‌بندی یک ابزار → recipients کا
     $notifBId = (int) ($notifB['json']['id'] ?? 0);
 
     $uid = Fixtures::createUser();
-    $setRes = $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [$toolId], 'badges' => []]);
-    Assert::jsonOk($setRes, 'set_access (tool_access) باید موفق باشد');
+    Fixtures::assignRole($uid, Fixtures::createRole([], [$toolId]));
 
-    Assert::true(recipientRow($notifAId, $uid), 'قبل از تغییر دسته، کاربر باید اعلان دسته A را ببیند (از طریق tool_access)');
+    Assert::true(recipientRow($notifAId, $uid), 'قبل از تغییر دسته، کاربر باید اعلان دسته A را ببیند (از طریق ابزار مستقیم در نقش)');
     Assert::true(!recipientRow($notifBId, $uid), 'قبل از تغییر دسته، کاربر نباید اعلان دسته B را ببیند');
 
     // re-categorize the tool from catA to catB
@@ -130,7 +134,7 @@ Assert::test('حذف یک دسته‌بندی (بدون ابزار متصل) →
     $notifId = (int) ($notifRes['json']['id'] ?? 0);
 
     $uid = Fixtures::createUser();
-    $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [], 'badges' => [$categoryName]]);
+    Fixtures::assignRole($uid, Fixtures::createRole([$categoryName]));
     Assert::true(recipientRow($notifId, $uid), 'قبل از حذف دسته، کاربر باید اعلان را ببیند');
 
     // the tool must be deleted/recategorized first — a category still in use can't be deleted

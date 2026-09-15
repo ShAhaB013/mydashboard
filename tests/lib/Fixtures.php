@@ -121,7 +121,6 @@ class Fixtures
         $ids = DB::run("SELECT id FROM tools WHERE title LIKE :p", [':p' => self::PREFIX . '%'])->fetchAll();
         $n = 0;
         foreach ($ids as $row) {
-            DB::run('DELETE FROM tool_access WHERE tool_id = :id', [':id' => $row['id']]);
             DB::run('DELETE FROM tools WHERE id = :id', [':id' => $row['id']]);
             $n++;
         }
@@ -138,8 +137,6 @@ class Fixtures
         $n = 0;
         foreach ($rows as $row) {
             $id = (int) $row['id'];
-            DB::run('DELETE FROM category_access WHERE user_id = :id', [':id' => $id]);
-            DB::run('DELETE FROM tool_access WHERE user_id = :id', [':id' => $id]);
             DB::run('DELETE FROM notification_reads WHERE user_id = :id', [':id' => $id]);
             DB::run('DELETE FROM sessions WHERE user_id = :id', [':id' => $id]);
             DB::run('DELETE FROM users WHERE id = :id', [':id' => $id]);
@@ -178,11 +175,39 @@ class Fixtures
         return $n;
     }
 
+    /**
+     * Creates an access role (name gets the fixture prefix) through AccessRoleModel::save(),
+     * so category-name whitelisting and member recompute behave exactly like the API.
+     */
+    public static function createRole(array $badges = [], array $toolIds = [], array $hiddenMenus = []): int
+    {
+        return (new AccessRoleModel())->save(0, self::uniq('role'), 'fixture', $badges, $toolIds, $hiddenMenus);
+    }
+
+    /** Puts a user in a role and recomputes their notification visibility (same as edit_user does) */
+    public static function assignRole(int $userId, ?int $roleId): void
+    {
+        DB::run('UPDATE users SET access_role_id = :r WHERE id = :id', [':r' => $roleId, ':id' => $userId]);
+        (new NotificationModel())->refreshRecipientsForUser($userId);
+    }
+
+    /** Deletes fixture roles; any remaining member (e.g. a fixed test account) is detached first */
+    public static function deleteRolesByPrefix(): int
+    {
+        $ids = array_column(DB::run('SELECT id FROM access_roles WHERE name LIKE :p', [':p' => self::PREFIX . '%'])->fetchAll(), 'id');
+        foreach ($ids as $id) {
+            DB::run('UPDATE users SET access_role_id = NULL WHERE access_role_id = :id', [':id' => $id]);
+            DB::run('DELETE FROM access_roles WHERE id = :id', [':id' => $id]);
+        }
+        return count($ids);
+    }
+
     public static function sweepAll(): array
     {
         return [
             'tools'         => self::deleteToolsByPrefix(),
             'users'         => self::deleteUsersByPrefix(false),
+            'roles'         => self::deleteRolesByPrefix(),
             'notifications' => self::deleteNotificationsByPrefix(),
             'rate_limits'   => self::deleteSyntheticRateLimits(),
         ];

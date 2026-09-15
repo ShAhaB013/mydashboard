@@ -28,7 +28,6 @@ if (($argv[1] ?? '') === '--cleanup') {
     }
     $userRow = Fixtures::findUserByUsername(SCALE_USER);
     if ($userRow) {
-        DB::run('DELETE FROM category_access WHERE user_id = :id', [':id' => $userRow['id']]);
         DB::run('DELETE FROM notification_reads WHERE user_id = :id', [':id' => $userRow['id']]);
         DB::run('DELETE FROM users WHERE id = :id', [':id' => $userRow['id']]);
     }
@@ -43,8 +42,11 @@ $batchSize = 1000;
 echo "ساخت کاربر synthetic و دسترسی badge...\n";
 $scaleUserId = Fixtures::ensureFixedAccount(SCALE_USER, 'ZzTest!Scale2026!', 'user', 1);
 $badgeCategoryId = (new CategoryModel())->findOrCreateByName(BADGE);
-DB::run('DELETE FROM category_access WHERE user_id = :id', [':id' => $scaleUserId]);
-DB::run('INSERT INTO category_access (user_id, category_id) VALUES (:uid, :cid)', [':uid' => $scaleUserId, ':cid' => $badgeCategoryId]);
+// The synthetic user reaches BADGE notifications through a fixture access role holding that category
+// (inserted directly: AccessRoleModel::save() only accepts categories that some tool carries)
+$scaleRoleId = Fixtures::createRole();
+DB::run('INSERT IGNORE INTO role_category_access (role_id, category_id) VALUES (:r, :c)', [':r' => $scaleRoleId, ':c' => $badgeCategoryId]);
+Fixtures::assignRole($scaleUserId, $scaleRoleId);
 
 echo "درج {$total} اعلان مصنوعی در دسته‌های {$batchSize} تایی...\n";
 

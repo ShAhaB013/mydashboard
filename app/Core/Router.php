@@ -12,7 +12,7 @@ class Router
     private IconController         $iconCtrl;
     private DecoController         $decoCtrl;
     private UserController         $userCtrl;
-    private AccessController       $accessCtrl;
+    private AccessRoleController   $accessRoleCtrl;
     private NotificationController $notifCtrl;
     private SettingsController     $settingsCtrl;
     private SessionController      $sessionCtrl;
@@ -48,10 +48,10 @@ class Router
         'list_blocks'   => [UserController::class,         'listBlocks'],
         'unblock_ip'    => [UserController::class,         'unblockIp'],
 
-        // ── access ───────────────────────────────────────────
-        'get_access'    => [AccessController::class,       'get'],
-        'set_access'    => [AccessController::class,       'set'],
-        'badges'        => [AccessController::class,       'listBadges'],
+        // ── access roles ─────────────────────────────────────
+        'list_access_roles'  => [AccessRoleController::class, 'list'],
+        'save_access_role'   => [AccessRoleController::class, 'save'],
+        'delete_access_role' => [AccessRoleController::class, 'delete'],
 
         // ── notifications ────────────────────────────────────
         'list_notifications'          => [NotificationController::class, 'list'],
@@ -97,7 +97,7 @@ class Router
         IconController         $iconCtrl,
         DecoController         $decoCtrl,
         UserController         $userCtrl,
-        AccessController       $accessCtrl,
+        AccessRoleController   $accessRoleCtrl,
         NotificationController $notifCtrl,
         SettingsController     $settingsCtrl,
         SessionController      $sessionCtrl,
@@ -110,7 +110,7 @@ class Router
         $this->iconCtrl     = $iconCtrl;
         $this->decoCtrl     = $decoCtrl;
         $this->userCtrl     = $userCtrl;
-        $this->accessCtrl   = $accessCtrl;
+        $this->accessRoleCtrl = $accessRoleCtrl;
         $this->notifCtrl    = $notifCtrl;
         $this->settingsCtrl = $settingsCtrl;
         $this->sessionCtrl  = $sessionCtrl;
@@ -140,7 +140,7 @@ class Router
             IconController::class         => $this->iconCtrl,
             DecoController::class         => $this->decoCtrl,
             UserController::class         => $this->userCtrl,
-            AccessController::class       => $this->accessCtrl,
+            AccessRoleController::class   => $this->accessRoleCtrl,
             NotificationController::class => $this->notifCtrl,
             SettingsController::class     => $this->settingsCtrl,
             SessionController::class      => $this->sessionCtrl,

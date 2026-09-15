@@ -7,12 +7,12 @@ $ACC  = $cfg['test']['accounts'];
 
 Assert::group('39_tool_access_visibility');
 
-// Cards have no public/private flag — a non-admin user only sees a card via
-// tool_access (direct grant) or category_access (grant on the card's category).
+// Cards have no public/private flag — a user only sees a card through their access role:
+// a direct tool grant (role_tool_access) or a grant on the card's category (role_category_access).
 $categoryName = Fixtures::uniq('cat');
 $toolId       = Fixtures::createTool(['badge' => $categoryName]);
 
-Assert::test('کاربر بدون tool_access و بدون category_access → کارت را نمی‌بیند', function () use ($BASE, $toolId) {
+Assert::test('کاربر بدون نقش دسترسی → کارت را نمی‌بیند', function () use ($BASE, $toolId) {
     $uid = Fixtures::createUser();
     $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
     $http = new HttpClient($BASE);
@@ -23,11 +23,9 @@ Assert::test('کاربر بدون tool_access و بدون category_access → ک
     Assert::true(!in_array($toolId, $ids, true), 'کاربر بدون هیچ دسترسی‌ای نباید کارت را ببیند');
 });
 
-Assert::test('کاربری که فقط tool_access مستقیم دارد (بدون category_access) → کارت را می‌بیند', function () use ($BASE, $ACC, $toolId) {
+Assert::test('کاربری که نقشش فقط همین ابزار را مستقیم دارد (بدون دسته) → کارت را می‌بیند', function () use ($BASE, $toolId) {
     $uid = Fixtures::createUser();
-    $admin = admin_http($BASE, $ACC);
-    $setRes = $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [$toolId], 'badges' => []]);
-    Assert::jsonOk($setRes, 'set_access (فقط tool_access) باید موفق باشد');
+    Fixtures::assignRole($uid, Fixtures::createRole([], [$toolId]));
 
     $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
     $http = new HttpClient($BASE);
@@ -35,14 +33,12 @@ Assert::test('کاربری که فقط tool_access مستقیم دارد (بدو
     $res = $http->get('/api.php?action=tools');
     Assert::jsonOk($res, 'tools باید ok:true بدهد');
     $ids = array_map(fn($t) => (int) $t['id'], $res['json']['tools'] ?? []);
-    Assert::true(in_array($toolId, $ids, true), 'کاربر با tool_access مستقیم باید کارت را ببیند');
+    Assert::true(in_array($toolId, $ids, true), 'کاربر با ابزار مستقیم در نقشش باید کارت را ببیند');
 });
 
-Assert::test('کاربری که فقط category_access گروهی دارد (بدون tool_access) → کارت را می‌بیند', function () use ($BASE, $ACC, $toolId, $categoryName) {
+Assert::test('کاربری که نقشش فقط دسته این ابزار را دارد (بدون ابزار مستقیم) → کارت را می‌بیند', function () use ($BASE, $toolId, $categoryName) {
     $uid = Fixtures::createUser();
-    $admin = admin_http($BASE, $ACC);
-    $setRes = $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [], 'badges' => [$categoryName]]);
-    Assert::jsonOk($setRes, 'set_access (فقط category_access) باید موفق باشد');
+    Fixtures::assignRole($uid, Fixtures::createRole([$categoryName]));
 
     $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
     $http = new HttpClient($BASE);
@@ -50,12 +46,11 @@ Assert::test('کاربری که فقط category_access گروهی دارد (بد
     $res = $http->get('/api.php?action=tools');
     Assert::jsonOk($res, 'tools باید ok:true بدهد');
     $ids = array_map(fn($t) => (int) $t['id'], $res['json']['tools'] ?? []);
-    Assert::true(in_array($toolId, $ids, true), 'کاربر با category_access گروهی باید کارت را ببیند');
+    Assert::true(in_array($toolId, $ids, true), 'کاربر با دسته در نقشش باید کارت را ببیند');
 });
 
-// Admins are not exempt from the access tables any more: their dashboard grid comes
-// from the same allForUser() query as everyone else, so the access modal can restrict
-// them too. Panel privileges (admin.php) stay untouched — only the cards are filtered.
+// Admins are not exempt from access roles: their dashboard grid comes from the same
+// allForUser() query as everyone else, so a role can restrict them too. Panel privileges (admin.php) stay untouched — only the cards are filtered.
 Assert::test('کاربر مدیر بدون دسترسی به کارت → آن را در داشبورد نمی‌بیند', function () use ($BASE, $toolId) {
     $uid = Fixtures::createUser(['role' => 'admin']);
     $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
@@ -67,11 +62,9 @@ Assert::test('کاربر مدیر بدون دسترسی به کارت → آن �
     Assert::true(!in_array($toolId, $ids, true), 'مدیر بدون دسترسی هم نباید کارت را ببیند');
 });
 
-Assert::test('کاربر مدیر با tool_access → کارت را می‌بیند', function () use ($BASE, $ACC, $toolId) {
+Assert::test('کاربر مدیر با نقشی که این ابزار را دارد → کارت را می‌بیند', function () use ($BASE, $toolId) {
     $uid = Fixtures::createUser(['role' => 'admin']);
-    $admin = admin_http($BASE, $ACC);
-    $setRes = $admin->postJson('/admin.php?api=set_access', ['user_id' => $uid, 'tool_ids' => [$toolId], 'badges' => []]);
-    Assert::jsonOk($setRes, 'set_access برای کاربر مدیر باید موفق باشد');
+    Fixtures::assignRole($uid, Fixtures::createRole([], [$toolId]));
 
     $row = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
     $http = new HttpClient($BASE);
@@ -79,8 +72,9 @@ Assert::test('کاربر مدیر با tool_access → کارت را می‌بی
     $res = $http->get('/api.php?action=tools');
     Assert::jsonOk($res, 'tools باید ok:true بدهد');
     $ids = array_map(fn($t) => (int) $t['id'], $res['json']['tools'] ?? []);
-    Assert::true(in_array($toolId, $ids, true), 'مدیر با tool_access باید کارت را ببیند');
+    Assert::true(in_array($toolId, $ids, true), 'مدیر با ابزار در نقشش باید کارت را ببیند');
 });
 
-Fixtures::deleteToolsByPrefix();
 Fixtures::deleteUsersByPrefix(false);
+Fixtures::deleteRolesByPrefix();
+Fixtures::deleteToolsByPrefix();

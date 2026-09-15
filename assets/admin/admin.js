@@ -113,7 +113,8 @@ const FieldErr = {
       el.addEventListener('input', clr);
       el.addEventListener('change', clr);
     }
-    el.focus();
+    // A CustomSelect hides its native <select> (unfocusable) — focus the visible trigger instead
+    (el._csWrap ? el._csWrap.querySelector('.cselect-trigger') : el).focus();
     return false;
   },
   clear(inputId) {
@@ -352,6 +353,9 @@ const UserManager = {
          </span>`
       : '';
     const statusPill = `<span class="user-status-pill ${u.is_active ? 'active' : 'inactive'}">${u.is_active ? 'فعال' : 'غیرفعال'}</span>`;
+    const accessRole = u.access_role_name
+      ? `<span class="user-access-role" title="نقش دسترسی">${esc(u.access_role_name)}</span>`
+      : '<span class="user-access-role is-missing" title="این کاربر نقش دسترسی ندارد و هیچ ابزاری نمی‌بیند">بدون نقش</span>';
     const sessDot = u.session_count ? `<span class="sess-count-dot">${(u.session_count).toLocaleString('en-US')}</span>` : '';
 
     row.innerHTML = `
@@ -363,16 +367,10 @@ const UserManager = {
         <p style="direction:ltr;text-align:right;">${esc(u.email || u.phone || '—')}</p>
       </div>
       <div class="user-row-meta">
+        ${accessRole}
         ${statusPill}
       </div>
       <div class="user-row-actions">
-        <button class="btn btn-secondary btn-icon btn-sm" title="تنظیم دسترسی"
-          data-act="accessOpen" data-id="${u.id}" data-name="${esc(name)}" data-role="${esc(u.role || 'user')}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-          </svg>
-        </button>
         <span class="sess-user-wrap">
           <button class="btn btn-secondary btn-icon btn-sm" title="نشست‌های فعال"
             data-act="sessOpenUser" data-id="${u.id}" data-name="${esc(name)}">
@@ -390,8 +388,7 @@ const UserManager = {
           data-phone="${esc(u.phone || '')}"
           data-email="${esc(u.email || '')}"
           data-role="${esc(u.role || 'user')}"
-          data-can-view-profile="${u.can_view_profile === false ? 0 : 1}"
-          data-can-view-notifications="${u.can_view_notifications === false ? 0 : 1}">
+          data-access-role-id="${u.access_role_id || ''}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -646,8 +643,8 @@ const UserManager = {
     this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = 'user'; CustomSelect.refresh(roleSel); }
-    document.getElementById('editCanViewProfile').checked = true;
-    document.getElementById('editCanViewNotifications').checked = true;
+    const accessRoleSel = document.getElementById('editAccessRole');
+    if (accessRoleSel) { accessRoleSel.value = ''; CustomSelect.refresh(accessRoleSel); }
     const sendCredsField = document.getElementById('sendCredsField');
     if (sendCredsField) sendCredsField.hidden = false;
     const sendCredsBox = document.getElementById('editSendCredentials');
@@ -661,7 +658,7 @@ const UserManager = {
     this._dirty = false;
     setTimeout(() => document.getElementById('editFullName').focus(), 100);
   },
-  openEdit(id, fullName, username, phone, email, role, canViewProfile = true, canViewNotifications = true) {
+  openEdit(id, fullName, username, phone, email, role, accessRoleId = '') {
     this._wireDirty();
     this._isAdd = false;
     document.getElementById('userModalTitle').textContent = 'ویرایش کاربر';
@@ -677,8 +674,8 @@ const UserManager = {
     this._resetPassRules();
     const roleSel = document.getElementById('editUserRole');
     if (roleSel) { roleSel.value = (role === 'admin') ? 'admin' : 'user'; CustomSelect.refresh(roleSel); }
-    document.getElementById('editCanViewProfile').checked = !!canViewProfile;
-    document.getElementById('editCanViewNotifications').checked = !!canViewNotifications;
+    const accessRoleSel = document.getElementById('editAccessRole');
+    if (accessRoleSel) { accessRoleSel.value = String(accessRoleId || ''); CustomSelect.refresh(accessRoleSel); }
     const sendCredsField = document.getElementById('sendCredsField');
     if (sendCredsField) sendCredsField.hidden = true;
     Counter.update('editFullName', 60);
@@ -700,22 +697,22 @@ const UserManager = {
     const email    = document.getElementById('editEmail').value.trim();
     const password = document.getElementById('editUserPassword').value;
     const role     = document.getElementById('editUserRole')?.value || 'user';
-    const canViewProfile       = document.getElementById('editCanViewProfile').checked;
-    const canViewNotifications = document.getElementById('editCanViewNotifications').checked;
-    const sendCredentials      = isAdd && (document.getElementById('editSendCredentials')?.checked || false);
+    const accessRoleId    = parseInt(document.getElementById('editAccessRole')?.value || '', 10) || 0;
+    const sendCredentials = isAdd && (document.getElementById('editSendCredentials')?.checked || false);
     if (!fullName) return FieldErr.set('editFullName', 'نام و نام خانوادگی الزامی است');
     if (!username) return FieldErr.set('editUsername', 'نام‌کاربری الزامی است');
     if (!/^[a-zA-Z][a-zA-Z0-9_]{2,59}$/.test(username)) return FieldErr.set('editUsername', 'نام‌کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف/اعداد/underscore باشد');
     if (phone && !/^09\d{9}$/.test(phone)) return FieldErr.set('editPhone', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود');
     if (!email) return FieldErr.set('editEmail', 'ایمیل الزامی است');
     if (!/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(email)) return FieldErr.set('editEmail', 'قالب ایمیل نامعتبر است');
+    if (!accessRoleId) return FieldErr.set('editAccessRole', 'نقش دسترسی را انتخاب کنید');
     if (isAdd && !password) return FieldErr.set('editUserPassword', 'رمز عبور الزامی است');
     if (password && !pwMeetsPolicy(password)) return FieldErr.set('editUserPassword', PW_POLICY_MSG);
 
     const action = isAdd ? 'add_user' : 'edit_user';
     const body   = isAdd
-      ? { full_name: fullName, username, phone, email, password, role, can_view_profile: canViewProfile, can_view_notifications: canViewNotifications, send_credentials: sendCredentials }
-      : { id: parseInt(idVal), full_name: fullName, username, phone, email, password, role, can_view_profile: canViewProfile, can_view_notifications: canViewNotifications };
+      ? { full_name: fullName, username, phone, email, password, role, access_role_id: accessRoleId, send_credentials: sendCredentials }
+      : { id: parseInt(idVal), full_name: fullName, username, phone, email, password, role, access_role_id: accessRoleId };
     const res = await Api.call(action, body);
     if (res.ok) {
       this.close(true);
@@ -732,7 +729,7 @@ const UserManager = {
     } else {
       const fieldId = {
         full_name: 'editFullName', username: 'editUsername', phone: 'editPhone',
-        email: 'editEmail', password: 'editUserPassword',
+        email: 'editEmail', password: 'editUserPassword', access_role_id: 'editAccessRole',
       }[res.field];
       if (fieldId) FieldErr.set(fieldId, res.msg || 'خطا');
       else Toast.show(res.msg || 'خطا', 'error');
@@ -827,202 +824,6 @@ const UserManager = {
     } else {
       Toast.show(res.msg || 'ارسال ناموفق بود', 'error');
     }
-  },
-};
-
-// ═══════════════════════════════════════════════════════════
-// AccessManager
-// ═══════════════════════════════════════════════════════════
-const AccessManager = {
-  _currentUserId: null,
-  _currentBadges: [],
-  _isAdminTarget: false,
-  _dirty: false,
-  _wiredDirty: false,
-  _wireDirty() {
-    if (this._wiredDirty) return;
-    const m = document.getElementById('accessModal');
-    if (!m) return;
-    m.addEventListener('input', () => { this._dirty = true; });
-    m.addEventListener('change', () => { this._dirty = true; });
-    this._wiredDirty = true;
-  },
-  close(force) {
-    if (!force && this._dirty) {
-      Confirm.show({
-        title: 'تغییرات ذخیره نشده',
-        heading: 'تغییرات ذخیره نشده دارید',
-        body: 'آیا تغییرات ذخیره شوند؟',
-        type: 'warning',
-        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-        cancelLabel: 'خیر',
-        btnLabel: 'بله',
-        btnClass: 'btn-primary',
-        onConfirm: () => { Confirm.close(); this.save(); },
-        onCancel: () => { this.close(true); },
-      });
-      return;
-    }
-    this._dirty = false;
-    Modal.close('accessModal');
-  },
-
-  async open(userId, userName, role) {
-    this._wireDirty();
-    this._currentUserId = userId;
-    this._currentBadges = [];
-    this._isAdminTarget = role === 'admin';
-
-    document.getElementById('accessModalTitle').textContent = `تنظیم دسترسی — ${userName}`;
-    document.getElementById('accessUserId').value = userId;
-    const badgesGrid = document.getElementById('accessBadgesGrid');
-    const toolsList  = document.getElementById('accessToolsList');
-    const adminHint  = document.getElementById('accessAdminHint');
-    const saveBtn    = document.getElementById('saveAccessBtn');
-    if (adminHint) adminHint.classList.toggle('show', this._isAdminTarget);
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.removeAttribute('data-tip');
-      saveBtn.title = '';
-    }
-    badgesGrid.innerHTML = SKELETON_BADGE_CHIP.repeat(4);
-    toolsList.innerHTML  = SKELETON_TABLE_ROW.repeat(4);
-    Skeleton.mark(badgesGrid);
-
-    Modal.open('accessModal');
-    this._dirty = false;
-
-    const [badgesRes, accessRes] = await Promise.all([
-      Api.call('badges', {}),
-      Api.call('get_access', { user_id: userId }),
-    ]);
-
-    if (!badgesRes.ok || !accessRes.ok) {
-      Toast.show('خطا در بارگذاری اطلاعات', 'error');
-      return;
-    }
-
-    const availableBadges = badgesRes.badges || [];
-    // Admins are no longer a special case: their dashboard cards come from the same
-    // tool_access/category_access rows as everyone else (AppController::allForUser),
-    // so the stored rows are the truth for every role.
-    const selectedToolIds = accessRes.tool_ids || [];
-    const selectedBadges  = accessRes.badges   || [];
-
-    this._currentBadges = selectedBadges;
-    await Skeleton.wait(badgesGrid);
-    this._render(availableBadges, selectedToolIds, selectedBadges);
-  },
-
-  _render(availableBadges, selectedToolIds, selectedBadges) {
-    const badgesGrid = document.getElementById('accessBadgesGrid');
-    if (!availableBadges.length) {
-      badgesGrid.innerHTML = '<div style="color:var(--text-3);font-size:13px;">هیچ دسته‌بندی‌ای وجود ندارد</div>';
-    } else {
-      badgesGrid.innerHTML = '';
-      availableBadges.forEach(badge => {
-        const checked = selectedBadges.includes(badge);
-        const label = document.createElement('label');
-        label.className = 'access-badge-label';
-        label.innerHTML = `
-          <input type="checkbox" class="access-badge-cb" value="${esc(badge)}" ${checked ? 'checked' : ''}>
-          <span>${esc(badge)}</span>
-        `;
-        label.querySelector('input').addEventListener('change', () => {
-          this._currentBadges = [...document.querySelectorAll('.access-badge-cb:checked')].map(c => c.value);
-          this._updateToolsHighlight();
-        });
-        badgesGrid.appendChild(label);
-      });
-    }
-
-    this._renderTools(selectedToolIds, selectedBadges);
-  },
-
-  _renderTools(selectedToolIds, selectedBadges) {
-    const list = document.getElementById('accessToolsList');
-    list.innerHTML = '';
-
-    if (!TOOLS_RAW.length) {
-      list.innerHTML = '<div style="color:var(--text-3);font-size:13px;">هیچ ابزاری وجود ندارد</div>';
-      return;
-    }
-
-    TOOLS_RAW.forEach(tool => {
-      const inBadge    = selectedBadges.includes(tool.badge || '');
-      const isChecked  = selectedToolIds.includes(tool.id) || inBadge;
-      const isDisabled = inBadge;
-
-      const row = document.createElement('div');
-      row.className = 'access-tool-row';
-      row.dataset.badge = tool.badge || '';
-
-      let statusBadge = '';
-      if (inBadge) statusBadge = '<span class="access-status-badge from-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته</span>';
-
-      row.innerHTML = `
-        <label class="access-tool-label ${isDisabled ? 'disabled' : ''}">
-          <input type="checkbox"
-            class="access-tool-cb"
-            value="${tool.id}"
-            ${isChecked   ? 'checked'  : ''}
-            ${isDisabled  ? 'disabled' : ''}
-          >
-          <span class="access-tool-info">
-            <span class="access-tool-title">${esc(tool.title || '')}</span>
-            ${tool.badge ? `<span class="access-tool-badge">${esc(tool.badge)}</span>` : ''}
-          </span>
-          ${statusBadge}
-        </label>
-      `;
-      list.appendChild(row);
-    });
-  },
-
-  _updateToolsHighlight() {
-    const selectedBadges = this._currentBadges;
-    document.querySelectorAll('.access-tool-row').forEach(row => {
-      const badge    = row.dataset.badge;
-      const inBadge  = badge && selectedBadges.includes(badge);
-      const cb       = row.querySelector('.access-tool-cb');
-      const label    = row.querySelector('.access-tool-label');
-
-      cb.disabled = !!inBadge;
-      if (inBadge) cb.checked = true;
-      label.classList.toggle('disabled', !!inBadge);
-
-      let statusBadge = row.querySelector('.access-status-badge');
-      if (inBadge) {
-        if (!statusBadge) {
-          statusBadge = document.createElement('span');
-          row.querySelector('.access-tool-label').appendChild(statusBadge);
-        }
-        statusBadge.className   = 'access-status-badge from-badge';
-        statusBadge.innerHTML   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>از دسته';
-      } else {
-        statusBadge?.remove();
-      }
-    });
-  },
-
-  async save() {
-    const userId  = parseInt(document.getElementById('accessUserId').value);
-    const toolIds = [...document.querySelectorAll('.access-tool-cb:checked:not(:disabled)')]
-                      .map(cb => parseInt(cb.value));
-    const badges  = [...document.querySelectorAll('.access-badge-cb:checked')]
-                      .map(cb => cb.value);
-
-    const btn = document.getElementById('saveAccessBtn');
-    btn.disabled = true;
-
-    const res = await Api.call('set_access', { user_id: userId, tool_ids: toolIds, badges });
-    if (res.ok) {
-      this.close(true);
-      Toast.show('دسترسی‌ها ذخیره شد', 'success', 'ذخیره موفق');
-    } else {
-      Toast.show(res.msg || 'خطا در ذخیره', 'error');
-    }
-    btn.disabled = false;
   },
 };
 
@@ -1384,11 +1185,9 @@ function saveDecoEdit()             { DecoEditor.save(); }
 function deleteDeco()               { DecoEditor.delete(); }
 function addNewDeco()               { DecoEditor.add(); }
 function refreshDecoPreview()       { DecoEditor.refreshPreview(); }
-function openEditUserModal(id,n,u,p,e,r,cvp,cvn){ UserManager.openEdit(id, n, u, p, e, r, cvp, cvn); }
+function openEditUserModal(id,n,u,p,e,r,ar){ UserManager.openEdit(id, n, u, p, e, r, ar); }
 function toggleUser(id, btn)        { UserManager.toggle(id, btn); }
 function openDeleteUserModal(id, n) { UserManager.openDelete(id, n); }
-function openAccessModal(id, name, role) { AccessManager.open(id, name, role); }
-function saveAccess()               { AccessManager.save(); }
 
 /* ── show/hide password ── */
 function togglePass(inputId, btn) {
@@ -1902,7 +1701,16 @@ const CustomSelect = {
       e.stopPropagation();
       const isOpen = wrap.classList.contains('open');
       document.querySelectorAll('.cselect.open').forEach(w => w.classList.remove('open'));
-      if (!isOpen) wrap.classList.add('open');
+      if (!isOpen) {
+        wrap.classList.remove('drop-up');
+        wrap.classList.add('open');
+        // Open upward when the menu would be clipped by a scrolling modal body (or the viewport)
+        const box   = wrap.closest('.modal-body');
+        const limit = box ? box.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+        const t     = trigger.getBoundingClientRect();
+        const need  = menu.offsetHeight + 6;
+        if (t.bottom + need > limit.bottom && t.top - need >= limit.top) wrap.classList.add('drop-up');
+      }
     });
 
     wrap.appendChild(trigger);
@@ -2003,6 +1811,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target !== o) return;
       if (o.id === 'confirmModal')   { Confirm.cancel(); }
       else if (o.id === 'userModal') { UserManager.close(); }
+      else if (o.id === 'roleModal' && window.RoleManager) { RoleManager.close(); } // dirty-state aware (roles-admin.js)
       else                            { Modal.close(o.id); }
     });
   });
@@ -2015,6 +1824,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const top = open[open.length - 1];
     if (top.id === 'confirmModal')   { Confirm.cancel(); }
     else if (top.id === 'userModal') { UserManager.close(); }
+    else if (top.id === 'roleModal' && window.RoleManager) { RoleManager.close(); }
     else                              { Modal.close(top.id); }
   });
 });
@@ -2028,7 +1838,8 @@ document.addEventListener('DOMContentLoaded', () => {
     + ' .access-tool-label, .deco-opt, .section-box-head, .modal-close,'
     + ' .user-adv-toggle, .user-search-clear, .toast-close, .pass-gen,'
     + ' .log-chip, .log-table-row, .log-table-del, .log-detail-trace-btn,'
-    + ' .log-adv-toggle, .log-sort-btn';
+    + ' .log-adv-toggle, .log-sort-btn,'
+    + ' .access-badge-label, .field-hint-link, .role-chip-more, .role-search-clear, .role-intro-link';
   document.addEventListener('pointerdown', function (e) {
     const btn = e.target.closest(SEL);
     if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
@@ -2098,7 +1909,7 @@ if (window.Actions) {
     userAdd:            () => UserManager.openAdd(),
     userClose:          () => UserManager.close(),
     userSave:           () => UserManager.save(),
-    userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.email, d.role, d.canViewProfile !== '0', d.canViewNotifications !== '0'); },
+    userEdit:           (el) => { const d = el.dataset; openEditUserModal(+d.id, d.name, d.username, d.phone, d.email, d.role, d.accessRoleId); },
     userToggle:         (el) => toggleUser(+el.dataset.id, el),
     userDelete:         (el) => openDeleteUserModal(+el.dataset.id, el.dataset.name),
     userResetSend:      (el) => UserManager.openResetSend(+el.dataset.id, el.dataset.name, el.dataset.email),
@@ -2116,9 +1927,6 @@ if (window.Actions) {
     genUserPassword:    (el) => genUserPassword(el),
     closeModal:         (el) => closeModal(el.dataset.modal),
     // access
-    accessOpen:         (el) => openAccessModal(+el.dataset.id, el.dataset.name, el.dataset.role),
-    accessClose:        () => AccessManager.close(),
-    saveAccess:         () => saveAccess(),
     // sessions
     saveTtl:            () => SessionsManager.saveTtl(),
     sessOpenUser:       (el) => SessionsManager.openUser(+el.dataset.id, el.dataset.name),

@@ -7,36 +7,42 @@ $ACC  = $cfg['test']['accounts'];
 
 Assert::group('33_admin_users_blocks');
 
-Assert::test('add_user با رمز ضعیف → رد می‌شود', function () use ($BASE, $ACC) {
+// Every user needs an access role — one fixture role serves all create/edit calls below
+$ROLE = Fixtures::createRole();
+
+Assert::test('add_user با رمز ضعیف → رد می‌شود', function () use ($BASE, $ACC, $ROLE) {
     $http = admin_http($BASE, $ACC);
     $res = $http->postJson('/admin.php?api=add_user', [
-        'full_name' => 'کاربر تست', 'username' => Fixtures::uniq('u'), 'email' => 'zz@example.com', 'password' => 'weak',
+        'full_name' => 'کاربر تست', 'username' => Fixtures::uniq('u'), 'email' => 'zz@example.com', 'password' => 'weak', 'access_role_id' => $ROLE,
     ]);
     Assert::jsonFail($res, 'رمز ضعیف باید رد شود');
+    Assert::eq('password', $res['json']['field'] ?? null, 'خطا باید مربوط به رمز باشد (field=password)');
 });
 
-Assert::test('add_user با username تکراری → رد می‌شود', function () use ($BASE, $ACC) {
+Assert::test('add_user با username تکراری → رد می‌شود', function () use ($BASE, $ACC, $ROLE) {
     $http = admin_http($BASE, $ACC);
     $username = Fixtures::uniq('dup');
-    $body = ['full_name' => 'کاربر تست', 'username' => $username, 'email' => $username . '@example.com', 'password' => 'ZzTest!Dup2026'];
+    $body = ['full_name' => 'کاربر تست', 'username' => $username, 'email' => $username . '@example.com', 'password' => 'ZzTest!Dup2026', 'access_role_id' => $ROLE];
     $res1 = $http->postJson('/admin.php?api=add_user', $body);
     Assert::jsonOk($res1, 'ساخت اول باید موفق باشد');
     $res2 = $http->postJson('/admin.php?api=add_user', $body);
     Assert::jsonFail($res2, 'username تکراری باید رد شود');
 });
 
-Assert::test('add_user معتبر → ردیف واقعا در DB ساخته می‌شود', function () use ($BASE, $ACC) {
+Assert::test('add_user معتبر → ردیف واقعا در DB ساخته می‌شود', function () use ($BASE, $ACC, $ROLE) {
     $http = admin_http($BASE, $ACC);
     $username = Fixtures::uniq('new');
     $res = $http->postJson('/admin.php?api=add_user', [
         'full_name' => 'کاربر جدید', 'username' => $username, 'email' => $username . '@example.com', 'password' => 'ZzTest!New2026',
+        'access_role_id' => $ROLE,
     ]);
     Assert::jsonOk($res, 'add_user معتبر باید موفق باشد');
     $row = Fixtures::findUserByUsername($username);
     Assert::true($row !== null, 'کاربر باید در DB ساخته شده باشد');
+    Assert::eq($ROLE, (int) ($row['access_role_id'] ?? 0), 'نقش دسترسی انتخاب‌شده باید روی کاربر ذخیره شود');
 });
 
-Assert::test('edit_user گارد ضدقفل‌شدن: آخرین ادمین فعال نمی‌تواند تنزل داده شود', function () use ($BASE, $ACC) {
+Assert::test('edit_user گارد ضدقفل‌شدن: آخرین ادمین فعال نمی‌تواند تنزل داده شود', function () use ($BASE, $ACC, $ROLE) {
     $http = admin_http($BASE, $ACC);
     // Note: zztest_admin might not be the only active admin, so we can't just assume a third admin exists.
     // Instead, this test checks directly against the zztest_admin account itself: if it is the DB's only active admin, the guard must kick in.
@@ -48,12 +54,12 @@ Assert::test('edit_user گارد ضدقفل‌شدن: آخرین ادمین فع
     }
     $res = $http->postJson('/admin.php?api=edit_user', [
         'id' => $adminRow['id'], 'full_name' => 'ادمین تست', 'username' => $adminRow['username'],
-        'email' => $adminRow['email'] ?: 'zzadmin@example.com', 'role' => 'user',
+        'email' => $adminRow['email'] ?: 'zzadmin@example.com', 'role' => 'user', 'access_role_id' => $ROLE,
     ]);
     Assert::jsonFail($res, 'تنزل تنها ادمین فعال باید رد شود');
 });
 
-Assert::test('edit_user با username جدید → واقعا در DB ذخیره می‌شود', function () use ($BASE, $ACC) {
+Assert::test('edit_user با username جدید → واقعا در DB ذخیره می‌شود', function () use ($BASE, $ACC, $ROLE) {
     $http = admin_http($BASE, $ACC);
     $uid = Fixtures::createUser(['email' => Fixtures::uniq('edituser') . '@example.com']);
     $existing = DB::run('SELECT first_name, last_name, email FROM users WHERE id=:id', [':id' => $uid])->fetch();
@@ -63,13 +69,14 @@ Assert::test('edit_user با username جدید → واقعا در DB ذخیره
         'full_name' => trim($existing['first_name'] . ' ' . $existing['last_name']),
         'username' => $newUsername,
         'email' => $existing['email'],
+        'access_role_id' => $ROLE,
     ]);
     Assert::jsonOk($res, 'edit_user با username معتبر باید موفق باشد');
     $after = DB::run('SELECT username FROM users WHERE id=:id', [':id' => $uid])->fetch();
     Assert::eq($newUsername, $after['username'], 'username باید واقعا در DB به‌روزرسانی شده باشد');
 });
 
-Assert::test('edit_user با username تکراری کاربر دیگر → رد می‌شود', function () use ($BASE, $ACC) {
+Assert::test('edit_user با username تکراری کاربر دیگر → رد می‌شود', function () use ($BASE, $ACC, $ROLE) {
     $http = admin_http($BASE, $ACC);
     $uid1 = Fixtures::createUser();
     $uid2 = Fixtures::createUser(['email' => Fixtures::uniq('edituser2') . '@example.com']);
@@ -80,7 +87,9 @@ Assert::test('edit_user با username تکراری کاربر دیگر → رد 
         'full_name' => trim($row2['first_name'] . ' ' . $row2['last_name']),
         'username' => $row1['username'],
         'email' => $row2['email'],
+        'access_role_id' => $ROLE,
     ]);
+    Assert::eq('username', $res['json']['field'] ?? null, 'خطا باید مربوط به نام‌کاربری باشد');
     Assert::jsonFail($res, 'username تکراری هنگام ویرایش باید رد شود');
 });
 
@@ -125,3 +134,4 @@ Assert::test('unblock_ip با IP نامعتبر → رد می‌شود', functio
 
 Fixtures::deleteUsersByPrefix(false);
 Fixtures::deleteSyntheticRateLimits();
+Fixtures::deleteRolesByPrefix();

@@ -68,8 +68,8 @@ class AppController
         ];
 
         // tools — the dashboard grid is access-driven for EVERY role, admins included:
-        // an admin's cards come from their own tool_access/category_access rows, so the
-        // access modal can restrict them too. Panel privileges (admin.php) are unaffected.
+        // an admin's cards come from their own access role, like everyone else, so a
+        // role can restrict them too. Panel privileges (admin.php) are unaffected.
         $toolModel = new ToolModel();
         $isAdmin   = ($_SESSION['role'] ?? 'user') === 'admin';
         $toolRows  = $toolModel->allForUser(UserSession::id());

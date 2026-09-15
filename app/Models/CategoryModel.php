@@ -63,7 +63,7 @@ class CategoryModel
      * Every category (including ones with zero tools — "orphans" left behind when a
      * category's last tool is deleted/recategorized, since there is no cascading
      * cleanup for that) with counts of what still references it, for the category
-     * management page. tool_count=0 rows are the ones a category_access/notification_badges
+     * management page. tool_count=0 rows are the ones a role_category_access/notification_badges
      * grant could be silently pointing at with no tool left to make it discoverable
      * anywhere else in the admin UI.
      */
@@ -72,11 +72,12 @@ class CategoryModel
         return DB::run(
             'SELECT c.id, c.name,
                     COUNT(DISTINCT t.id)   AS tool_count,
-                    COUNT(DISTINCT ca.user_id)          AS access_count,
+                    COUNT(DISTINCT u.id)                AS access_count,
                     COUNT(DISTINCT nb.notification_id)  AS notification_count
              FROM categories c
              LEFT JOIN tools t                ON t.category_id = c.id
-             LEFT JOIN category_access ca      ON ca.category_id = c.id
+             LEFT JOIN role_category_access rca ON rca.category_id = c.id
+             LEFT JOIN users u                ON u.access_role_id = rca.role_id
              LEFT JOIN notification_badges nb  ON nb.category_id = c.id
              GROUP BY c.id, c.name
              ORDER BY c.name ASC'
@@ -101,11 +102,11 @@ class CategoryModel
 
     /**
      * Delete a category — only allowed when no tool currently carries it (a category still
-     * in use should be cleared via its tools, not deleted out from under them). category_access
+     * in use should be cleared via its tools, not deleted out from under them). role_category_access
      * and notification_badges rows referencing it are cleaned up automatically by the FK
      * ON DELETE CASCADE set up in the categories migration.
      *
-     * Since no tool may carry this category (checked above), the tool_access visibility path
+     * Since no tool may carry this category (checked above), the role-tool visibility path
      * can never have matched it anyway — the only notifications affected are the ones that had
      * it as a direct badge, which cascade-delete along with the category. Those notifications'
      * notification_recipients rows need a fresh recompute (their badge set just shrank).

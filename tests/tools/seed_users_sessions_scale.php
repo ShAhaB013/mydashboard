@@ -28,8 +28,6 @@ if (($argv[1] ?? '') === '--cleanup') {
             DB::run("DELETE FROM sessions WHERE user_id IN ($in)");
             DB::run("DELETE FROM notification_recipients WHERE user_id IN ($in)");
             DB::run("DELETE FROM notification_reads WHERE user_id IN ($in)");
-            DB::run("DELETE FROM category_access WHERE user_id IN ($in)");
-            DB::run("DELETE FROM tool_access WHERE user_id IN ($in)");
             DB::run("DELETE FROM users WHERE id IN ($in)");
         }
     }
