@@ -1752,7 +1752,12 @@ html.is-scrolling .card-deco-wrap * { animation-play-state: paused !important; }
    nothing while closed) and, once open, its blur is computed once over a
    background whose animations are already paused. Only the ::before tint, a
    plain colour with no filter, fades. On close the blur is dropped after the
-   tint has faded (the 0s transition delay) so it doesn't pop away early. */
+   tint has faded (the 0s transition delay) so it doesn't pop away early.
+
+   Opening timing matters: the blur arrives instantly (animating it costs a ~180ms
+   stall even on a fast GPU), so the tint has to catch up with it — at the old 0.22s
+   the page snapped blurry a fifth of a second before it dimmed, which reads as a
+   hitch on click. 0.11s in, the slower 0.18s out. */
 .pop-backdrop {
   position: fixed;
   inset: 0;
@@ -1761,7 +1766,7 @@ html.is-scrolling .card-deco-wrap * { animation-play-state: paused !important; }
   -webkit-backdrop-filter: blur(0px);
   visibility: hidden;
   pointer-events: none;
-  transition: visibility 0s linear 0.22s, backdrop-filter 0s linear 0.22s;
+  transition: visibility 0s linear 0.18s, backdrop-filter 0s linear 0.18s;
 }
 .pop-backdrop::before {
   content: '';
@@ -1769,7 +1774,7 @@ html.is-scrolling .card-deco-wrap * { animation-play-state: paused !important; }
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   opacity: 0;
-  transition: opacity 0.22s ease;
+  transition: opacity 0.18s ease;
 }
 .pop-backdrop.open {
   visibility: visible;
@@ -1778,7 +1783,7 @@ html.is-scrolling .card-deco-wrap * { animation-play-state: paused !important; }
   -webkit-backdrop-filter: blur(6px);
   transition-delay: 0s;
 }
-.pop-backdrop.open::before { opacity: 1; }
+.pop-backdrop.open::before { opacity: 1; transition-duration: 0.11s; }
 /* Freeze the looping card animations while the page is dimmed behind a
    popover — same pattern as body.notif-modal-open / body.tool-modal-open:
    the !important is required to beat calm-mode's hover rule
