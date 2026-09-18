@@ -44,6 +44,7 @@
   --aurora-center:  rgba(255,255,255,0.40);
   --noise-opacity:  0.032;
   --header-bg:      rgba(255,255,255,0.92);
+  --header-bg-solid: rgba(255,255,255,0.985);
   --header-shadow:  rgba(15,23,42,0.06);
 
   /* theme toggle */
@@ -84,6 +85,7 @@
   --aurora-center:  rgba(255,255,255,0.03);
   --noise-opacity:  0.045;
   --header-bg:      rgba(13,17,23,0.90);
+  --header-bg-solid: rgba(13,17,23,0.98);
   --header-shadow:  rgba(0,0,0,0.30);
 
   /* theme toggle */
@@ -173,6 +175,11 @@ html { text-size-adjust: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidde
    scrollbar-gutter). */
 html { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
 html::-webkit-scrollbar { width: 9px; }
+/* While a modal locks the page, the scrollbar's space stays reserved so the
+   content underneath doesn't jump sideways when the bar disappears (the
+   scroll-locked class is set by ScrollLock in actions.js). */
+html.scroll-locked { scrollbar-gutter: stable; }
+
 html::-webkit-scrollbar-track { background: transparent; }
 html::-webkit-scrollbar-thumb {
   background: var(--color-border); border-radius: 999px;
@@ -260,6 +267,19 @@ header, main { position: relative; z-index: 1; }
   border-radius: var(--radius-lg);
   box-shadow: 0 6px 24px var(--header-shadow);
   transition: background 0.4s ease, border-color 0.4s ease,
+              box-shadow 0.28s ease, border-radius 0.28s ease;
+}
+/* The glass header re-blurs whatever moves behind it on every scroll frame, which
+   makes it the most repeated blur on the page. While the page is actually scrolling
+   the blur is dropped and the background goes nearly opaque instead, so the header
+   stays just as readable; the blur returns ~150ms after scrolling stops (script.js
+   owns the is-scrolling class). */
+html.is-scrolling .app-header__inner {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--header-bg-solid);
+  /* the opaque background has to arrive with the blur, not 0.4s later */
+  transition: background 0.12s linear, border-color 0.4s ease,
               box-shadow 0.28s ease, border-radius 0.28s ease;
 }
 /* Stuck state on scroll (script adds the .is-stuck class): top gap removed,
@@ -516,8 +536,6 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   cursor: pointer; position: relative; overflow: hidden;
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition);
   box-shadow: 0 2px 10px rgba(15,23,42,.05);
-  animation: cardIn .3s cubic-bezier(.4,0,.2,1) both;
-
   /* -- Render optimization for large lists -- */
   contain: layout paint style;
   content-visibility: auto;
@@ -539,36 +557,21 @@ main { max-width: 1100px; margin: 40px auto; padding: 0 28px 60px; }
   will-change: transform;
 }
 
-/* Pause SVG animations for cards outside the viewport — saves CPU */
-.card.card--offscreen .card-deco-wrap *,
-.card.card--offscreen .card-corner-deco * {
-  animation-play-state: paused !important;
+/* Deco animation runs on the hovered/focused card only. Animating every card at
+   once is the dashboard's main CPU cost, and it grows with the number of tools;
+   idle cards are frozen on a mid-animation frame (negative animation-delay per
+   deco below) so they still look drawn, not blank. Touch devices, which have no
+   hover, stay still. !important is required: the deco library (data/decos.json)
+   carries animations in inline style attributes, which a normal rule cannot
+   override. SMIL-based decos ignore animation-play-state entirely and are
+   paused/resumed by script.js. */
+.card .card-deco-wrap * { animation-play-state: paused !important; }
+@media (hover: hover) {
+  .card:hover .card-deco-wrap *,
+  .card:focus-within .card-deco-wrap * { animation-play-state: running !important; }
 }
-
-/* During scroll, all deco animations are temporarily paused so repaints don't
-   compete with scrolling and the page stays smooth (JS adds the is-scrolling
-   class on <html>). */
-html.is-scrolling .card-deco-wrap *,
-html.is-scrolling .card-corner-deco * {
-  animation-play-state: paused !important;
-}
-
-/* "Calm" (adaptive) mode: once the card count passes a threshold, deco
-   animations are idle by default and only the hovered/focused card animates
-   — keeps things smooth with 50 to 100+ cards. JS toggles the grid--calm
-   class on the grid. */
-.grid--calm .card-deco-wrap * {
-  animation-play-state: paused !important;
-}
-.grid--calm .card:hover .card-deco-wrap *,
-.grid--calm .card:focus-within .card-deco-wrap * {
-  animation-play-state: running !important;
-}
-/* Even in calm mode, the hovered card stays paused during scroll */
-html.is-scrolling .grid--calm .card:hover .card-deco-wrap *,
-html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
-  animation-play-state: paused !important;
-}
+/* The hovered card stays still while the page scrolls (JS adds is-scrolling). */
+html.is-scrolling .card-deco-wrap * { animation-play-state: paused !important; }
 .card[data-badge="تصویر"] {
   --card-color:   var(--cat-img-color);   --card-color-l: var(--cat-img-light);
   --card-bg:      var(--cat-img-bg);      --card-bg-h:    rgba(167,139,250,.15);
@@ -636,7 +639,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   margin-bottom: 11px; color: var(--card-color);
   transition: background var(--transition), transform var(--transition-bounce), box-shadow var(--transition);
 }
-.card:hover .card-icon { background: var(--card-bg-h); transform: scale(1.1) rotate(-3deg); box-shadow: 0 6px 16px var(--card-shadow); }
+.card:hover .card-icon { background: var(--card-bg-h); transform: scale(1.06); box-shadow: 0 6px 16px var(--card-shadow); }
 .card-icon svg { width: 22px; height: 22px; }
 
 .card-badge {
@@ -762,7 +765,6 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 /* =============================================================================
    Animations
    ============================================================================= */
-@keyframes cardIn    { from{opacity:0;transform:translateY(14px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
 @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
 @keyframes shimmer   { 0%,100%{opacity:.6} 50%{opacity:1} }
 @keyframes skSweep   { 0%{transform:translateX(100%)} 60%,100%{transform:translateX(-200%)} }
@@ -793,6 +795,20 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+/* Some systems ask for less transparency (an accessibility setting, and a good
+   proxy for weak hardware): drop every backdrop blur and dim a little harder
+   instead — same readability, none of the per-frame blur cost. */
+@media (prefers-reduced-transparency: reduce) {
+  .app-header__inner,
+  .pop-backdrop.open,
+  .login-modal-overlay.open,
+  .nd-overlay.open,
+  .tm-overlay.open {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .pop-backdrop.open::before { background: rgba(0, 0, 0, .72); }
+}
 
 /* =============================================================================
    Accessibility
@@ -810,7 +826,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 * { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
 
-.gen-line{stroke:var(--color-accent);opacity:.4;animation:pulseFade 3s ease-in-out infinite;}
+.gen-line{stroke:var(--color-accent);opacity:.4;animation:pulseFade 3s -1.5s ease-in-out infinite;}
 
 /* =============================================================================
    Card animations — waves
@@ -826,8 +842,8 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
    ============================================================================= */
 .code-line{fill:var(--card-color);opacity:0;animation:codeType 3s ease-in-out infinite}
 .code-kw{fill:var(--card-color);opacity:0;animation:codeGlow 3s ease-in-out infinite}
-.cl-1,.ck-1{animation-delay:0s}.cl-2{animation-delay:.3s}
-.cl-3,.ck-2{animation-delay:.6s}.cl-4,.ck-3{animation-delay:.9s}.cl-5{animation-delay:1.2s}
+.cl-1,.ck-1{animation-delay:-.6s}.cl-2{animation-delay:-.9s}
+.cl-3,.ck-2{animation-delay:-1.2s}.cl-4,.ck-3{animation-delay:-1.5s}.cl-5{animation-delay:-1.8s}
 @keyframes codeType{0%,100%{opacity:0}20%{opacity:.3}55%{opacity:.2}80%{opacity:0}}
 @keyframes codeGlow{0%,100%{opacity:0}20%{opacity:.9}55%{opacity:.7}80%{opacity:0}}
 
@@ -839,9 +855,9 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .radar-sweep{fill:var(--card-color);opacity:.18}
 .radar-group{animation:radarSpin 3s linear infinite}
 .radar-ping{fill:var(--card-color);opacity:0}
-.rp-1{animation:radarPing 3s .5s ease-out infinite}
-.rp-2{animation:radarPing 3s 1.5s ease-out infinite}
-.rp-3{animation:radarPing 3s 2.4s ease-out infinite}
+.rp-1{animation:radarPing 3s -.65s ease-out infinite}
+.rp-2{animation:radarPing 3s -1.65s ease-out infinite}
+.rp-3{animation:radarPing 3s -2.55s ease-out infinite}
 @keyframes radarSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes radarPing{0%{opacity:0}5%{opacity:1}40%{opacity:.6}100%{opacity:0}}
 
@@ -849,7 +865,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
    orbit
    ============================================================================= */
 .orb-ring{fill:none;stroke:var(--card-color);stroke-width:1;opacity:.25}
-.orb-center{fill:var(--card-color);opacity:.8;animation:pulseFade 2s ease-in-out infinite}
+.orb-center{fill:var(--card-color);opacity:.8;animation:pulseFade 2s -1s ease-in-out infinite}
 .orb-dot{fill:var(--card-color)}
 .og-1{animation:orbitCW 4s linear infinite}
 .og-2{animation:orbitCCW 3s linear infinite}
@@ -861,18 +877,18 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
    signal
    ============================================================================= */
 .sig-arc{fill:none;stroke:var(--card-color);stroke-linecap:round;opacity:0;animation:sigPulse 2.4s ease-out infinite}
-.sig-dot{fill:var(--card-color);animation:pulseFade 2.4s ease-in-out infinite}
-.sa-1{stroke-width:2.5;animation-delay:0s}
-.sa-2{stroke-width:2;animation-delay:.4s}
-.sa-3{stroke-width:1.5;animation-delay:.8s}
+.sig-dot{fill:var(--card-color);animation:pulseFade 2.4s -1.2s ease-in-out infinite}
+.sa-1{stroke-width:2.5;animation-delay:-.6s}
+.sa-2{stroke-width:2;animation-delay:-1s}
+.sa-3{stroke-width:1.5;animation-delay:-1.4s}
 @keyframes sigPulse{0%{opacity:0}25%{opacity:.9}65%{opacity:.5}100%{opacity:0}}
 
 /* =============================================================================
    particles
    ============================================================================= */
 .ptcl{fill:var(--card-color);opacity:0;animation:particleFloat 2.5s ease-out infinite}
-.pt-1{animation-delay:0s}.pt-2{animation-delay:.35s}.pt-3{animation-delay:.7s}.pt-4{animation-delay:1.05s}
-.pt-5{animation-delay:1.4s}.pt-6{animation-delay:.18s}.pt-7{animation-delay:.88s}.pt-8{animation-delay:1.22s}
+.pt-1{animation-delay:-.4s}.pt-2{animation-delay:-.75s}.pt-3{animation-delay:-1.1s}.pt-4{animation-delay:-1.45s}
+.pt-5{animation-delay:-1.8s}.pt-6{animation-delay:-.58s}.pt-7{animation-delay:-1.28s}.pt-8{animation-delay:-1.62s}
 @keyframes particleFloat{0%{opacity:0;transform:translateY(0) scale(1)}15%{opacity:.9;transform:translateY(-6px) scale(1.1)}100%{opacity:0;transform:translateY(-38px) scale(.3)}}
 
 /* =============================================================================
@@ -880,8 +896,8 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
    ============================================================================= */
 .grid-ln{stroke:var(--card-color);stroke-width:.7;opacity:.15}
 .grid-cell{fill:var(--card-color);opacity:0;animation:gridBlink 3.5s ease-in-out infinite}
-.gc-1{animation-delay:0s}.gc-2{animation-delay:.6s}.gc-3{animation-delay:1.2s}
-.gc-4{animation-delay:1.8s}.gc-5{animation-delay:.9s}.gc-6{animation-delay:1.5s}
+.gc-1{animation-delay:-1.2s}.gc-2{animation-delay:-1.8s}.gc-3{animation-delay:-2.4s}
+.gc-4{animation-delay:-3s}.gc-5{animation-delay:-2.1s}.gc-6{animation-delay:-2.7s}
 @keyframes gridBlink{0%,100%{opacity:0}35%{opacity:.55}55%{opacity:.4}}
 
 /* =============================================================================
@@ -890,17 +906,17 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
 .dna-s1,.dna-s2{fill:none;stroke:var(--card-color);stroke-width:2;stroke-linecap:round;stroke-dasharray:240;animation:dnaScroll 3s linear infinite}
 .dna-s2{opacity:.5;animation-delay:-1.5s}
 .dna-r{stroke:var(--card-color);stroke-width:1.2;stroke-linecap:round;opacity:0;animation:dnaRung 3s ease-in-out infinite}
-.dr-1{animation-delay:.15s}.dr-2{animation-delay:.45s}.dr-3{animation-delay:.75s}.dr-4{animation-delay:1.05s}
-.dr-5{animation-delay:1.35s}.dr-6{animation-delay:1.65s}.dr-7{animation-delay:1.95s}
+.dr-1{animation-delay:-1.05s}.dr-2{animation-delay:-1.35s}.dr-3{animation-delay:-1.65s}.dr-4{animation-delay:-1.95s}
+.dr-5{animation-delay:-2.25s}.dr-6{animation-delay:-2.55s}.dr-7{animation-delay:-2.85s}
 @keyframes dnaScroll{from{stroke-dashoffset:240}to{stroke-dashoffset:0}}
 @keyframes dnaRung{0%,100%{opacity:0}30%{opacity:.7}55%{opacity:.5}}
 
 /* =============================================================================
    pulse/ECG
    ============================================================================= */
-.ecg-line{fill:none;stroke:var(--card-color);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:280;stroke-dashoffset:280;animation:ecgDraw 2.8s ease-in-out infinite}
-.ecg-glow{fill:none;stroke:var(--card-color);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:280;stroke-dashoffset:280;opacity:.2;animation:ecgDraw 2.8s ease-in-out infinite}
-.ecg-dot{fill:var(--card-color);animation:ecgPing 2.8s ease-in-out infinite;opacity:0}
+.ecg-line{fill:none;stroke:var(--card-color);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:280;stroke-dashoffset:280;animation:ecgDraw 2.8s -1.25s ease-in-out infinite}
+.ecg-glow{fill:none;stroke:var(--card-color);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:280;stroke-dashoffset:280;opacity:.2;animation:ecgDraw 2.8s -1.25s ease-in-out infinite}
+.ecg-dot{fill:var(--card-color);animation:ecgPing 2.8s -1.25s ease-in-out infinite;opacity:0}
 @keyframes ecgDraw{0%{stroke-dashoffset:280;opacity:0}10%{opacity:1}60%{stroke-dashoffset:0;opacity:1}80%{stroke-dashoffset:0;opacity:.3}100%{stroke-dashoffset:0;opacity:0}}
 @keyframes ecgPing{0%,50%{opacity:0;transform:scale(0)}55%{opacity:1;transform:scale(1.6)}70%{opacity:.6;transform:scale(1)}100%{opacity:0}}
 
@@ -908,10 +924,10 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
    stars / space
    ============================================================================= */
 .star-dot{fill:var(--card-color);animation:starTwinkle 2s ease-in-out infinite}
-.sd-1{animation-delay:0s;r:2.5}.sd-2{animation-delay:.3s;r:1.5}.sd-3{animation-delay:.6s;r:2}
-.sd-4{animation-delay:.9s;r:1}.sd-5{animation-delay:1.2s;r:2}.sd-6{animation-delay:1.5s;r:1.5}
-.sd-7{animation-delay:.45s;r:1.2}.sd-8{animation-delay:.75s;r:2.2}.sd-9{animation-delay:1.1s;r:1.8}
-.star-line{stroke:var(--card-color);stroke-width:.6;opacity:.2;stroke-dasharray:3 5;animation:pulseFade 4s ease-in-out infinite}
+.sd-1{animation-delay:-1s;r:2.5}.sd-2{animation-delay:-1.3s;r:1.5}.sd-3{animation-delay:-1.6s;r:2}
+.sd-4{animation-delay:-1.9s;r:1}.sd-5{animation-delay:-2.2s;r:2}.sd-6{animation-delay:-2.5s;r:1.5}
+.sd-7{animation-delay:-1.45s;r:1.2}.sd-8{animation-delay:-1.75s;r:2.2}.sd-9{animation-delay:-2.1s;r:1.8}
+.star-line{stroke:var(--card-color);stroke-width:.6;opacity:.2;stroke-dasharray:3 5;animation:pulseFade 4s -2s ease-in-out infinite}
 @keyframes starTwinkle{0%,100%{opacity:.1;transform:scale(.6)}50%{opacity:1;transform:scale(1.2)}}
 
 /* =============================================================================
@@ -995,8 +1011,7 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* blur only while open — a closed overlay should cost nothing */
   z-index: 200;
   display: flex;
   align-items: center;
@@ -1007,6 +1022,8 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
   transition: opacity 0.22s ease;
 }
 .login-modal-overlay.open {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   opacity: 1;
   pointer-events: auto;
 }
@@ -1728,25 +1745,44 @@ html.is-scrolling .grid--calm .card:focus-within .card-deco-wrap * {
    so a modal-level (200) backdrop would cover them too. Header + popover
    stay crisp; everything else dims. Clicking the dim area closes the
    popover via the existing document-level outside-click handler. */
+/* Performance: the blur and the dim are split across two layers on purpose.
+   Fading a blurred layer in and out makes the browser recompute a full-screen
+   blur on every frame of the fade (the expensive part); instead the blurring
+   layer itself never animates — it is hidden (so it paints nothing and costs
+   nothing while closed) and, once open, its blur is computed once over a
+   background whose animations are already paused. Only the ::before tint, a
+   plain colour with no filter, fades. On close the blur is dropped after the
+   tint has faded (the 0s transition delay) so it doesn't pop away early. */
 .pop-backdrop {
   position: fixed;
   inset: 0;
   z-index: 99;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  opacity: 0;
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  visibility: hidden;
   pointer-events: none;
+  transition: visibility 0s linear 0.22s, backdrop-filter 0s linear 0.22s;
+}
+.pop-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
   transition: opacity 0.22s ease;
 }
 .pop-backdrop.open {
-  opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition-delay: 0s;
 }
+.pop-backdrop.open::before { opacity: 1; }
 /* Freeze the looping card animations while the page is dimmed behind a
    popover — same pattern as body.notif-modal-open / body.tool-modal-open:
    the !important is required to beat calm-mode's hover rule
-   (.grid--calm .card:hover ... running !important). */
+   (the hover rule in the card section). */
 body.pop-open .card-deco-wrap *,
 body.pop-open .card-corner-deco * {
   animation-play-state: paused !important;
@@ -2761,8 +2797,8 @@ body.tool-modal-open .card-corner-deco * {
 
 .lightbox {
   position: fixed; inset: 0; z-index: 10000;
+  /* no backdrop blur: at 92% black nothing of the page shows through anyway */
   background: rgba(0,0,0,.92);
-  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
   opacity: 0; pointer-events: none;
@@ -2790,7 +2826,6 @@ body.tool-modal-open .card-corner-deco * {
   background: rgba(255,255,255,.12); border: none; cursor: pointer;
   color: #fff;
   display: flex; align-items: center; justify-content: center;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   transition: background .18s ease, transform .18s ease;
   z-index: 1;
 }
@@ -3359,7 +3394,6 @@ body.is-dragging *::after { animation-play-state: paused !important; }
   border: 1px solid rgba(148, 163, 184, .18);
   border-radius: var(--radius-xs);
   box-shadow: 0 8px 24px rgba(15, 23, 42, .28);
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   opacity: 0; transform: translateY(3px) scale(.97);
   transition: opacity .14s ease, transform .14s ease;
 }

@@ -144,11 +144,11 @@ const Counter = {
 // Modal
 // ═══════════════════════════════════════════════════════════
 const Modal = {
-  open(id)  { document.getElementById(id).classList.add('open');    document.body.style.overflow = 'hidden'; },
+  open(id)  { document.getElementById(id).classList.add('open');    ScrollLock.lock(); },
   close(id) {
     document.getElementById(id).classList.remove('open');
     // if another modal is still open (e.g. a confirm on top of a form), keep the scroll lock
-    if (!document.querySelector('.modal-overlay.open')) document.body.style.overflow = '';
+    if (!document.querySelector('.modal-overlay.open')) ScrollLock.unlock();
   },
 };
 

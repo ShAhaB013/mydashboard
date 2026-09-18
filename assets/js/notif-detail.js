@@ -137,7 +137,7 @@ const NotifDetail = {
     const body    = overlay.querySelector('.nd-body');
     if (body) body.scrollTop = 0;
     overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    ScrollLock.lock();
     document.body.classList.add('notif-modal-open');
     // Focus the box itself (not the close button) so focus doesn't land on
     // the ✕, while still preserving Escape and accessibility.
@@ -148,7 +148,7 @@ const NotifDetail = {
   close() {
     const overlay = document.getElementById('ndOverlay');
     overlay.classList.remove('open');
-    document.body.style.overflow = '';
+    ScrollLock.unlock();
     document.body.classList.remove('notif-modal-open');
     // Reset progressive-loading state
     const img     = document.getElementById('ndImage');

@@ -97,3 +97,23 @@ window.Skeleton = {
     if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
   },
 };
+
+// ── ScrollLock: page lock behind modals ──
+// Hiding the page's scrollbar makes the content underneath jump sideways by the
+// bar's width. Reserving that space for as long as the lock lasts keeps the page
+// perfectly still — and only while locked, so short pages still show no gutter.
+// The reserving itself is the CSS rule for html.scroll-locked.
+window.ScrollLock = {
+  lock() {
+    // Only reserve the gutter when a scrollbar is actually there to lose: on a page
+    // that doesn't scroll, reserving it would cause the very shift this prevents.
+    if (window.innerWidth - document.documentElement.clientWidth > 0) {
+      document.documentElement.classList.add('scroll-locked');
+    }
+    document.body.style.overflow = 'hidden';
+  },
+  unlock() {
+    document.documentElement.classList.remove('scroll-locked');
+    document.body.style.overflow = '';
+  },
+};

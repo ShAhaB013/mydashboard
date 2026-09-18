@@ -900,6 +900,11 @@ textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px rgba(var
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width:5px; height:5px; }
+/* While a modal locks the page, the scrollbar's space stays reserved so the
+   content underneath doesn't jump sideways when the bar disappears (the
+   scroll-locked class is set by ScrollLock in actions.js). */
+html.scroll-locked { scrollbar-gutter: stable; }
+
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--text-3); }

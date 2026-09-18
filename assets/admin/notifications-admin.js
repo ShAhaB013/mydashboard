@@ -1340,11 +1340,11 @@ const NM = {
     list.innerHTML = '';
   },
 
-  _openModal(id)  { document.getElementById(id).classList.add('open');    document.body.style.overflow = 'hidden'; },
+  _openModal(id)  { document.getElementById(id).classList.add('open');    ScrollLock.lock(); },
   _closeModal(id) {
     document.getElementById(id).classList.remove('open');
     // if another modal is still open (a confirm on top of the form), keep the scroll lock
-    if (!document.querySelector('.modal-overlay.open')) document.body.style.overflow = '';
+    if (!document.querySelector('.modal-overlay.open')) ScrollLock.unlock();
   },
   _esc(str)     { return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); },
   _stripTags(html) {

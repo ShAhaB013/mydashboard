@@ -710,31 +710,59 @@ function setFilter(f) {
    servermonitor, hostmonitor, ssl, pfx, bitninja, loganalyzer) instead use native SVG
    SMIL (<animate>/<animateTransform>/<animateMotion>), which keeps running regardless
    of that CSS rule and needs the SVG root's own pauseAnimations()/unpauseAnimations(). */
+/* ── freeze a card's deco on a drawn frame ──
+   Decos are paused unless the card is hovered, but at time 0 most of them are
+   invisible (they fade, draw or float in), which would leave idle cards looking
+   empty. So each new card's deco is wound forward to a mid frame and paused
+   there — CSS @keyframes via the Web Animations API (this also reaches the decos
+   that carry their animation in an inline style attribute), SMIL via the SVG
+   root's own clock. Hovering simply resumes from that frame. */
+const FREEZE_AT = 0.35;   // fraction of each CSS animation's duration
+const FREEZE_SMIL = 1.2;  // seconds into the SVG timeline
+
+/* Touch devices have no hover, so the CSS rule never runs a deco there — the SMIL
+   side (which CSS cannot reach) must respect the same condition, or a tap would
+   start animations that stay invisible and only burn CPU. */
+function canAnimateDeco() {
+  return !window.matchMedia || window.matchMedia('(hover: hover)').matches;
+}
+
+function freezeDeco(card) {
+  const wrap = card.querySelector('.card-deco-wrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('svg').forEach(s => {
+    try { s.setCurrentTime(FREEZE_SMIL); s.pauseAnimations(); } catch (_) {}
+  });
+  if (!wrap.getAnimations) return;
+  wrap.getAnimations({ subtree: true }).forEach(a => {
+    try {
+      const d = a.effect?.getComputedTiming?.().duration;
+      if (typeof d === 'number' && isFinite(d) && d > 0) a.currentTime = d * FREEZE_AT;
+    } catch (_) {}
+  });
+}
+
 function pauseSMIL(scope) {
   scope.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (_) {} });
 }
 function unpauseSMIL(scope) {
   scope.querySelectorAll('svg').forEach(s => { try { s.unpauseAnimations(); } catch (_) {} });
 }
-/* Same as unpauseSMIL, but respects other modes that keep animation paused on purpose:
+/* Same as unpauseSMIL, but respects the modes that keep animation paused on purpose:
+   - deco only ever animates on the hovered/focused card (mirrors the CSS rule in
+     style.css), so a card the pointer isn't on must stay paused.
    - a dimmed page (popover/modal open — see pageDimmed()) keeps everything frozen;
-     without this guard the scroll-stop and card-visibility resumers below would
-     visibly restart the SMIL decos behind the dim layer.
+     without this guard the scroll-stop resumer below would visibly restart the
+     SMIL decos behind the dim layer.
    - reorder mode (dragging cards) pauses everything itself and manages its own resume
-     (on exit); a scroll mid-drag (the edge auto-scroll) must not undo that.
-   - "calm mode" (30+ cards, deco only animates on hover/focus — see .grid--calm in
-     style.css) a card whose CSS state is still paused must stay paused, or scroll/
-     visibility resuming it would fight the CSS rule and run the SMIL invisibly
-     (wasting CPU) or visibly out of sync. */
+     (on exit); a scroll mid-drag (the edge auto-scroll) must not undo that. */
 function resumeSMIL(scope) {
+  if (!canAnimateDeco()) return;
   if (pageDimmed()) return;
   if (grid.classList.contains('reordering')) return;
-  const calm = grid.classList.contains('grid--calm');
   scope.querySelectorAll('svg').forEach(s => {
-    if (calm) {
-      const card = s.closest('.card');
-      if (card && !card.matches(':hover') && !card.contains(document.activeElement)) return;
-    }
+    const card = s.closest('.card');
+    if (card && !card.matches(':hover') && !card.contains(document.activeElement)) return;
     try { s.unpauseAnimations(); } catch (_) {}
   });
 }
@@ -742,7 +770,7 @@ function resumeSMIL(scope) {
 /* Drive the SMIL freeze from the dim state itself: a body-class observer
    covers all three dim sources (bell/user popovers in this file, the
    notification + tool modals in theirs) without touching their code.
-   Undimming goes through resumeSMIL so calm/reorder rules keep applying. */
+   Undimming goes through resumeSMIL so the hover/reorder rules keep applying. */
 new MutationObserver(() => {
   if (pageDimmed()) pauseSMIL(grid); else resumeSMIL(grid);
 }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
@@ -752,8 +780,8 @@ new MutationObserver(() => {
    ═══════════════════════════════════════════════════════════ */
 /* ── pause deco animation during scroll ──
    While scrolling, SVG animation repaints compete with the scroll itself and cause lag.
-   Adding the is-scrolling class to <html> temporarily stops all deco animations,
-   which resume ~150ms after scrolling stops. (Harmless if there are no cards.) */
+   The is-scrolling class on <html> stops deco animation until ~150ms after scrolling
+   ends. Only the hovered card can be animating, so only it needs the SMIL calls. */
 (function () {
   const root = document.documentElement;
   let scrolling = false, raf = 0, off = 0;
@@ -773,21 +801,6 @@ new MutationObserver(() => {
   window.addEventListener('scroll', onScroll, { passive: true });
 })();
 
-let cardVisibilityObserver = null;
-function getCardVisibilityObserver() {
-  if (cardVisibilityObserver) return cardVisibilityObserver;
-  if (typeof IntersectionObserver === 'undefined') return null;
-  cardVisibilityObserver = new IntersectionObserver(entries => {
-    for (const entry of entries) {
-      const goingOffscreen = !entry.isIntersecting;
-      entry.target.classList.toggle('card--offscreen', goingOffscreen);
-      // is-scrolling already paused everything; avoid unpausing offscreen cards mid-scroll
-      if (goingOffscreen) pauseSMIL(entry.target);
-      else if (!document.documentElement.classList.contains('is-scrolling')) resumeSMIL(entry.target);
-    }
-  }, { rootMargin: '300px 0px', threshold: 0 });
-  return cardVisibilityObserver;
-}
 
 /* ═══════════════════════════════════════════════════════════
    Render
@@ -796,9 +809,6 @@ function getCardVisibilityObserver() {
       next batch only renders once the user scrolls near the end of the list.
       This avoids building hundreds of cards + deco animations all at once. */
 const BATCH_SIZE = 12;
-/* "calm mode" threshold: above this many cards, deco animation only runs on the
-   hovered card (the rest stay still) to avoid lag with 50-100+ cards. Adjustable. */
-const MOTION_THRESHOLD = 30;
 let loadMoreObserver = null;
 let renderQueue = { list: [], rendered: 0, sentinel: null };
 
@@ -829,13 +839,9 @@ function renderNextBatch() {
   grid.appendChild(frag);
   renderQueue.rendered += slice.length;
 
-  // cards born while the page is dimmed (e.g. lazy batch loaded by scrolling
-  // under an open popover) must arrive frozen like the rest of the grid
-  if (pageDimmed()) newCards.forEach(c => pauseSMIL(c));
-
-  // only observe the newly added cards, for off-screen animation pausing
-  const obs = getCardVisibilityObserver();
-  if (obs) newCards.forEach(c => obs.observe(c));
+  // Deco animations only exist once the card is in the document (a pause call made
+  // while it was still detached doesn't carry over), so the freeze happens here.
+  newCards.forEach(c => freezeDeco(c));
 
   // if cards remain, create and observe a sentinel to load the next batch
   if (renderQueue.rendered < list.length) {
@@ -854,8 +860,7 @@ function renderNextBatch() {
 }
 
 function renderTools(filterText = '') {
-  // disconnect observers before clearing the DOM (prevents a memory leak)
-  cardVisibilityObserver?.disconnect();
+  // disconnect the lazy-loading observer before clearing the DOM (prevents a memory leak)
   loadMoreObserver?.disconnect();
 
   grid.textContent = '';
@@ -878,9 +883,6 @@ function renderTools(filterText = '') {
   }
 
   if (toolCount) toolCount.textContent = String(list.length);
-
-  // adaptive calm mode: with many cards, deco animation only runs on hover
-  grid.classList.toggle('grid--calm', list.length > MOTION_THRESHOLD);
 
   if (!list.length) { showEmptyState(q); return; }
 
@@ -936,25 +938,23 @@ function createCard(tool) {
 
   card.append(cornerWrap, iconEl, badge, title, desc, decoWrap, arrow);
 
-  // calm mode (30+ cards): deco SMIL only runs on hover/focus, mirroring the CSS rule
-  // that keeps CSS @keyframes decos paused otherwise — animation-play-state has no
-  // effect on SMIL, so it needs these explicit pause/unpauseAnimations() calls too.
-  if (grid.classList.contains('grid--calm')) {
-    pauseSMIL(card);
-    // hover/drag during reorder mode must NOT wake it back up — dragging a card
-    // over others fires mouseenter/mouseleave on them just like a real hover
-    // (nor may keyboard focus while the page is dimmed behind a popover/modal)
-    const wake  = () => {
-      if (!document.documentElement.classList.contains('is-scrolling') && !grid.classList.contains('reordering') && !pageDimmed()) {
-        unpauseSMIL(card);
-      }
-    };
-    const sleep = () => pauseSMIL(card);
-    card.addEventListener('mouseenter', wake);
-    card.addEventListener('mouseleave', sleep);
-    card.addEventListener('focusin',    wake);
-    card.addEventListener('focusout',   sleep);
-  }
+  // Deco animation runs on the hovered/focused card only (see the CSS rule in
+  // style.css). animation-play-state has no effect on SMIL decos, so those need
+  // explicit pause/unpauseAnimations() calls: born asleep, woken by hover/focus.
+  pauseSMIL(card);
+  // hover/drag during reorder mode must NOT wake it back up — dragging a card
+  // over others fires mouseenter/mouseleave on them just like a real hover
+  // (nor may keyboard focus while the page is dimmed behind a popover/modal)
+  const wake = () => {
+    if (canAnimateDeco() && !document.documentElement.classList.contains('is-scrolling') && !grid.classList.contains('reordering') && !pageDimmed()) {
+      unpauseSMIL(card);
+    }
+  };
+  const sleep = () => pauseSMIL(card);
+  card.addEventListener('mouseenter', wake);
+  card.addEventListener('mouseleave', sleep);
+  card.addEventListener('focusin',    wake);
+  card.addEventListener('focusout',   sleep);
 
   const safePath = sanitizePath(tool.path);
   if (safePath) {
@@ -1208,8 +1208,7 @@ const SKELETON_LIST_ITEM =
   + '</div>';
 
 function showSkeleton(n = 6) {
-  // disconnect observers before clearing the DOM (prevents a memory leak)
-  cardVisibilityObserver?.disconnect();
+  // disconnect the lazy-loading observer before clearing the DOM (prevents a memory leak)
   loadMoreObserver?.disconnect();
   grid.innerHTML = SKELETON_CARD.repeat(n);
   Skeleton.mark(grid);
@@ -1922,7 +1921,6 @@ const AdminTools = {
     this._reordering = true;
     document.getElementById('reorderToggle')?.classList.add('is-active');
     const bar = document.getElementById('reorderBar'); if (bar) bar.hidden = false;
-    if (typeof cardVisibilityObserver !== 'undefined') cardVisibilityObserver?.disconnect();
     if (typeof loadMoreObserver !== 'undefined') loadMoreObserver?.disconnect();
     // render all cards at once (no lazy loading), in one column, so the full order is in the DOM
     grid.textContent = '';
